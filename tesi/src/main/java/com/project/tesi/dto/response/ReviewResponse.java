@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -15,5 +15,5 @@ public class ReviewResponse {
     private String authorName; // Solo nome, per privacy
     private int rating;
     private String comment;
-    private LocalDate date;
+    private LocalDateTime date;
 }
