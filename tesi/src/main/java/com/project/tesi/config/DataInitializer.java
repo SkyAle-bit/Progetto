@@ -29,15 +29,11 @@ public class DataInitializer {
                                SlotRepository slotRepository,
                                SubscriptionRepository subscriptionRepository) {
         return args -> {
-            System.out.println("⏳ Inizio inizializzazione dati...");
-
             // 1. GESTIONE PIANI (La tua logica specifica)
             createOrUpdatePlan(planRepository, "Basic Pack Semestrale", PlanDuration.SEMESTRALE, 1, 1, 960.0, 160.0);
             createOrUpdatePlan(planRepository, "Basic Pack Annuale", PlanDuration.ANNUALE, 1, 1, 1800.0, 150.0);
             createOrUpdatePlan(planRepository, "Premium Pack Semestrale", PlanDuration.SEMESTRALE, 2, 2, 1620.0, 270.0);
             createOrUpdatePlan(planRepository, "Premium Pack Annuale", PlanDuration.ANNUALE, 2, 2, 3000.0, 250.0);
-
-            System.out.println("✅ Piani aggiornati/creati con successo");
 
             // 2. CREAZIONE UTENTI (PT, Nutrizionista, Cliente)
             User pt = createOrUpdateUser(userRepository, "Mario", "Rossi", "pt@test.com", Role.PERSONAL_TRAINER);
@@ -46,19 +42,16 @@ public class DataInitializer {
 
             // 3. CREAZIONE SLOT (Disponibilità per domani)
             if (slotRepository.count() == 0) {
-                LocalDateTime tomorrow = LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.of(9, 0));
+                LocalDateTime tomorrow = LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.of(10, 0));
 
-                // Crea 3 slot per il PT
-                createSlot(slotRepository, pt, tomorrow);
-                createSlot(slotRepository, pt, tomorrow.plusHours(1));
-                createSlot(slotRepository, pt, tomorrow.plusHours(2));
+                createSlot(slotRepository, pt, tomorrow);                  // 10:00 - 10:30
+                createSlot(slotRepository, pt, tomorrow.plusMinutes(30));  // 10:30 - 11:00
+                createSlot(slotRepository, pt, tomorrow.plusMinutes(60));  // 11:00 - 11:30
 
-                // Crea 2 slot per il Nutrizionista
+                // Nutrizionista: Slot dalle 15:00
                 LocalDateTime tomorrowAfternoon = LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.of(15, 0));
-                createSlot(slotRepository, nutri, tomorrowAfternoon);
-                createSlot(slotRepository, nutri, tomorrowAfternoon.plusHours(1));
-
-                System.out.println("✅ Slot creati per domani");
+                createSlot(slotRepository, nutri, tomorrowAfternoon);                 // 15:00 - 15:30
+                createSlot(slotRepository, nutri, tomorrowAfternoon.plusMinutes(30)); // 15:30 - 16:00
             }
 
             // 4. CREAZIONE ABBONAMENTO CLIENTE (Per testare le prenotazioni)
@@ -80,11 +73,8 @@ public class DataInitializer {
                             .build();
 
                     subscriptionRepository.save(sub);
-                    System.out.println("✅ Abbonamento assegnato al cliente");
                 }
             }
-
-            System.out.println("🚀 DATABASE PRONTO!");
         };
     }
 
@@ -127,7 +117,6 @@ public class DataInitializer {
                 .password("password") // Password temporanea
                 .role(role)
                 .build();
-        System.out.println("✅ Utente creato: " + email);
         return repo.save(user);
     }
 
