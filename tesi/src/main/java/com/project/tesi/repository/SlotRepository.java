@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface SlotRepository extends JpaRepository<Slot, Long> {
@@ -22,4 +23,9 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
     List<Slot> findAvailableSlots(@Param("profId") Long profId,
                                   @Param("start") LocalDateTime start,
                                   @Param("end") LocalDateTime end);
+
+    // Serve a SlotServiceImpl per mostrare il calendario
+    List<Slot> findByProfessionalAndIsBookedFalse(User professional);
+
+    List<Slot> findByIsBookedFalse();
 }

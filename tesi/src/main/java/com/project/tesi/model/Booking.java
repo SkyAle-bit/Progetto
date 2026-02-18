@@ -19,8 +19,12 @@ public class Booking {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    private User client;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "professional_id")
+    private User professional;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "slot_id", nullable = false, unique = true)
