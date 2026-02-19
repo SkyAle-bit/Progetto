@@ -10,11 +10,16 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProfessionalSummaryDTO {
+public class AuthResponse {
+    private String token;
+
+    @Builder.Default
+    private String type = "Bearer";
+
+    // --- NUOVI CAMPI PER IL FRONTEND ---
     private Long id;
-    private String fullName; // Nome + Cognome concatenati
-    private Double averageRating;
-    private Integer currentActiveClients; // Per mostrare es: 42/50
-    private boolean isSoldOut; // Se ha raggiunto i 50 utenti
+    private String firstName;
+    private String lastName;
+    private String email;
     private Role role;
 }
