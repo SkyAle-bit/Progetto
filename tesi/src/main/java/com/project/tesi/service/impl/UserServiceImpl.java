@@ -5,7 +5,10 @@ import com.project.tesi.dto.response.ClientDashboardResponse;
 import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.user.ResourceAlreadyExistsException;
+import com.project.tesi.exception.user.ResourceNotFoundException;
 import com.project.tesi.mapper.UserMapper;
+import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.ReviewRepository;
@@ -30,17 +33,19 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse registerUser(RegisterRequest request) {
+        // Controllo duplicati con Eccezione 409 Conflict
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email già registrata");
+            throw new ResourceAlreadyExistsException("Email già registrata. Usa un'altra email o fai il login.");
         }
 
         User.UserBuilder userBuilder = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
-                .password(request.getPassword())
-                .role(Role.CLIENT);
+                .password(request.getPassword()) // Da criptare con passwordEncoder in fase di Security
+                .role(Role.CLIENT); // Ruolo forzato a CLIENT dal server
 
+        // Assegnazione professionisti obbligatoria/controllata
         assignProfessional(userBuilder, request.getSelectedPtId(), Role.PERSONAL_TRAINER);
         assignProfessional(userBuilder, request.getSelectedNutritionistId(), Role.NUTRITIONIST);
 
@@ -74,13 +79,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public ClientDashboardResponse getClientDashboard(Long userId) {
+        // Usa l'eccezione custom (404 Not Found)
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId + " non trovato nel sistema."));
 
         // Recuperiamo i professionisti con cui il cliente ha prenotazioni effettive
         List<ProfessionalSummaryDTO> followingProfessionals = bookingRepository.findByUserId(userId)
                 .stream()
-                .map(booking -> booking.getProfessional())
+                .map(Booking::getProfessional) // Scrittura Java più moderna per booking -> booking.getProfessional()
                 .distinct() // Evita duplicati se ci sono più appuntamenti con lo stesso PT
                 .map(pro -> ProfessionalSummaryDTO.builder()
                         .id(pro.getId())
@@ -98,18 +104,20 @@ public class UserServiceImpl implements UserService {
     // --- Metodi privati di supporto ---
 
     private void assignProfessional(User.UserBuilder userBuilder, Long proId, Role expectedRole) {
-        if (proId == null) throw new RuntimeException("Devi selezionare un " + expectedRole);
+        if (proId == null) {
+            throw new IllegalArgumentException("Devi selezionare un " + expectedRole);
+        }
 
         User professional = userRepository.findById(proId)
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista con ID " + proId + " non trovato nel sistema."));
 
         if (professional.getRole() != expectedRole) {
-            throw new RuntimeException("L'ID fornito non corrisponde a un " + expectedRole);
+            throw new IllegalArgumentException("L'ID fornito non corrisponde a un " + expectedRole + ".");
         }
 
         long activeClients = userRepository.countByAssignedPT(professional);
         if (activeClients >= 50) {
-            throw new RuntimeException("Il professionista " + professional.getFirstName() + " è Sold Out.");
+            throw new IllegalStateException("Il professionista " + professional.getFirstName() + " è attualmente Sold Out.");
         }
 
         if (expectedRole == Role.PERSONAL_TRAINER) {
