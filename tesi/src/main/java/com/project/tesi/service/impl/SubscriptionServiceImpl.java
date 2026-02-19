@@ -33,32 +33,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Plan plan = planRepository.findById(request.getPlanId())
                 .orElseThrow(() -> new RuntimeException("Piano non trovato"));
 
-        // Disattiva eventuali abbonamenti precedenti (facoltativo, ma consigliato)
-        subscriptionRepository.findByUserAndIsActiveTrue(user)
-                .ifPresent(sub -> {
-                    sub.setActive(false);
-                    subscriptionRepository.save(sub);
-                });
-
         // Calcolo date
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = (request.getDuration() == PlanDuration.ANNUALE)
                 ? startDate.plusYears(1)
                 : startDate.plusMonths(6);
 
-        // Creazione abbonamento
-        Subscription sub = Subscription.builder()
-                .user(user)
-                .plan(plan)
-                .startDate(startDate)
-                .endDate(endDate)
-                .isActive(true)
-                .paymentFrequency(request.getPaymentFrequency())
-                // Assegna i crediti mensili iniziali definiti nel Piano
-                .currentCreditsPT(plan.getMonthlyCreditsPT())
-                .currentCreditsNutri(plan.getMonthlyCreditsNutri())
-                .build();
+        // ⚠️ LOGICA CORRETTA:
+        // Cerca un abbonamento esistente. Se esiste lo riutilizza (UPDATE),
+        // se non esiste ne istanzia uno nuovo vuoto (INSERT).
+        Subscription sub = subscriptionRepository.findByUserAndIsActiveTrue(user)
+                .orElse(new Subscription());
 
+        // Aggiorniamo tutti i campi dell'oggetto
+        sub.setUser(user);
+        sub.setPlan(plan);
+        sub.setStartDate(startDate);
+        sub.setEndDate(endDate);
+        sub.setActive(true);
+        sub.setPaymentFrequency(request.getPaymentFrequency());
+
+        // Assegna i nuovi crediti previsti dal piano
+        sub.setCurrentCreditsPT(plan.getMonthlyCreditsPT());
+        sub.setCurrentCreditsNutri(plan.getMonthlyCreditsNutri());
+
+        // Save ora farà automaticamente un UPDATE se l'oggetto esisteva già
         Subscription savedSub = subscriptionRepository.save(sub);
 
         return mapToResponse(savedSub);
