@@ -5,6 +5,7 @@ import com.project.tesi.dto.response.ClientDashboardResponse;
 import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.enums.Role;
+import com.project.tesi.mapper.UserMapper;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.ReviewRepository;
@@ -24,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -36,17 +38,15 @@ public class UserServiceImpl implements UserService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
-                .password(request.getPassword()) // In futuro: passwordEncoder.encode(request.getPassword())
-                .role(request.getRole());
+                .password(request.getPassword())
+                .role(Role.CLIENT);
 
-        // Logica assegnazione professionisti per i Client durante la registrazione
-        if (request.getRole() == Role.CLIENT) {
-            assignProfessional(userBuilder, request.getSelectedPtId(), Role.PERSONAL_TRAINER);
-            assignProfessional(userBuilder, request.getSelectedNutritionistId(), Role.NUTRITIONIST);
-        }
+        assignProfessional(userBuilder, request.getSelectedPtId(), Role.PERSONAL_TRAINER);
+        assignProfessional(userBuilder, request.getSelectedNutritionistId(), Role.NUTRITIONIST);
 
         User savedUser = userRepository.save(userBuilder.build());
-        return mapToUserResponse(savedUser);
+
+        return userMapper.toUserResponse(savedUser);
     }
 
     @Override
@@ -90,7 +90,7 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
 
         return ClientDashboardResponse.builder()
-                .profile(mapToUserResponse(user))
+                .profile(userMapper.toUserResponse(user))
                 .followingProfessionals(followingProfessionals)
                 .build();
     }
@@ -117,36 +117,5 @@ public class UserServiceImpl implements UserService {
         } else {
             userBuilder.assignedNutritionist(professional);
         }
-    }
-
-    private UserResponse mapToUserResponse(User user) {
-        Double avgRating = null;
-        Integer clientsCount = null;
-
-        // Se l'utente è un professionista, recuperiamo i dati reali
-        if (user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST) {
-            // 1. Recupera la media reale dal ReviewRepository
-            avgRating = reviewRepository.getAverageRating(user.getId());
-
-            // Se non ci sono ancora recensioni, avgRating sarà null. Possiamo gestirlo mettendo 0.0 o lasciando null.
-            if (avgRating == null) avgRating = 0.0;
-
-            // 2. Recupera il conteggio clienti reale
-            clientsCount = (int) userRepository.countByAssignedPT(user);
-        }
-
-        return UserResponse.builder()
-                .id(user.getId())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .assignedPtName(user.getAssignedPT() != null ?
-                        user.getAssignedPT().getFirstName() + " " + user.getAssignedPT().getLastName() : null)
-                .assignedNutritionistName(user.getAssignedNutritionist() != null ?
-                        user.getAssignedNutritionist().getFirstName() + " " + user.getAssignedNutritionist().getLastName() : null)
-                .activeClientsCount(clientsCount)
-                .averageRating(avgRating) // ORA È REALE
-                .build();
     }
 }
