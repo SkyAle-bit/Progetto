@@ -43,6 +43,7 @@ public class UserServiceImpl implements UserService {
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .password(request.getPassword()) // Da criptare con passwordEncoder in fase di Security
+                .profilePicture(request.getProfilePicture())
                 .role(Role.CLIENT); // Ruolo forzato a CLIENT dal server
 
         // Assegnazione professionisti obbligatoria/controllata
