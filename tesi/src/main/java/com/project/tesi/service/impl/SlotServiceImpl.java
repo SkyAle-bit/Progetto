@@ -1,6 +1,7 @@
 package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.response.SlotDTO;
+import com.project.tesi.enums.Role;
 import com.project.tesi.model.Slot;
 import com.project.tesi.model.User;
 import com.project.tesi.model.WeeklySchedule;
@@ -9,6 +10,7 @@ import com.project.tesi.repository.UserRepository;
 import com.project.tesi.repository.WeeklyScheduleRepository;
 import com.project.tesi.service.SlotService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -132,5 +134,16 @@ public class SlotServiceImpl implements SlotService {
                 .isAvailable(!slot.isBooked())
                 .professionalId(slot.getProfessional().getId())
                 .build();
+    }
+
+    @Scheduled(cron = "0 0 0 * * SUN") // ogni domenica a mezzanotte
+    @Transactional
+    public void generateWeeklySlotsForAllProfessionals() {
+        List<User> professionals = userRepository.findByRoleIn(List.of(Role.PERSONAL_TRAINER, Role.NUTRITIONIST));
+        LocalDate start = LocalDate.now().plusDays(7); // tra una settimana
+        LocalDate end = start.plusDays(6); // tutta la settimana successiva
+        for (User pro : professionals) {
+            generateSlotsFromSchedule(pro.getId(), start, end);
+        }
     }
 }

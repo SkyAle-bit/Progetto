@@ -2,7 +2,9 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.response.SubscriptionResponse;
+import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.PlanDuration;
+import com.project.tesi.exception.user.ResourceNotFoundException;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,39 +31,49 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     public SubscriptionResponse activateSubscription(PlanRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
         Plan plan = planRepository.findById(request.getPlanId())
-                .orElseThrow(() -> new RuntimeException("Piano non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Piano non trovato"));
 
-        // Calcolo date
+        // Se esiste già un abbonamento attivo, lo disattiviamo (o lanciamo eccezione)
+        // Qui scegliamo di disattivare il precedente e crearne uno nuovo
+        Optional<Subscription> existingActive = subscriptionRepository.findByUserAndActiveTrue(user);
+        existingActive.ifPresent(sub -> {
+            sub.setActive(false);
+            subscriptionRepository.save(sub);
+        });
+
         LocalDate startDate = LocalDate.now();
-        LocalDate endDate = (request.getDuration() == PlanDuration.ANNUALE)
+        LocalDate endDate = plan.getDuration() == PlanDuration.ANNUALE
                 ? startDate.plusYears(1)
                 : startDate.plusMonths(6);
 
-        // ⚠️ LOGICA CORRETTA:
-        // Cerca un abbonamento esistente. Se esiste lo riutilizza (UPDATE),
-        // se non esiste ne istanzia uno nuovo vuoto (INSERT).
-        Subscription sub = subscriptionRepository.findByUserAndIsActiveTrue(user)
-                .orElse(new Subscription());
+        Subscription sub = Subscription.builder()
+                .user(user)
+                .plan(plan)
+                .paymentFrequency(request.getPaymentFrequency())
+                .startDate(startDate)
+                .endDate(endDate)
+                .active(true)
+                .currentCreditsPT(plan.getMonthlyCreditsPT())
+                .currentCreditsNutri(plan.getMonthlyCreditsNutri())
+                .lastRenewalDate(startDate)
+                .build();
 
-        // Aggiorniamo tutti i campi dell'oggetto
-        sub.setUser(user);
-        sub.setPlan(plan);
-        sub.setStartDate(startDate);
-        sub.setEndDate(endDate);
-        sub.setActive(true);
-        sub.setPaymentFrequency(request.getPaymentFrequency());
+        // Gestione pagamento iniziale
+        if (request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE) {
+            sub.setInstallmentsPaid(1);
+            sub.setTotalInstallments(1);
+            sub.setNextPaymentDate(null);
+        } else {
+            sub.setInstallmentsPaid(1); // prima rata pagata
+            sub.setTotalInstallments(plan.getDuration().getMonths());
+            sub.setNextPaymentDate(startDate.plusMonths(1));
+        }
 
-        // Assegna i nuovi crediti previsti dal piano
-        sub.setCurrentCreditsPT(plan.getMonthlyCreditsPT());
-        sub.setCurrentCreditsNutri(plan.getMonthlyCreditsNutri());
-
-        // Save ora farà automaticamente un UPDATE se l'oggetto esisteva già
-        Subscription savedSub = subscriptionRepository.save(sub);
-
-        return mapToResponse(savedSub);
+        Subscription saved = subscriptionRepository.save(sub);
+        return mapToResponse(saved);
     }
 
     @Override
@@ -68,7 +81,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
-        Subscription sub = subscriptionRepository.findByUserAndIsActiveTrue(user)
+        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
                 .orElseThrow(() -> new RuntimeException("Nessun abbonamento attivo trovato"));
 
         return mapToResponse(sub);

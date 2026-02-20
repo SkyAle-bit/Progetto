@@ -1,5 +1,6 @@
 package com.project.tesi.exception;
 
+import com.project.tesi.exception.Booking.SlotAlreadyBookedException;
 import com.project.tesi.exception.user.ErrorResponse;
 import com.project.tesi.exception.user.ResourceAlreadyExistsException;
 import com.project.tesi.exception.user.ResourceNotFoundException;
@@ -58,6 +59,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<ErrorResponse> handleBadRequestExceptions(Exception ex, HttpServletRequest request) {
         return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(SlotAlreadyBookedException.class)
+    public ResponseEntity<ErrorResponse> handleSlotAlreadyBooked(SlotAlreadyBookedException ex, HttpServletRequest request) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT, request);
     }
 
     // Metodo di utilità per costruire la risposta

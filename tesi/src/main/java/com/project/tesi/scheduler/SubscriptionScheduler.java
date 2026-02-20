@@ -20,7 +20,7 @@ public class SubscriptionScheduler {
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void renewCredits() {
-        List<Subscription> activeSubs = subscriptionRepository.findByIsActiveTrue();
+        List<Subscription> activeSubs = subscriptionRepository.findByActiveTrue();
         LocalDate today = LocalDate.now();
 
         for (Subscription sub : activeSubs) {

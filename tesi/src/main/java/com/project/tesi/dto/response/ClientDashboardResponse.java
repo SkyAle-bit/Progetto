@@ -11,4 +11,5 @@ public class ClientDashboardResponse {
     private List<ProfessionalSummaryDTO> followingProfessionals;
 
     private SubscriptionResponse subscription;
+    private List<BookingResponse> upcomingBookings;
 }

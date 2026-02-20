@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
     // Questo metodo cerca un abbonamento per l'utente che abbia il campo active = true
-    Optional<Subscription> findByUserAndIsActiveTrue(User user);
+    Optional<Subscription> findByUserAndActiveTrue(User user);
 
-    Optional<Subscription> findByUserIdAndIsActiveTrue(Long userId);
-    List<Subscription> findByIsActiveTrue();
+    Optional<Subscription> findByUserIdAndActiveTrue(Long userId);
+    List<Subscription> findByActiveTrue();
     Optional<Subscription> findByUserId(Long userId);
 }

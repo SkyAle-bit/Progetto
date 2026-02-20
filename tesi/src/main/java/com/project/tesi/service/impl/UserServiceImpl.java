@@ -1,10 +1,7 @@
 package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.RegisterRequest;
-import com.project.tesi.dto.response.ClientDashboardResponse;
-import com.project.tesi.dto.response.ProfessionalSummaryDTO;
-import com.project.tesi.dto.response.SubscriptionResponse;
-import com.project.tesi.dto.response.UserResponse;
+import com.project.tesi.dto.response.*;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.user.ResourceAlreadyExistsException;
 import com.project.tesi.exception.user.ResourceNotFoundException;
@@ -24,8 +21,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import com.project.tesi.mapper.BookingMapper;
+import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -36,10 +39,12 @@ public class UserServiceImpl implements UserService {
     private final ReviewRepository reviewRepository;
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
     // MAPPER INIETTATI
     private final UserMapper userMapper;
     private final SubscriptionMapper subscriptionMapper;
+    private final BookingMapper bookingMapper;
 
     @Override
     @Transactional
@@ -94,11 +99,34 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public ClientDashboardResponse getClientDashboard(Long userId) {
+        log.info("getClientDashboard called for userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId + " non trovato."));
 
-        // 1. Recuperiamo i professionisti ASSEGNATI all'utente (molto meglio che usare le prenotazioni!)
-        java.util.List<ProfessionalSummaryDTO> followingProfessionals = new java.util.ArrayList<>();
+        // Se è un professionista (PT o Nutrizionista)
+        if (user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST) {
+            log.info("User is a professional, returning professional view");
+
+            // Recupera le prenotazioni in cui è il professionista (non il cliente)
+            List<Booking> proBookings = bookingRepository.findByProfessional(user);
+            List<BookingResponse> proBookingResponses = proBookings.stream()
+                    .map(bookingMapper::toResponse)
+                    .collect(Collectors.toList());
+
+            // Costruisce una dashboard semplificata (senza abbonamento e senza followingProfessionals)
+            return ClientDashboardResponse.builder()
+                    .profile(userMapper.toUserResponse(user))
+                    .followingProfessionals(new ArrayList<>()) // lista vuota
+                    .subscription(null) // nessun abbonamento
+                    .upcomingBookings(proBookingResponses) // prenotazioni come professionista
+                    .build();
+        }
+
+        // Altrimenti è un cliente: procedi con la logica originale
+        log.info("User is a client, returning client dashboard");
+
+        // 1. Professionisti assegnati
+        List<ProfessionalSummaryDTO> followingProfessionals = new ArrayList<>();
         if (user.getAssignedPT() != null) {
             followingProfessionals.add(buildProfessionalSummary(user.getAssignedPT()));
         }
@@ -106,15 +134,14 @@ public class UserServiceImpl implements UserService {
             followingProfessionals.add(buildProfessionalSummary(user.getAssignedNutritionist()));
         }
 
-        // 2. Recuperiamo l'abbonamento per sapere crediti e piano
+        // 2. Abbonamento attivo
         SubscriptionResponse subResponse = null;
-        java.util.Optional<Subscription> subOpt = subscriptionRepository.findByUserId(userId);
-
+        Optional<Subscription> subOpt = subscriptionRepository.findByUserAndActiveTrue(user);
         if (subOpt.isPresent()) {
             Subscription sub = subOpt.get();
             subResponse = SubscriptionResponse.builder()
                     .id(sub.getId())
-                    .planName(sub.getPlan().getName()) // Es. "Piano Annuale"
+                    .planName(sub.getPlan().getName())
                     .startDate(sub.getStartDate())
                     .endDate(sub.getEndDate())
                     .isActive(sub.isActive())
@@ -123,11 +150,18 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 
-        // 3. Impacchettiamo e spediamo tutto ad Angular
+        // 3. Prenotazioni future del cliente (usando la query JPQL)
+        List<Booking> upcoming = bookingRepository.findFutureByUser(user, LocalDateTime.now());
+        List<BookingResponse> upcomingBookings = upcoming.stream()
+                .map(bookingMapper::toResponse)
+                .collect(Collectors.toList());
+
+        // 4. Risposta finale
         return ClientDashboardResponse.builder()
                 .profile(userMapper.toUserResponse(user))
                 .followingProfessionals(followingProfessionals)
                 .subscription(subResponse)
+                .upcomingBookings(upcomingBookings)
                 .build();
     }
 
