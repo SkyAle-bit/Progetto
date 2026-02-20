@@ -58,6 +58,7 @@ public class AuthController {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .profilePicture(user.getProfilePicture())
                 .build());
     }
 

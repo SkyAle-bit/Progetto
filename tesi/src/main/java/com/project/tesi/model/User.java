@@ -25,6 +25,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(columnDefinition = "TEXT") // Usa "TEXT" se usi PostgreSQL, "LONGTEXT" per MySQL o H2
+    private String profilePicture;
+
     private String firstName;
     private String lastName;
     private String profilePictureUrl;

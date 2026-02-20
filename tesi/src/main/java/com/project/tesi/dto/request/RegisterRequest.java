@@ -39,4 +39,6 @@ public class RegisterRequest {
 
     @Schema(description = "ID del Nutrizionista scelto durante la registrazione", example = "2")
     private Long selectedNutritionistId;
+
+    private String profilePicture;
 }
