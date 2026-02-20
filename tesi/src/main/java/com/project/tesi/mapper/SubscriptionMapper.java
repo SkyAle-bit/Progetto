@@ -22,17 +22,16 @@ public class SubscriptionMapper {
         LocalDate endDate = startDate.plusMonths(months);
 
         int totalInstallments = request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? 1 : months;
-
         return Subscription.builder()
                 .user(user)
                 .plan(plan)
                 .paymentFrequency(request.getPaymentFrequency())
-                .installmentsPaid(1)
+                .installmentsPaid(request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? 1 : 1) // prima rata pagata subito
                 .totalInstallments(totalInstallments)
-                .nextPaymentDate(totalInstallments > 1 ? startDate.plusMonths(1) : null)
+                .nextPaymentDate(request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? null : startDate.plusMonths(1))
                 .startDate(startDate)
                 .endDate(endDate)
-                .isActive(true)
+                .active(true)
                 .currentCreditsPT(plan.getMonthlyCreditsPT())
                 .currentCreditsNutri(plan.getMonthlyCreditsNutri())
                 .lastRenewalDate(startDate)

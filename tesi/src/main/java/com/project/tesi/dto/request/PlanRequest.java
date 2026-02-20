@@ -13,13 +13,8 @@ import lombok.NoArgsConstructor;
 public class PlanRequest {
     @NotNull
     private Long userId;
-
     @NotNull
-    private Long planId; // ID del piano (es. Basic o Premium)
-
+    private Long planId;
     @NotNull
-    private PlanDuration duration; // SEMESTRALE o ANNUALE
-
-    @NotNull
-    private PaymentFrequency paymentFrequency; // RATEALE o INTERO
+    private PaymentFrequency paymentFrequency;
 }

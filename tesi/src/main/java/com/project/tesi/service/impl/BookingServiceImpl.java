@@ -4,6 +4,9 @@ import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.Booking.SlotAlreadyBookedException;
+import com.project.tesi.exception.user.ResourceNotFoundException;
+import com.project.tesi.mapper.BookingMapper;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.Slot;
 import com.project.tesi.model.Subscription;
@@ -13,9 +16,11 @@ import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.BookingService;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.UUID;
 
@@ -27,46 +32,63 @@ public class BookingServiceImpl implements BookingService {
     private final SlotRepository slotRepository;
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final BookingMapper bookingMapper;
 
     @Override
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
         Slot slot = slotRepository.findById(request.getSlotId())
-                .orElseThrow(() -> new RuntimeException("Slot non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Slot non trovato"));
 
-        // 1. Controllo Disponibilità Slot
+        // 1. Controllo disponibilità slot
         if (slot.isBooked()) {
-            throw new RuntimeException("Slot non più disponibile");
+            throw new SlotAlreadyBookedException("Slot non più disponibile");
         }
 
-        // 2. Controllo Abbonamento e Crediti
-        Subscription sub = subscriptionRepository.findByUserAndIsActiveTrue(user)
-                .orElseThrow(() -> new RuntimeException("Nessun abbonamento attivo trovato"));
+        // 2. Controllo che il professionista dello slot sia quello assegnato al cliente
+        User professional = slot.getProfessional();
+        if (professional.getRole() == Role.PERSONAL_TRAINER) {
+            if (user.getAssignedPT() == null || !user.getAssignedPT().getId().equals(professional.getId())) {
+                throw new IllegalStateException("Non sei assegnato a questo Personal Trainer");
+            }
+        } else if (professional.getRole() == Role.NUTRITIONIST) {
+            if (user.getAssignedNutritionist() == null || !user.getAssignedNutritionist().getId().equals(professional.getId())) {
+                throw new IllegalStateException("Non sei assegnato a questo Nutrizionista");
+            }
+        } else {
+            throw new IllegalStateException("Il professionista non è né PT né Nutrizionista");
+        }
 
-        Role proRole = slot.getProfessional().getRole();
-        if (proRole == Role.PERSONAL_TRAINER) {
-            if (sub.getCurrentCreditsPT() <= 0) throw new RuntimeException("Crediti PT esauriti");
+        // 3. Controllo abbonamento e crediti
+        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
+                .orElseThrow(() -> new IllegalStateException("Nessun abbonamento attivo trovato"));
+
+        if (professional.getRole() == Role.PERSONAL_TRAINER) {
+            if (sub.getCurrentCreditsPT() <= 0) throw new IllegalStateException("Crediti PT esauriti");
             sub.setCurrentCreditsPT(sub.getCurrentCreditsPT() - 1);
-        } else if (proRole == Role.NUTRITIONIST) {
-            if (sub.getCurrentCreditsNutri() <= 0) throw new RuntimeException("Crediti Nutrizionista esauriti");
+        } else {
+            if (sub.getCurrentCreditsNutri() <= 0) throw new IllegalStateException("Crediti Nutrizionista esauriti");
             sub.setCurrentCreditsNutri(sub.getCurrentCreditsNutri() - 1);
         }
 
-        // 3. Occupazione Slot e Salvataggio (Optimistic Locking)
-        slot.setBooked(true);
-        slotRepository.save(slot);
-        subscriptionRepository.save(sub);
+        // 4. Occupazione slot con optimistic locking
+        try {
+            slot.setBooked(true);
+            slotRepository.save(slot);
+            subscriptionRepository.save(sub);
+        } catch (OptimisticLockException e) {
+            throw new SlotAlreadyBookedException("Qualcun altro ha prenotato questo slot appena prima di te. Riprova.");
+        }
 
-        // 4. Generazione Link Meet (Simulato)
+        // 5. Generazione link
         String meetLink = "https://meet.google.com/" + UUID.randomUUID().toString().substring(0, 10);
 
-        // 5. Creazione Prenotazione
         Booking booking = Booking.builder()
                 .user(user)
-                .professional(slot.getProfessional())
+                .professional(professional)
                 .slot(slot)
                 .meetingLink(meetLink)
                 .status(BookingStatus.CONFIRMED)
@@ -74,18 +96,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        return mapToResponse(saved);
-    }
-
-    private BookingResponse mapToResponse(Booking booking) {
-        return BookingResponse.builder()
-                .id(booking.getId())
-                .startTime(booking.getSlot().getStartTime())
-                .professionalName(booking.getProfessional().getLastName())
-                .userName(booking.getUser().getFirstName())
-                .meetingLink(booking.getMeetingLink())
-                .status(booking.getStatus())
-                .canJoin(false) // Logica da implementare (es. if now > start - 10min)
-                .build();
+        // Usa il mapper invece del metodo privato
+        return bookingMapper.toResponse(saved);
     }
 }

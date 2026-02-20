@@ -37,7 +37,7 @@ public class Subscription {
     // DURATA TEMPORALE
     private LocalDate startDate;
     private LocalDate endDate;
-    private boolean isActive;
+    private boolean active;
 
     // SALDO CREDITI ATTUALE
     private int currentCreditsPT;
