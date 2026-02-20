@@ -9,4 +9,6 @@ import java.util.List;
 public class ClientDashboardResponse {
     private UserResponse profile;
     private List<ProfessionalSummaryDTO> followingProfessionals;
+
+    private SubscriptionResponse subscription;
 }

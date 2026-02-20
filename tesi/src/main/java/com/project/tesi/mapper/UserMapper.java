@@ -1,5 +1,6 @@
 package com.project.tesi.mapper;
 
+import com.project.tesi.dto.request.RegisterRequest;
 import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.enums.Role;
 import com.project.tesi.model.User;
@@ -38,6 +39,21 @@ public class UserMapper {
                         user.getAssignedNutritionist().getFirstName() + " " + user.getAssignedNutritionist().getLastName() : null)
                 .activeClientsCount(clientsCount)
                 .averageRating(avgRating)
+                .build();
+    }
+
+    public User toUser(RegisterRequest request) {
+        if (request == null) {
+            return null;
+        }
+
+        return User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .password(request.getPassword()) // In futuro qui potrai iniettare il PasswordEncoder
+                .profilePicture(request.getProfilePicture())
+                .role(Role.CLIENT) // Forziamo il ruolo
                 .build();
     }
 }
