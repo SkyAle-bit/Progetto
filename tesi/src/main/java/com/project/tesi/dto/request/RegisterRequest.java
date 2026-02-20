@@ -1,5 +1,6 @@
 package com.project.tesi.dto.request;
 
+import com.project.tesi.enums.PaymentFrequency;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,4 +42,12 @@ public class RegisterRequest {
     private Long selectedNutritionistId;
 
     private String profilePicture;
+
+    // --- NUOVI CAMPI PER L'ABBONAMENTO ---
+    @Schema(description = "ID del piano di abbonamento scelto", example = "1")
+    private Long selectedPlanId;
+
+    @Schema(description = "Frequenza di pagamento scelta", example = "MONTHLY")
+    private PaymentFrequency paymentFrequency;
+
 }

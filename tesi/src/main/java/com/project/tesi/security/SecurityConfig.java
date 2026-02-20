@@ -35,6 +35,8 @@ public class SecurityConfig {
                 // 3. REGOLE DI ACCESSO
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/plans/**").permitAll()
+                        .requestMatchers("/api/professionals/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

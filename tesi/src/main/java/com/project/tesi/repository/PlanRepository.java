@@ -7,5 +7,5 @@ import java.util.Optional; // <--- Assicurati di importare questo
 
 @Repository
 public interface PlanRepository extends JpaRepository<Plan, Long> {
-    Optional<Plan> findByName(String name); // <--- AGGIUNGI QUESTA RIGA
+    Optional<Plan> findByName(String name);
 }
