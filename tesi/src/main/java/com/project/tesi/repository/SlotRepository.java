@@ -21,11 +21,13 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
             "AND s.startTime BETWEEN :start AND :end " +
             "ORDER BY s.startTime ASC")
     List<Slot> findAvailableSlots(@Param("profId") Long profId,
-                                  @Param("start") LocalDateTime start,
-                                  @Param("end") LocalDateTime end);
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 
     // Serve a SlotServiceImpl per mostrare il calendario
     List<Slot> findByProfessionalAndIsBookedFalse(User professional);
+
+    List<Slot> findByProfessional(User professional);
 
     List<Slot> findByIsBookedFalse();
 }

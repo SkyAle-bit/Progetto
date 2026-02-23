@@ -36,4 +36,11 @@ public class ProfessionalController {
     public ResponseEntity<List<SlotDTO>> createSlots(@PathVariable Long id, @RequestBody List<SlotDTO> slots) {
         return ResponseEntity.ok(slotService.createSlots(id, slots));
     }
+
+    // Il professionista elimina uno slot specifico
+    @DeleteMapping("/{id}/slots/{slotId}")
+    public ResponseEntity<Void> deleteSlot(@PathVariable Long id, @PathVariable Long slotId) {
+        slotService.deleteSlot(slotId);
+        return ResponseEntity.noContent().build();
+    }
 }

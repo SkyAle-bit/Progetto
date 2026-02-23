@@ -56,7 +56,8 @@ public class SlotServiceImpl implements SlotService {
 
     /**
      * Genera automaticamente slot di 30 minuti basandosi sul WeeklySchedule.
-     * Cicla i giorni tra startDate e endDate e applica le regole del giorno corrispondente.
+     * Cicla i giorni tra startDate e endDate e applica le regole del giorno
+     * corrispondente.
      *
      */
     @Override
@@ -115,7 +116,7 @@ public class SlotServiceImpl implements SlotService {
         User professional = userRepository.findById(professionalId)
                 .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
 
-        return slotRepository.findByProfessionalAndIsBookedFalse(professional).stream()
+        return slotRepository.findByProfessional(professional).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
