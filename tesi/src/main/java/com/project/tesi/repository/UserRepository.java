@@ -17,7 +17,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // CRUCIALE: Metodi per contare i clienti attuali (Limite max 10)
     long countByAssignedPT(User pt);
+
     long countByAssignedNutritionist(User nutritionist);
+
+    // Metodi per trovare i clienti assegnati
+    List<User> findByAssignedPT(User pt);
+
+    List<User> findByAssignedNutritionist(User nutritionist);
 
     List<User> findByRoleIn(List<Object> objects);
 }

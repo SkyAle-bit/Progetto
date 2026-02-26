@@ -113,7 +113,8 @@ public class UserServiceImpl implements UserService {
                     .map(bookingMapper::toResponse)
                     .collect(Collectors.toList());
 
-            // Costruisce una dashboard semplificata (senza abbonamento e senza followingProfessionals)
+            // Costruisce una dashboard semplificata (senza abbonamento e senza
+            // followingProfessionals)
             return ClientDashboardResponse.builder()
                     .profile(userMapper.toUserResponse(user))
                     .followingProfessionals(new ArrayList<>()) // lista vuota
@@ -175,7 +176,8 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    // --- Metodi privati di supporto (Aggiornato per accettare User invece di UserBuilder) ---
+    // --- Metodi privati di supporto (Aggiornato per accettare User invece di
+    // UserBuilder) ---
 
     private void assignProfessional(User user, Long proId, Role expectedRole) {
         if (proId == null) {
@@ -183,7 +185,8 @@ public class UserServiceImpl implements UserService {
         }
 
         User professional = userRepository.findById(proId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professionista con ID " + proId + " non trovato nel sistema."));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Professionista con ID " + proId + " non trovato nel sistema."));
 
         if (professional.getRole() != expectedRole) {
             throw new IllegalArgumentException("L'ID fornito non corrisponde a un " + expectedRole + ".");
@@ -191,7 +194,8 @@ public class UserServiceImpl implements UserService {
 
         long activeClients = userRepository.countByAssignedPT(professional);
         if (activeClients >= 50) {
-            throw new IllegalStateException("Il professionista " + professional.getFirstName() + " è attualmente Sold Out.");
+            throw new IllegalStateException(
+                    "Il professionista " + professional.getFirstName() + " è attualmente Sold Out.");
         }
 
         // Ora usiamo i classici "Setter" sull'oggetto User
@@ -200,5 +204,32 @@ public class UserServiceImpl implements UserService {
         } else {
             user.setAssignedNutritionist(professional);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClientBasicInfoResponse> getClientsForProfessional(Long professionalId) {
+        User professional = userRepository.findById(professionalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista non trovato"));
+
+        List<User> clients;
+        if (professional.getRole() == Role.PERSONAL_TRAINER) {
+            clients = userRepository.findByAssignedPT(professional);
+        } else if (professional.getRole() == Role.NUTRITIONIST) {
+            clients = userRepository.findByAssignedNutritionist(professional);
+        } else {
+            throw new IllegalArgumentException("L'utente non è un professionista");
+        }
+
+        return clients.stream()
+                .map(client -> ClientBasicInfoResponse.builder()
+                        .id(client.getId())
+                        .firstName(client.getFirstName())
+                        .lastName(client.getLastName())
+                        .email(client.getEmail())
+                        .profilePictureUrl(client.getProfilePicture() != null ? client.getProfilePicture()
+                                : client.getProfilePictureUrl())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

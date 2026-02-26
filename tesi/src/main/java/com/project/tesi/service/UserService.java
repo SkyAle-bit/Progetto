@@ -13,5 +13,8 @@ public interface UserService {
     UserResponse registerUser(RegisterRequest request);
 
     List<ProfessionalSummaryDTO> findAvailableProfessionals(Role role);
+
     ClientDashboardResponse getClientDashboard(Long userId);
+
+    List<com.project.tesi.dto.response.ClientBasicInfoResponse> getClientsForProfessional(Long professionalId);
 }
