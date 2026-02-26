@@ -7,4 +7,5 @@ public interface BookingService {
 
     BookingResponse createBooking(BookingRequest request);
 
+    int migrateFakeMeetLinks();
 }

@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -55,7 +55,8 @@ public class BookingServiceImpl implements BookingService {
                 throw new IllegalStateException("Non sei assegnato a questo Personal Trainer");
             }
         } else if (professional.getRole() == Role.NUTRITIONIST) {
-            if (user.getAssignedNutritionist() == null || !user.getAssignedNutritionist().getId().equals(professional.getId())) {
+            if (user.getAssignedNutritionist() == null
+                    || !user.getAssignedNutritionist().getId().equals(professional.getId())) {
                 throw new IllegalStateException("Non sei assegnato a questo Nutrizionista");
             }
         } else {
@@ -67,10 +68,12 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new IllegalStateException("Nessun abbonamento attivo trovato"));
 
         if (professional.getRole() == Role.PERSONAL_TRAINER) {
-            if (sub.getCurrentCreditsPT() <= 0) throw new IllegalStateException("Crediti PT esauriti");
+            if (sub.getCurrentCreditsPT() <= 0)
+                throw new IllegalStateException("Crediti PT esauriti");
             sub.setCurrentCreditsPT(sub.getCurrentCreditsPT() - 1);
         } else {
-            if (sub.getCurrentCreditsNutri() <= 0) throw new IllegalStateException("Crediti Nutrizionista esauriti");
+            if (sub.getCurrentCreditsNutri() <= 0)
+                throw new IllegalStateException("Crediti Nutrizionista esauriti");
             sub.setCurrentCreditsNutri(sub.getCurrentCreditsNutri() - 1);
         }
 
@@ -83,8 +86,9 @@ public class BookingServiceImpl implements BookingService {
             throw new SlotAlreadyBookedException("Qualcun altro ha prenotato questo slot appena prima di te. Riprova.");
         }
 
-        // 5. Generazione link
-        String meetLink = "https://meet.google.com/" + UUID.randomUUID().toString().substring(0, 10);
+        // 5. Generazione link Jitsi
+        String meetLink = "https://meet.jit.si/SkyAle_Consulto_" + user.getId() + "_" + professional.getId() + "_"
+                + UUID.randomUUID().toString().substring(0, 8);
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -98,5 +102,35 @@ public class BookingServiceImpl implements BookingService {
 
         // Usa il mapper invece del metodo privato
         return bookingMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public int migrateFakeMeetLinks() {
+        // Cerca tutte le prenotazioni CONFIRMED
+        List<Booking> activeBookings = bookingRepository.findAll().stream()
+                .filter(b -> b.getStatus() == BookingStatus.CONFIRMED && b.getMeetingLink() != null)
+                .toList();
+
+        int updatedCount = 0;
+
+        for (Booking b : activeBookings) {
+            String currentLink = b.getMeetingLink();
+
+            // Il vecchio finto link UUID di Google Meet
+            if (currentLink != null && currentLink.startsWith("https://meet.google.com/")) {
+
+                String realMeetLink = "https://meet.jit.si/SkyAle_Consulto_" + b.getUser().getId() + "_"
+                        + b.getProfessional().getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
+
+                if (realMeetLink != null) {
+                    b.setMeetingLink(realMeetLink);
+                    bookingRepository.save(b);
+                    updatedCount++;
+                }
+            }
+        }
+
+        return updatedCount;
     }
 }

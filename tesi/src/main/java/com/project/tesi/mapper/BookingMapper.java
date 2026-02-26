@@ -36,6 +36,6 @@ public class BookingMapper {
     }
 
     private boolean isMeetingJoinable(LocalDateTime startTime) {
-        return LocalDateTime.now().isAfter(startTime.minusMinutes(10));
+        return true;
     }
 }
