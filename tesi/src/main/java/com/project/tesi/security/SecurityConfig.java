@@ -27,7 +27,8 @@ public class SecurityConfig {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(List.of(
                             "http://localhost:4200",
-                            "https://progetto-fe.vercel.app")); // Permette ad Angular di fare richieste
+                            "https://progetto-fe.vercel.app",
+                            "https://backend-tesi-l6ca.onrender.com")); // Permette ad Angular di fare richieste
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Metodi permessi
                     config.setAllowedHeaders(List.of("*")); // Permette tutti gli header (incluso Authorization per il
                                                             // Token JWT)
