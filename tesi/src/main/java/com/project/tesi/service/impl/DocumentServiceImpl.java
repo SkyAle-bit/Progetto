@@ -82,9 +82,37 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    public Document getDocumentById(Long documentId) {
+        return documentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Documento non trovato"));
+    }
+
+    @Override
     public List<Document> getUserDocuments(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
-        return documentRepository.findByOwner(user);
+        return documentRepository.findByOwnerOrderByUploadDateDesc(user);
+    }
+
+    @Override
+    public List<Document> getUserDocumentsByType(Long userId, String docType) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+        DocumentType type = DocumentType.valueOf(docType);
+        return documentRepository.findByOwnerAndTypeOrderByUploadDateDesc(user, type);
+    }
+
+    @Override
+    @Transactional
+    public void deleteDocument(Long documentId) throws IOException {
+        Document doc = documentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Documento non trovato"));
+
+        // Elimina file da disco
+        Path path = Paths.get(doc.getFilePath());
+        Files.deleteIfExists(path);
+
+        // Elimina record da DB
+        documentRepository.delete(doc);
     }
 }

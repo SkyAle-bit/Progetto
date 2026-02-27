@@ -6,12 +6,10 @@ import java.io.IOException;
 import java.util.List;
 
 public interface DocumentService {
-    // Carica un file
     Document uploadDocument(MultipartFile file, Long clientId, Long uploaderId, String docType) throws IOException;
-
-    // Scarica un file (restituisce il byte array o resource)
     byte[] downloadDocument(Long documentId) throws IOException;
-
-    // Lista documenti di un utente
+    Document getDocumentById(Long documentId);
     List<Document> getUserDocuments(Long userId);
+    List<Document> getUserDocumentsByType(Long userId, String docType);
+    void deleteDocument(Long documentId) throws IOException;
 }
