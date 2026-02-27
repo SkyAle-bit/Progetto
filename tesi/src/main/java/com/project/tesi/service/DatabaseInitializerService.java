@@ -3,6 +3,7 @@ package com.project.tesi.service;
 import com.project.tesi.enums.*;
 import com.project.tesi.model.*;
 import com.project.tesi.repository.*;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,18 +29,21 @@ public class DatabaseInitializerService {
         private final ReviewRepository reviewRepository;
         private final ChatMessageRepository chatMessageRepository;
         private final PasswordEncoder passwordEncoder;
+        private final EntityManager entityManager;
 
         @Transactional
         public void initialize() {
-                // Svuota esplicitamente tutte le tabelle per evitare ConstraintViolations
-                chatMessageRepository.deleteAll();
-                bookingRepository.deleteAll();
-                slotRepository.deleteAll();
-                weeklyScheduleRepository.deleteAll();
-                reviewRepository.deleteAll();
-                subscriptionRepository.deleteAll();
-                userRepository.deleteAll();
-                planRepository.deleteAll();
+                // Svuota tutte le tabelle nell'ordine corretto (rispetta le FK)
+                chatMessageRepository.deleteAllInBatch();
+                bookingRepository.deleteAllInBatch();
+                slotRepository.deleteAllInBatch();
+                weeklyScheduleRepository.deleteAllInBatch();
+                reviewRepository.deleteAllInBatch();
+                subscriptionRepository.deleteAllInBatch();
+                userRepository.deleteAllInBatch();
+                planRepository.deleteAllInBatch();
+                entityManager.flush();
+                entityManager.clear();
 
                 // 1. Piani
                 createOrUpdatePlan("Basic Pack Semestrale", PlanDuration.SEMESTRALE, 1, 1, 960.0, 160.0);
