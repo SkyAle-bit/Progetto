@@ -25,5 +25,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByAssignedNutritionist(User nutritionist);
 
-    List<User> findByRoleIn(List<Object> objects);
+    List<User> findByRoleIn(List<Role> roles);
 }

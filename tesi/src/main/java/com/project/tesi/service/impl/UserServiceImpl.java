@@ -78,18 +78,22 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<ProfessionalSummaryDTO> findAvailableProfessionals(Role role) {
-        // ... Codice invariato ...
         return userRepository.findByRole(role).stream()
                 .map(pro -> {
                     Double avg = reviewRepository.getAverageRating(pro.getId());
-                    long activeClients = userRepository.countByAssignedPT(pro);
+                    long activeClients;
+                    if (pro.getRole() == Role.PERSONAL_TRAINER) {
+                        activeClients = userRepository.countByAssignedPT(pro);
+                    } else {
+                        activeClients = userRepository.countByAssignedNutritionist(pro);
+                    }
                     return ProfessionalSummaryDTO.builder()
                             .id(pro.getId())
                             .fullName(pro.getFirstName() + " " + pro.getLastName())
                             .role(pro.getRole())
                             .averageRating(avg != null ? avg : 0.0)
                             .currentActiveClients((int) activeClients)
-                            .isSoldOut(activeClients >= 50)
+                            .isSoldOut(activeClients >= 10)
                             .build();
                 })
                 .sorted((p1, p2) -> Double.compare(p2.getAverageRating(), p1.getAverageRating()))
@@ -192,8 +196,13 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("L'ID fornito non corrisponde a un " + expectedRole + ".");
         }
 
-        long activeClients = userRepository.countByAssignedPT(professional);
-        if (activeClients >= 50) {
+        long activeClients;
+        if (expectedRole == Role.PERSONAL_TRAINER) {
+            activeClients = userRepository.countByAssignedPT(professional);
+        } else {
+            activeClients = userRepository.countByAssignedNutritionist(professional);
+        }
+        if (activeClients >= 10) {
             throw new IllegalStateException(
                     "Il professionista " + professional.getFirstName() + " è attualmente Sold Out.");
         }

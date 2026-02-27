@@ -26,11 +26,13 @@ public class DatabaseInitializerService {
         private final SubscriptionRepository subscriptionRepository;
         private final BookingRepository bookingRepository;
         private final ReviewRepository reviewRepository;
+        private final ChatMessageRepository chatMessageRepository;
         private final PasswordEncoder passwordEncoder;
 
         @Transactional
         public void initialize() {
                 // Svuota esplicitamente tutte le tabelle per evitare ConstraintViolations
+                chatMessageRepository.deleteAll();
                 bookingRepository.deleteAll();
                 slotRepository.deleteAll();
                 weeklyScheduleRepository.deleteAll();
@@ -129,6 +131,33 @@ public class DatabaseInitializerService {
 
                 bookingRepository.save(Booking.builder().user(c4).professional(pt1).slot(pastSlot)
                                 .meetingLink(pastLink).status(BookingStatus.COMPLETED).build());
+
+                // 10. Messaggi di chat campione (client ↔ professionista assegnato)
+                // c1 (Luca) è assegnato a pt1 (Marco) e nut1 (Laura)
+                createChatMessage(c1, pt1, "Ciao Marco, volevo chiederti un consiglio sull'allenamento di domani.");
+                createChatMessage(pt1, c1, "Ciao Luca! Certo, dimmi pure.");
+                createChatMessage(c1, pt1, "Posso fare cardio prima dei pesi?");
+                createChatMessage(pt1, c1, "Ti consiglio di fare prima i pesi e poi 20 min di cardio leggero.");
+                createChatMessage(c1, nut1, "Buongiorno Dottoressa, posso sostituire il riso con la quinoa?");
+                createChatMessage(nut1, c1, "Sì, la quinoa è un'ottima alternativa. Stesse quantità del piano.");
+
+                // c2 (Sofia) è assegnata a pt1 (Marco) e nut2 (Andrea)
+                createChatMessage(c2, pt1, "Marco, ho un dolore alla spalla dopo l'ultimo allenamento.");
+                createChatMessage(pt1, c2, "Facciamo una valutazione nella prossima sessione. Per ora evita esercizi sopra la testa.");
+                createChatMessage(c2, nut2, "Buongiorno Andrea, sto avendo difficoltà con le porzioni serali.");
+                createChatMessage(nut2, c2, "Prova a dividere la cena in due piccoli pasti, uno alle 19 e uno alle 21.");
+
+                // c3 (Matteo) è assegnato a pt2 (Giulia) e nut1 (Laura)
+                createChatMessage(c3, pt2, "Giulia, posso aumentare il carico sullo squat?");
+                createChatMessage(pt2, c3, "Se la tecnica è pulita, aggiungi 5kg la prossima settimana.");
+                createChatMessage(c3, nut1, "Laura, il piano alimentare sta funzionando benissimo!");
+                createChatMessage(nut1, c3, "Ottimo Matteo! Continuiamo così per il prossimo mese.");
+
+                // c4 (Chiara) è assegnata a pt2 (Giulia) e nut2 (Andrea)
+                createChatMessage(c4, pt2, "Ciao Giulia, domani ho la sessione alle 16:00 giusto?");
+                createChatMessage(pt2, c4, "Confermato! Ti aspetto alle 16:00. Porta scarpe da running.");
+                createChatMessage(c4, nut2, "Andrea, ho provato la ricetta che mi hai consigliato, buonissima!");
+                createChatMessage(nut2, c4, "Felice che ti sia piaciuta! Prova anche la variante con zucchine.");
         }
 
         // --- METODI HELPER ---
@@ -267,6 +296,14 @@ public class DatabaseInitializerService {
                                 .slot(slot)
                                 .meetingLink(meetLink)
                                 .status(BookingStatus.CONFIRMED)
+                                .build());
+        }
+
+        private void createChatMessage(User sender, User receiver, String content) {
+                chatMessageRepository.save(ChatMessage.builder()
+                                .sender(sender)
+                                .receiver(receiver)
+                                .content(content)
                                 .build());
         }
 }

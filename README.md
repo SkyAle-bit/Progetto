@@ -1,3 +1,80 @@
+# Piattaforma SaaS Integrata per il Wellness e la Tutela Assicurativa
+
+## 🚀 Quick Start — Come eseguire il progetto
+
+### Prerequisiti
+- **Java 21** — [Download](https://adoptium.net/temurin/releases/?version=21)
+- **Docker Desktop** — [Download](https://www.docker.com/products/docker-desktop/) (deve essere avviato)
+
+> Non serve installare Maven: il progetto include il Maven Wrapper (`mvnw`).
+
+### 1. Clona la repository
+```bash
+git clone <url-repository>
+cd Progetto/tesi
+```
+
+### 2. Avvia l'applicazione (modalità sviluppo)
+
+**Linux / macOS:**
+```bash
+chmod +x mvnw
+./mvnw spring-boot:run
+```
+
+**Windows (PowerShell):**
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+> Al primo avvio Docker Compose si avvia automaticamente (PostgreSQL + pgAdmin).
+> Il database viene popolato con dati di test.
+
+### 3. Verifica che funzioni
+- **Backend API:** http://localhost:8080/api/auth/ping
+- **Swagger UI:** http://localhost:8080/swagger-ui.html
+- **pgAdmin:** http://localhost:5050 (email: `a@a.a` / password: `root`)
+
+### Utenti di test (login)
+| Email | Password | Ruolo |
+|---|---|---|
+| `pt1@test.com` | `password` | Personal Trainer |
+| `pt2@test.com` | `password` | Personal Trainer |
+| `nutri1@test.com` | `password` | Nutrizionista |
+| `nutri2@test.com` | `password` | Nutrizionista |
+| `luca@test.com` | `password` | Cliente |
+| `sofia@test.com` | `password` | Cliente |
+| `matteo@test.com` | `password` | Cliente |
+| `chiara@test.com` | `password` | Cliente |
+
+### Comandi utili
+```bash
+# Compilare senza eseguire
+./mvnw clean compile
+
+# Eseguire i test
+./mvnw test
+
+# Creare il JAR
+./mvnw clean package -DskipTests
+
+# Eseguire con profilo sviluppo locale (richiede Docker avviato)
+# Linux/Mac:
+SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+# Windows PowerShell:
+$env:SPRING_PROFILES_ACTIVE="dev"; .\mvnw.cmd spring-boot:run
+```
+
+### Profili disponibili
+| Profilo | Database | Docker | Uso |
+|---|---|---|---|
+| `prod` (default) | PostgreSQL Neon (cloud) | ❌ Non richiesto | Produzione / Demo rapida |
+| `dev` | PostgreSQL locale (Docker) | ✅ Auto-start | Sviluppo locale |
+
+---
+
+## 📋 Descrizione del Progetto
+
 Titolo del Progetto: Piattaforma SaaS Integrata per il Wellness e la Tutela Assicurativa
 
 1. Visione e Obiettivo del Progetto

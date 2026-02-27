@@ -2,6 +2,8 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ReviewResponse;
+import com.project.tesi.exception.user.ResourceAlreadyExistsException;
+import com.project.tesi.exception.user.ResourceNotFoundException;
 import com.project.tesi.model.Review;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.BookingRepository;
@@ -12,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,15 +29,20 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse addReview(ReviewRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
         User professional = userRepository.findById(request.getProfessionalId())
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista non trovato"));
+
+        // REGOLA BUSINESS: Unicità — una sola recensione per coppia client-professionista
+        if (reviewRepository.existsByClientIdAndProfessionalId(user.getId(), professional.getId())) {
+            throw new ResourceAlreadyExistsException("Hai già lasciato una recensione per questo professionista.");
+        }
 
         // REGOLA BUSINESS: L'utente deve aver avuto almeno una prenotazione con questo professionista
         boolean hasBooked = bookingRepository.existsByUserAndProfessional(user, professional);
         if (!hasBooked) {
-            throw new RuntimeException("Non puoi recensire un professionista con cui non hai avuto appuntamenti.");
+            throw new IllegalStateException("Non puoi recensire un professionista con cui non hai avuto appuntamenti.");
         }
 
         Review review = Review.builder()
@@ -55,7 +60,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional(readOnly = true)
     public List<ReviewResponse> getReviewsForProfessional(Long professionalId) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista non trovato"));
 
         return reviewRepository.findByProfessional(professional).stream()
                 .map(this::mapToResponse)

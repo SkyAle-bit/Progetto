@@ -24,7 +24,11 @@ public class UserMapper {
         if (user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST) {
             avgRating = reviewRepository.getAverageRating(user.getId());
             if (avgRating == null) avgRating = 0.0;
-            clientsCount = (int) userRepository.countByAssignedPT(user);
+            if (user.getRole() == Role.PERSONAL_TRAINER) {
+                clientsCount = (int) userRepository.countByAssignedPT(user);
+            } else {
+                clientsCount = (int) userRepository.countByAssignedNutritionist(user);
+            }
         }
 
         return UserResponse.builder()

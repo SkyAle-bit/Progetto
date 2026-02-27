@@ -7,6 +7,7 @@ import com.project.tesi.repository.DocumentRepository; // Crea anche questo repo
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.DocumentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,8 +28,8 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
 
-    // Percorso base dove salvare i file (Crea questa cartella nel tuo PC!)
-    private final String UPLOAD_DIR = "C:/uploads/tesi/";
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     @Override
     @Transactional
@@ -40,15 +41,20 @@ public class DocumentServiceImpl implements DocumentService {
                 .orElseThrow(() -> new RuntimeException("Uploader non trovato"));
 
         // 1. Salva file su disco
-        File directory = new File(UPLOAD_DIR);
+        File directory = new File(uploadDir);
         if (!directory.exists()) {
-            directory.mkdirs();
+            if (!directory.mkdirs()) {
+                throw new IOException("Impossibile creare la directory di upload: " + uploadDir);
+            }
         }
 
         String originalName = file.getOriginalFilename();
+        if (originalName == null || !originalName.contains(".")) {
+            throw new IllegalArgumentException("Nome file non valido o estensione mancante");
+        }
         String extension = originalName.substring(originalName.lastIndexOf("."));
-        String storageName = UUID.randomUUID().toString() + extension; // Nome univoco
-        Path destinationPath = Paths.get(UPLOAD_DIR + storageName);
+        String storageName = UUID.randomUUID() + extension; // Nome univoco
+        Path destinationPath = Paths.get(uploadDir, storageName);
 
         Files.copy(file.getInputStream(), destinationPath);
 
