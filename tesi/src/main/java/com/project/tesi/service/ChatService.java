@@ -15,5 +15,7 @@ public interface ChatService {
     List<ConversationPreviewResponse> getUserConversations(Long userId);
 
     void markAsRead(Long receiverId, Long senderId);
+
+    int getTotalUnreadCount(Long userId);
 }
 

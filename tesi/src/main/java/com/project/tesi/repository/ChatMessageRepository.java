@@ -48,5 +48,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             "WHERE m.receiver.id = :receiverId AND m.sender.id = :senderId " +
             "AND m.status <> com.project.tesi.enums.MessageStatus.READ")
     int markMessagesAsRead(@Param("receiverId") Long receiverId, @Param("senderId") Long senderId);
+
+    // Conta TUTTI i messaggi non letti ricevuti da un utente (da qualsiasi sender)
+    @Query("SELECT COUNT(m) FROM ChatMessage m " +
+            "WHERE m.receiver.id = :userId " +
+            "AND m.status <> com.project.tesi.enums.MessageStatus.READ")
+    int countAllUnreadMessages(@Param("userId") Long userId);
 }
 

@@ -49,5 +49,11 @@ public class ChatController {
         chatService.markAsRead(receiverId, senderId);
         return ResponseEntity.ok().build();
     }
+
+    @Operation(summary = "Conteggio totale messaggi non letti per un utente")
+    @GetMapping("/unread/{userId}")
+    public ResponseEntity<Integer> getTotalUnreadCount(@PathVariable Long userId) {
+        return ResponseEntity.ok(chatService.getTotalUnreadCount(userId));
+    }
 }
 

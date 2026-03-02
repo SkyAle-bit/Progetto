@@ -108,6 +108,12 @@ public class ChatServiceImpl implements ChatService {
         chatMessageRepository.markMessagesAsRead(receiverId, senderId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public int getTotalUnreadCount(Long userId) {
+        return chatMessageRepository.countAllUnreadMessages(userId);
+    }
+
     // ── Validazione: solo Client ↔ Professionista assegnato possono comunicare ──
 
     private void validateChatPermission(User userA, User userB) {
