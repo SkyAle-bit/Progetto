@@ -28,6 +28,7 @@ public class DatabaseInitializerService {
         private final BookingRepository bookingRepository;
         private final ReviewRepository reviewRepository;
         private final ChatMessageRepository chatMessageRepository;
+        private final DocumentRepository documentRepository;
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
 
@@ -40,6 +41,7 @@ public class DatabaseInitializerService {
                 weeklyScheduleRepository.deleteAllInBatch();
                 reviewRepository.deleteAllInBatch();
                 subscriptionRepository.deleteAllInBatch();
+                documentRepository.deleteAllInBatch();
                 userRepository.deleteAllInBatch();
                 planRepository.deleteAllInBatch();
                 entityManager.flush();
