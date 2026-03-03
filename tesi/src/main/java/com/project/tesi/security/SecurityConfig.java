@@ -12,8 +12,8 @@ import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration; // IMPORTANTE
-import java.util.List; // IMPORTANTE
+import org.springframework.web.cors.CorsConfiguration;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -22,24 +22,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http
-                // 1. CONFIGURAZIONE CORS AGGIUNTA QUI
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(List.of(
                             "http://localhost:4200",
                             "https://progetto-fe.vercel.app",
-                            "https://backend-tesi-l6ca.onrender.com")); // Permette ad Angular di fare richieste
-                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Metodi permessi
-                    config.setAllowedHeaders(List.of("*")); // Permette tutti gli header (incluso Authorization per il
-                                                            // Token JWT)
+                            "https://backend-tesi-l6ca.onrender.com"));
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
                     return config;
                 }))
-                // 2. DISABILITA CSRF
                 .csrf(AbstractHttpConfigurer::disable)
-                // 3. REGOLE DI ACCESSO
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/plans/**").permitAll()
                         .requestMatchers("/api/professionals/**").permitAll()
                         .requestMatchers("/api/bookings/migrate-meet").permitAll()
@@ -53,9 +50,7 @@ public class SecurityConfig {
                                 "/webjars/**")
                         .permitAll()
                         .anyRequest().authenticated())
-                // 4. GESTIONE SESSIONE (Stateless per i Token JWT)
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 5. AGGIUNTA DEL FILTRO JWT
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

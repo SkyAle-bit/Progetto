@@ -103,34 +103,4 @@ public class BookingServiceImpl implements BookingService {
         // Usa il mapper invece del metodo privato
         return bookingMapper.toResponse(saved);
     }
-
-    @Override
-    @Transactional
-    public int migrateFakeMeetLinks() {
-        // Cerca tutte le prenotazioni CONFIRMED
-        List<Booking> activeBookings = bookingRepository.findAll().stream()
-                .filter(b -> b.getStatus() == BookingStatus.CONFIRMED && b.getMeetingLink() != null)
-                .toList();
-
-        int updatedCount = 0;
-
-        for (Booking b : activeBookings) {
-            String currentLink = b.getMeetingLink();
-
-            // Il vecchio finto link UUID di Google Meet
-            if (currentLink != null && currentLink.startsWith("https://meet.google.com/")) {
-
-                String realMeetLink = "https://meet.jit.si/SkyAle_Consulto_" + b.getUser().getId() + "_"
-                        + b.getProfessional().getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
-
-                if (realMeetLink != null) {
-                    b.setMeetingLink(realMeetLink);
-                    bookingRepository.save(b);
-                    updatedCount++;
-                }
-            }
-        }
-
-        return updatedCount;
-    }
 }

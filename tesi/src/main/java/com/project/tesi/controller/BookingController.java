@@ -21,11 +21,6 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.createBooking(request));
     }
 
-    @GetMapping("/migrate-meet")
-    public ResponseEntity<String> migrateFakeMeetLinks() {
-        int updated = bookingService.migrateFakeMeetLinks();
-        return ResponseEntity.ok("Migrazione completata. Link Google Meet aggiornati: " + updated);
-    }
 
     @GetMapping("/reset-database")
     public ResponseEntity<String> resetDatabase() {
