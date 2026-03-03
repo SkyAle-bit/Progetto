@@ -63,8 +63,8 @@ public class ChatWebSocketController {
         dto.put("createdAt", now.toString());
         dto.put("roomId", roomId);
 
-        // STEP 1: Inoltra IMMEDIATAMENTE alla stanza
-        messagingTemplate.convertAndSend("/topic/room/" + roomId, dto);
+        // STEP 1: Inoltra IMMEDIATAMENTE alla stanza (cast esplicito per evitare ambiguita')
+        messagingTemplate.convertAndSend("/topic/room/" + roomId, (Object) dto);
 
         // STEP 2: Salva in DB in modo ASINCRONO
         saveMessageAsync(senderId, receiverId, content);
@@ -74,7 +74,7 @@ public class ChatWebSocketController {
             Map<String, Object> notif = new HashMap<>();
             notif.put("type", "NEW_MESSAGE");
             notif.put("message", dto);
-            messagingTemplate.convertAndSend("/user/" + receiverId + "/queue/notifications", notif);
+            messagingTemplate.convertAndSend("/user/" + receiverId + "/queue/notifications", (Object) notif);
             sendUnreadUpdate(receiverId);
         }
     }
@@ -117,7 +117,7 @@ public class ChatWebSocketController {
             update.put("type", "UNREAD_UPDATE");
             update.put("userId", userId);
             update.put("unreadCount", count);
-            messagingTemplate.convertAndSend("/user/" + userId + "/queue/notifications", update);
+            messagingTemplate.convertAndSend("/user/" + userId + "/queue/notifications", (Object) update);
         } catch (Exception e) { /* ignore */ }
     }
 
