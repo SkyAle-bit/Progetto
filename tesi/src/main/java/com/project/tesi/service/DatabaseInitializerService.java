@@ -138,6 +138,8 @@ public class DatabaseInitializerService {
                 bookingRepository.save(Booking.builder().user(c4).professional(pt1).slot(pastSlot)
                                 .meetingLink(pastLink).status(BookingStatus.COMPLETED).build());
 
+        }
+
         // --- METODI HELPER ---
 
         private void createOrUpdatePlan(String name, PlanDuration duration, int ptCredits, int nutriCredits,
