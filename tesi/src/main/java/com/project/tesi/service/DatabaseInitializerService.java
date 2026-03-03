@@ -137,10 +137,143 @@ public class DatabaseInitializerService {
 
                 bookingRepository.save(Booking.builder().user(c4).professional(pt1).slot(pastSlot)
                                 .meetingLink(pastLink).status(BookingStatus.COMPLETED).build());
-                chatMessageRepository.save(ChatMessage.builder()
-                                .sender(sender)
-                                .receiver(receiver)
-                                .content(content)
+
+        // --- METODI HELPER ---
+
+        private void createOrUpdatePlan(String name, PlanDuration duration, int ptCredits, int nutriCredits,
+                        double fullPrice, double monthlyPrice) {
+                if (planRepository.findByName(name).isEmpty()) {
+                        Plan plan = Plan.builder()
+                                        .name(name)
+                                        .duration(duration)
+                                        .monthlyCreditsPT(ptCredits)
+                                        .monthlyCreditsNutri(nutriCredits)
+                                        .fullPrice(fullPrice)
+                                        .monthlyInstallmentPrice(monthlyPrice)
+                                        .insuranceCoverageDetails("Copertura inclusa")
+                                        .build();
+                        planRepository.save(plan);
+                }
+        }
+
+        private User createUser(String firstName, String lastName, String email, Role role,
+                        String bio, User assignedPT, User assignedNutritionist) {
+                return userRepository.findByEmail(email).orElseGet(() -> {
+                        User user = User.builder()
+                                        .firstName(firstName)
+                                        .lastName(lastName)
+                                        .email(email)
+                                        .password(passwordEncoder.encode("password"))
+                                        .role(role)
+                                        .professionalBio(bio)
+                                        .assignedPT(assignedPT)
+                                        .assignedNutritionist(assignedNutritionist)
+                                        .build();
+                        return userRepository.save(user);
+                });
+        }
+
+        private void createSubscription(User user, Plan plan, PaymentFrequency frequency) {
+                if (subscriptionRepository.findByUserAndActiveTrue(user).isEmpty()) {
+                        LocalDate start = LocalDate.now();
+                        LocalDate end = plan.getDuration() == PlanDuration.ANNUALE ? start.plusYears(1)
+                                        : start.plusMonths(6);
+                        int totalInstallments = frequency == PaymentFrequency.UNICA_SOLUZIONE ? 1
+                                        : plan.getDuration().getMonths();
+
+                        Subscription sub = Subscription.builder()
+                                        .user(user)
+                                        .plan(plan)
+                                        .paymentFrequency(frequency)
+                                        .startDate(start)
+                                        .endDate(end)
+                                        .active(true)
+                                        .currentCreditsPT(plan.getMonthlyCreditsPT())
+                                        .currentCreditsNutri(plan.getMonthlyCreditsNutri())
+                                        .lastRenewalDate(start)
+                                        .installmentsPaid(frequency == PaymentFrequency.UNICA_SOLUZIONE ? 1 : 1)
+                                        .totalInstallments(totalInstallments)
+                                        .nextPaymentDate(
+                                                        frequency == PaymentFrequency.RATE_MENSILI ? start.plusMonths(1)
+                                                                        : null)
+                                        .build();
+                        subscriptionRepository.save(sub);
+                }
+        }
+
+        private void createReview(User client, User professional, int rating, String comment) {
+                if (!reviewRepository.existsByClientIdAndProfessionalId(client.getId(), professional.getId())) {
+                        Review review = Review.builder()
+                                        .client(client)
+                                        .professional(professional)
+                                        .rating(rating)
+                                        .comment(comment)
+                                        .build();
+                        reviewRepository.save(review);
+                }
+        }
+
+        private void createWeeklySchedule(User pro, DayOfWeek day, LocalTime start, LocalTime end) {
+                weeklyScheduleRepository.save(WeeklySchedule.builder()
+                                .professional(pro)
+                                .dayOfWeek(day)
+                                .startTime(start)
+                                .endTime(end)
+                                .build());
+        }
+
+        private void generateSlotsForProfessional(User pro, LocalDate startDate, LocalDate endDate) {
+                List<WeeklySchedule> schedules = weeklyScheduleRepository.findByProfessional(pro);
+                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                        LocalDate current = date;
+                        schedules.stream()
+                                        .filter(s -> s.getDayOfWeek().equals(current.getDayOfWeek()))
+                                        .forEach(rule -> {
+                                                LocalTime time = rule.getStartTime();
+                                                while (time.isBefore(rule.getEndTime())) {
+                                                        LocalDateTime slotStart = LocalDateTime.of(current, time);
+                                                        if (!slotRepository.existsByProfessionalAndStartTime(pro,
+                                                                        slotStart)) {
+                                                                Slot slot = Slot.builder()
+                                                                                .professional(pro)
+                                                                                .startTime(slotStart)
+                                                                                .endTime(slotStart.plusMinutes(30))
+                                                                                .isBooked(false)
+                                                                                .build();
+                                                                slotRepository.save(slot);
+                                                        }
+                                                        time = time.plusMinutes(30);
+                                                }
+                                        });
+                }
+        }
+
+        private void bookSlot(List<Slot> freeSlots, int index, User client, User professional, boolean isPT) {
+                if (freeSlots == null || freeSlots.size() <= index)
+                        return;
+                Slot slot = freeSlots.get(index);
+                slot.setBooked(true);
+                slotRepository.save(slot);
+                subscriptionRepository.findByUserAndActiveTrue(client).ifPresent(sub -> {
+                        if (isPT) {
+                                if (sub.getCurrentCreditsPT() > 0)
+                                        sub.setCurrentCreditsPT(sub.getCurrentCreditsPT() - 1);
+                        } else {
+                                if (sub.getCurrentCreditsNutri() > 0)
+                                        sub.setCurrentCreditsNutri(sub.getCurrentCreditsNutri() - 1);
+                        }
+                        subscriptionRepository.save(sub);
+                });
+
+                String meetLink = "https://meet.jit.si/SkyAle_Consulto_" + client.getId() + "_" + professional.getId()
+                                + "_" + UUID.randomUUID().toString().substring(0, 8);
+
+                bookingRepository.save(Booking.builder()
+                                .user(client)
+                                .professional(professional)
+                                .slot(slot)
+                                .meetingLink(meetLink)
+                                .status(BookingStatus.CONFIRMED)
                                 .build());
         }
 }
