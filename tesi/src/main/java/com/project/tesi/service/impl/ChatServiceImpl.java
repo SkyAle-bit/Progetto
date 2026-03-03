@@ -76,7 +76,7 @@ public class ChatServiceImpl implements ChatService {
     @Transactional(readOnly = true)
     public List<ConversationPreviewResponse> getUserConversations(Long userId) {
         if (!userRepository.existsById(userId)) {
-            throw new ResourceNotFoundException("Utente con ID " + userId + " non trovato");
+            return java.util.Collections.emptyList();
         }
 
         List<User> partners = chatMessageRepository.findConversationPartners(userId);
@@ -98,11 +98,8 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional
     public void markAsRead(Long receiverId, Long senderId) {
-        if (!userRepository.existsById(receiverId)) {
-            throw new ResourceNotFoundException("Utente con ID " + receiverId + " non trovato");
-        }
-        if (!userRepository.existsById(senderId)) {
-            throw new ResourceNotFoundException("Utente con ID " + senderId + " non trovato");
+        if (!userRepository.existsById(receiverId) || !userRepository.existsById(senderId)) {
+            return;
         }
 
         chatMessageRepository.markMessagesAsRead(receiverId, senderId);
@@ -111,6 +108,7 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional(readOnly = true)
     public int getTotalUnreadCount(Long userId) {
+        if (!userRepository.existsById(userId)) return 0;
         return chatMessageRepository.countAllUnreadMessages(userId);
     }
 
