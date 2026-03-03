@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import com.project.tesi.enums.Role;
+import com.project.tesi.model.User;
+import com.project.tesi.repository.UserRepository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final UserRepository userRepository;
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadFile(
@@ -28,6 +32,16 @@ public class DocumentController {
             @RequestParam("clientId") Long clientId,
             @RequestParam("uploaderId") Long uploaderId,
             @RequestParam("type") String type) throws IOException {
+
+        // Validazione ruolo: PT può caricare solo WORKOUT_PLAN, Nutrizionista solo DIET_PLAN
+        User uploader = userRepository.findById(uploaderId)
+                .orElseThrow(() -> new RuntimeException("Uploader non trovato"));
+        if (uploader.getRole() == Role.PERSONAL_TRAINER && !"WORKOUT_PLAN".equals(type)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Il Personal Trainer può caricare solo schede di allenamento"));
+        }
+        if (uploader.getRole() == Role.NUTRITIONIST && !"DIET_PLAN".equals(type)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Il Nutrizionista può caricare solo piani alimentari"));
+        }
 
         Document doc = documentService.uploadDocument(file, clientId, uploaderId, type);
         return ResponseEntity.ok(toDto(doc));
