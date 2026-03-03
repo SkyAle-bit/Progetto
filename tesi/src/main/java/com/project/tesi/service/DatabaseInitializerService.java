@@ -76,6 +76,10 @@ public class DatabaseInitializerService {
                 User c3 = createUser("Matteo", "Galli", "matteo@test.com", Role.CLIENT, null, pt2, nut1);
                 User c4 = createUser("Chiara", "Fontana", "chiara@test.com", Role.CLIENT, null, pt2, nut2);
 
+                // Admin e Insurance Manager
+                createUser("Admin", "Sistema", "admin@test.com", Role.ADMIN, null, null, null);
+                createUser("Paolo", "Assicurazioni", "insurance@test.com", Role.INSURANCE_MANAGER, null, null, null);
+
                 // 5. Abbonamenti
                 Plan[] plans = { basicS, basicA, premiumS, premiumA };
                 PaymentFrequency[] freqs = { PaymentFrequency.UNICA_SOLUZIONE, PaymentFrequency.RATE_MENSILI };
