@@ -115,4 +115,10 @@ public class DocumentServiceImpl implements DocumentService {
         // Elimina record da DB
         documentRepository.delete(doc);
     }
+
+    @Override
+    @Transactional
+    public Document saveDocument(Document document) {
+        return documentRepository.save(document);
+    }
 }

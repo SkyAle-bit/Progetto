@@ -12,4 +12,5 @@ public interface DocumentService {
     List<Document> getUserDocuments(Long userId);
     List<Document> getUserDocumentsByType(Long userId, String docType);
     void deleteDocument(Long documentId) throws IOException;
+    Document saveDocument(Document document);
 }

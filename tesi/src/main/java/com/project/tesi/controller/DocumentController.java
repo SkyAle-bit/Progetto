@@ -79,6 +79,17 @@ public class DocumentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}/notes")
+    public ResponseEntity<Map<String, Object>> updateNotes(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String notes = body.get("notes");
+        Document doc = documentService.getDocumentById(id);
+        doc.setNotes(notes);
+        documentService.saveDocument(doc);
+        return ResponseEntity.ok(toDto(doc));
+    }
+
     private Map<String, Object> toDto(Document doc) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", doc.getId());
@@ -90,6 +101,7 @@ public class DocumentController {
         map.put("ownerName", doc.getOwner().getFirstName() + " " + doc.getOwner().getLastName());
         map.put("uploadedById", doc.getUploadedBy().getId());
         map.put("uploaderName", doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName());
+        map.put("notes", doc.getNotes());
         return map;
     }
 }

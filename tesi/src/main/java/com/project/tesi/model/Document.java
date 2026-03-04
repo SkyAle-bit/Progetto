@@ -33,4 +33,7 @@ public class Document {
     private User uploadedBy; // Chi lo ha caricato (PT, Nutrizionista, Admin)
 
     private LocalDateTime uploadDate;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes; // Appunti del professionista
 }
