@@ -112,10 +112,21 @@ public class ChatServiceImpl implements ChatService {
         return chatMessageRepository.countAllUnreadMessages(userId);
     }
 
-    // ── Validazione: solo Client ↔ Professionista assegnato possono comunicare ──
+    // ── Validazione permessi chat ──────────────────────────────────────────────
 
     private void validateChatPermission(User userA, User userB) {
-        // Identifica chi è il client e chi il professionista
+        // Admin può chattare con chiunque
+        if (userA.getRole() == Role.ADMIN || userB.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        // Insurance Manager può chattare con Admin (già coperto sopra) — blocca tutto il resto
+        if (userA.getRole() == Role.INSURANCE_MANAGER || userB.getRole() == Role.INSURANCE_MANAGER) {
+            throw new IllegalStateException(
+                    "L'account polizze può comunicare solo con l'amministratore.");
+        }
+
+        // Client ↔ Professionista assegnato
         User client;
         User professional;
 
