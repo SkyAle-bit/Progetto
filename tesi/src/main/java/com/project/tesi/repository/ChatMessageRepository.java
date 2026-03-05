@@ -22,19 +22,18 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
                                        Pageable pageable);
 
     // Trova tutti gli utenti con cui un utente ha conversato (distinti)
-    @Query("SELECT DISTINCT CASE " +
-            "WHEN m.sender.id = :userId THEN m.receiver " +
-            "ELSE m.sender END " +
-            "FROM ChatMessage m " +
-            "WHERE m.sender.id = :userId OR m.receiver.id = :userId")
+    @Query("SELECT DISTINCT u FROM User u WHERE u IN " +
+           "(SELECT m.receiver FROM ChatMessage m WHERE m.sender.id = :userId) " +
+           "OR u IN " +
+           "(SELECT m.sender FROM ChatMessage m WHERE m.receiver.id = :userId)")
     List<User> findConversationPartners(@Param("userId") Long userId);
 
     // Ultimo messaggio tra due utenti
     @Query("SELECT m FROM ChatMessage m " +
             "WHERE (m.sender.id = :uid1 AND m.receiver.id = :uid2) " +
             "   OR (m.sender.id = :uid2 AND m.receiver.id = :uid1) " +
-            "ORDER BY m.createdAt DESC LIMIT 1")
-    ChatMessage findLastMessage(@Param("uid1") Long userId1, @Param("uid2") Long userId2);
+            "ORDER BY m.createdAt DESC")
+    List<ChatMessage> findLastMessages(@Param("uid1") Long userId1, @Param("uid2") Long userId2, Pageable pageable);
 
     // Conta messaggi non letti ricevuti da un certo sender
     @Query("SELECT COUNT(m) FROM ChatMessage m " +

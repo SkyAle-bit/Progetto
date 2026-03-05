@@ -54,6 +54,22 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    @Transactional
+    public void sendMessageDirect(Long senderId, Long receiverId, String content) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        User receiver = userRepository.findById(receiverId).orElse(null);
+        if (sender == null || receiver == null)
+            return;
+
+        ChatMessage message = ChatMessage.builder()
+                .sender(sender)
+                .receiver(receiver)
+                .content(content)
+                .build();
+        chatMessageRepository.save(message);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> getConversation(Long userId1, Long userId2, int page, int size) {
         User user1 = userRepository.findById(userId1)
@@ -83,13 +99,17 @@ public class ChatServiceImpl implements ChatService {
 
         return partners.stream()
                 .map(partner -> {
-                    ChatMessage lastMsg = chatMessageRepository.findLastMessage(userId, partner.getId());
+                    List<ChatMessage> lastMsgs = chatMessageRepository.findLastMessages(userId, partner.getId(),
+                            PageRequest.of(0, 1));
+                    ChatMessage lastMsg = lastMsgs.isEmpty() ? null : lastMsgs.get(0);
                     int unread = chatMessageRepository.countUnreadMessages(userId, partner.getId());
                     return chatMessageMapper.toConversationPreview(partner, lastMsg, unread);
                 })
                 .sorted((a, b) -> {
-                    if (a.getLastMessageTime() == null) return 1;
-                    if (b.getLastMessageTime() == null) return -1;
+                    if (a.getLastMessageTime() == null)
+                        return 1;
+                    if (b.getLastMessageTime() == null)
+                        return -1;
                     return b.getLastMessageTime().compareTo(a.getLastMessageTime());
                 })
                 .collect(Collectors.toList());
@@ -108,7 +128,8 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional(readOnly = true)
     public int getTotalUnreadCount(Long userId) {
-        if (!userRepository.existsById(userId)) return 0;
+        if (!userRepository.existsById(userId))
+            return 0;
         return chatMessageRepository.countAllUnreadMessages(userId);
     }
 
@@ -120,7 +141,8 @@ public class ChatServiceImpl implements ChatService {
             return;
         }
 
-        // Insurance Manager può chattare con Admin (già coperto sopra) — blocca tutto il resto
+        // Insurance Manager può chattare con Admin (già coperto sopra) — blocca tutto
+        // il resto
         if (userA.getRole() == Role.INSURANCE_MANAGER || userB.getRole() == Role.INSURANCE_MANAGER) {
             throw new IllegalStateException(
                     "L'account polizze può comunicare solo con l'amministratore.");
@@ -164,4 +186,3 @@ public class ChatServiceImpl implements ChatService {
         return user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST;
     }
 }
-
