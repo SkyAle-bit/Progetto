@@ -6,6 +6,7 @@ import com.project.tesi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.project.tesi.dto.request.ProfileUpdateRequest;
 
 @RestController
 @RequestMapping("/api/users")
@@ -25,5 +26,12 @@ public class UserController {
     public ResponseEntity<java.util.List<ClientBasicInfoResponse>> getClientsForProfessional(
             @PathVariable Long userId) {
         return ResponseEntity.ok(userService.getClientsForProfessional(userId));
+    }
+
+    // Aggiornamento profilo utente
+    @PutMapping("/{userId}/profile")
+    public ResponseEntity<?> updateProfile(@PathVariable Long userId, @RequestBody ProfileUpdateRequest request) {
+        userService.updateProfile(userId, request);
+        return ResponseEntity.ok().build();
     }
 }

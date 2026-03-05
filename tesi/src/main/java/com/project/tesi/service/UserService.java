@@ -12,6 +12,8 @@ public interface UserService {
 
     UserResponse registerUser(RegisterRequest request);
 
+    void updateProfile(Long userId, com.project.tesi.dto.request.ProfileUpdateRequest request);
+
     List<ProfessionalSummaryDTO> findAvailableProfessionals(Role role);
 
     ClientDashboardResponse getClientDashboard(Long userId);

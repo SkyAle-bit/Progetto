@@ -1,5 +1,7 @@
 package com.project.tesi.service.impl;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import com.project.tesi.dto.request.RegisterRequest;
 import com.project.tesi.dto.response.*;
 import com.project.tesi.enums.Role;
@@ -45,6 +47,29 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final SubscriptionMapper subscriptionMapper;
     private final BookingMapper bookingMapper;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public void updateProfile(Long userId, com.project.tesi.dto.request.ProfileUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId + " non trovato."));
+
+        if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
+            user.setFirstName(request.getFirstName().trim());
+        }
+        if (request.getLastName() != null && !request.getLastName().trim().isEmpty()) {
+            user.setLastName(request.getLastName().trim());
+        }
+        if (request.getProfilePicture() != null && !request.getProfilePicture().trim().isEmpty()) {
+            user.setProfilePicture(request.getProfilePicture().trim());
+        }
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
+        }
+
+        userRepository.save(user);
+    }
 
     @Override
     @Transactional
