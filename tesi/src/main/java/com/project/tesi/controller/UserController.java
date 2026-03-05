@@ -34,4 +34,10 @@ public class UserController {
         userService.updateProfile(userId, request);
         return ResponseEntity.ok().build();
     }
+
+    // Restituisce l'account Admin per avviare chat
+    @GetMapping("/admin")
+    public ResponseEntity<ClientBasicInfoResponse> getAdmin() {
+        return ResponseEntity.ok(userService.getAdmin());
+    }
 }

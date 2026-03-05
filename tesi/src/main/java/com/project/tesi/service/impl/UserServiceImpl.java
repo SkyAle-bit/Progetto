@@ -266,4 +266,19 @@ public class UserServiceImpl implements UserService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClientBasicInfoResponse getAdmin() {
+        return userRepository.findByRole(Role.ADMIN).stream().findFirst()
+                .map(admin -> ClientBasicInfoResponse.builder()
+                        .id(admin.getId())
+                        .firstName(admin.getFirstName())
+                        .lastName(admin.getLastName())
+                        .email(admin.getEmail())
+                        .profilePictureUrl(admin.getProfilePicture() != null ? admin.getProfilePicture()
+                                : admin.getProfilePictureUrl())
+                        .build())
+                .orElseThrow(() -> new ResourceNotFoundException("Amministratore non trovato nel sistema."));
+    }
 }
