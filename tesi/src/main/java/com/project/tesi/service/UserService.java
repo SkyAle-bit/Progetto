@@ -19,4 +19,6 @@ public interface UserService {
     ClientDashboardResponse getClientDashboard(Long userId);
 
     List<com.project.tesi.dto.response.ClientBasicInfoResponse> getClientsForProfessional(Long professionalId);
+
+    com.project.tesi.dto.response.ClientBasicInfoResponse getAdmin();
 }
