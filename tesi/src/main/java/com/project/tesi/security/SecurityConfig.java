@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/plans/**").permitAll()
                         .requestMatchers("/api/professionals/**").permitAll()
+                        .requestMatchers("/api/reviews/professional/**").permitAll()
                         .requestMatchers("/api/bookings/migrate-meet").permitAll()
                         .requestMatchers("/api/bookings/reset-database").permitAll()
                         .requestMatchers(

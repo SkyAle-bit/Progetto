@@ -6,5 +6,10 @@ import java.util.List;
 
 public interface ReviewService {
     ReviewResponse addReview(ReviewRequest request);
+
     List<ReviewResponse> getReviewsForProfessional(Long professionalId);
+
+    boolean canClientReview(Long clientId, Long professionalId);
+
+    boolean hasClientReviewed(Long clientId, Long professionalId);
 }

@@ -5,6 +5,7 @@ import com.project.tesi.model.*;
 import com.project.tesi.repository.*;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class DatabaseInitializerService {
         private final DocumentRepository documentRepository;
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
+        private final JdbcTemplate jdbcTemplate;
 
         @Transactional
         public void initialize() {
@@ -70,11 +72,21 @@ public class DatabaseInitializerService {
                 User nut2 = createUser("Andrea", "Esposito", "nutri2@test.com", Role.NUTRITIONIST,
                                 "Specializzato in nutrizione clinica e intolleranze alimentari.", null, null);
 
-                // 4. Clienti (4)
+                // 4. Clienti (4 normali)
                 User c1 = createUser("Luca", "Ferri", "luca@test.com", Role.CLIENT, null, pt1, nut1);
                 User c2 = createUser("Sofia", "Conti", "sofia@test.com", Role.CLIENT, null, pt1, nut2);
                 User c3 = createUser("Matteo", "Galli", "matteo@test.com", Role.CLIENT, null, pt2, nut1);
                 User c4 = createUser("Chiara", "Fontana", "chiara@test.com", Role.CLIENT, null, pt2, nut2);
+
+                // Cliente TEST per recensioni (createdAt = 40 giorni fa)
+                User cTest = createUser("Test", "Recensore", "testreview@test.com", Role.CLIENT, null, pt1, nut1);
+                jdbcTemplate.update(
+                                "UPDATE users SET created_at = ? WHERE id = ?",
+                                java.sql.Timestamp.valueOf(java.time.LocalDateTime.now().minusDays(40)),
+                                cTest.getId());
+                // Abbonamento per il cliente test
+                Plan basicSTest = planRepository.findByName("Basic Pack Semestrale").orElseThrow();
+                createSubscription(cTest, basicSTest, PaymentFrequency.UNICA_SOLUZIONE);
 
                 // Admin e Insurance Manager
                 createUser("Admin", "Sistema", "admin@test.com", Role.ADMIN, null, null, null);
@@ -88,16 +100,7 @@ public class DatabaseInitializerService {
                         createSubscription(clients[i], plans[i % 4], freqs[i % 2]);
                 }
 
-                // 6. Recensioni
-                createReview(c1, pt1, 5, "Ottimo preparatore, molto attento!");
-                createReview(c2, pt1, 4, "Bravo, ma a volte in ritardo.");
-                createReview(c3, pt2, 5, "Super professionale!");
-                createReview(c4, pt2, 5, "Motivante e preparato.");
-
-                createReview(c1, nut1, 5, "Piano alimentare perfetto.");
-                createReview(c2, nut2, 4, "Qualche ricetta poco chiara.");
-                createReview(c3, nut1, 5, "La dieta funziona alla grande!");
-                createReview(c4, nut2, 5, "Disponibile e competente.");
+                // 6. Recensioni — inserite direttamente dagli utenti tramite l'app
 
                 // 7. Orari settimanali
                 createWeeklySchedule(pt1, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(13, 0));
@@ -283,4 +286,3 @@ public class DatabaseInitializerService {
                                 .build());
         }
 }
-

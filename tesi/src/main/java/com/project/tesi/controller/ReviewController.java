@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reviews")
@@ -26,5 +27,15 @@ public class ReviewController {
     @GetMapping("/professional/{professionalId}")
     public ResponseEntity<List<ReviewResponse>> getReviewsForProfessional(@PathVariable Long professionalId) {
         return ResponseEntity.ok(reviewService.getReviewsForProfessional(professionalId));
+    }
+
+    // Controlla se un cliente può recensire un professionista
+    @GetMapping("/can-review")
+    public ResponseEntity<Map<String, Object>> canReview(
+            @RequestParam Long clientId,
+            @RequestParam Long professionalId) {
+        boolean hasReviewed = reviewService.hasClientReviewed(clientId, professionalId);
+        boolean can = !hasReviewed && reviewService.canClientReview(clientId, professionalId);
+        return ResponseEntity.ok(Map.of("canReview", can, "hasReviewed", hasReviewed));
     }
 }
