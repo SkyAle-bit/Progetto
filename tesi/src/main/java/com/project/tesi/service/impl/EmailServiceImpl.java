@@ -2,87 +2,118 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.JobApplicationRequest;
 import com.project.tesi.service.EmailService;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.util.ByteArrayDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailServiceImpl implements EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailServiceImpl.class);
 
-    private final JavaMailSender mailSender;
+    private final String resendApiKey;
+    private final String resendFrom;
     private final String adminEmail;
+    private final EmailService self;
+    private final RestTemplate restTemplate;
 
-    public EmailServiceImpl(JavaMailSender mailSender,
-            @Value("${spring.mail.username}") String adminEmail) {
-        this.mailSender = mailSender;
+    public EmailServiceImpl(
+            @Value("${resend.api.key}") String resendApiKey,
+            @Value("${resend.api.from}") String resendFrom,
+            @Value("${admin.email}") String adminEmail,
+            @Lazy EmailService self) {
+        this.resendApiKey = resendApiKey;
+        this.resendFrom = resendFrom;
         this.adminEmail = adminEmail;
+        this.self = self;
+        this.restTemplate = new RestTemplate();
     }
 
     @Override
     public void sendJobApplication(JobApplicationRequest request, MultipartFile cv) {
-        // Leggiamo i bytes del CV PRIMA di delegare al thread async,
-        // perché il MultipartFile viene rilasciato alla fine della request HTTP
+        // Leggiamo i bytes del CV o generiamo l'errore se impossibile prima che il
+        // thread muoia
         byte[] cvBytes = null;
         String cvFileName = null;
-        String cvContentType = null;
 
         if (cv != null && !cv.isEmpty()) {
             try {
                 cvBytes = cv.getBytes();
                 cvFileName = cv.getOriginalFilename();
-                cvContentType = cv.getContentType();
             } catch (IOException e) {
                 log.error("Errore nella lettura del CV", e);
             }
         }
 
-        // Delega l'invio effettivo a un metodo @Async
-        sendEmailAsync(request, cvBytes, cvFileName, cvContentType);
+        // Delega al proxy Async
+        self.sendEmailAsync(request, cvBytes, cvFileName, "application/pdf");
     }
 
+    @Override
     @Async
     public void sendEmailAsync(JobApplicationRequest request, byte[] cvBytes, String cvFileName,
             String cvContentType) {
         try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(adminEmail);
-            helper.setFrom(adminEmail);
-            helper.setReplyTo(request.getEmail());
-
             String roleName = "PERSONAL_TRAINER".equals(request.getRole()) ? "Personal Trainer" : "Nutrizionista";
-            helper.setSubject(
-                    "Nuova Candidatura — " + request.getFirstName() + " " + request.getLastName() + " — " + roleName);
-
+            String subject = "Nuova Candidatura — " + request.getFirstName() + " " + request.getLastName() + " — "
+                    + roleName;
             String htmlBody = buildHtmlBody(request, roleName);
-            helper.setText(htmlBody, true);
 
-            // Allega il CV se presente
+            // Costruiamo il payload JSON per l'API di Resend
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("from", resendFrom);
+            payload.put("to", new String[] { adminEmail });
+            payload.put("subject", subject);
+            payload.put("html", htmlBody);
+
+            // Alleghiamo il CV formattandolo in Base64 (Richiesto da Resend)
             if (cvBytes != null && cvBytes.length > 0) {
-                ByteArrayDataSource dataSource = new ByteArrayDataSource(cvBytes,
-                        cvContentType != null ? cvContentType : "application/pdf");
-                helper.addAttachment(cvFileName != null ? cvFileName : "CV.pdf", dataSource);
+                List<Map<String, String>> attachments = new ArrayList<>();
+                Map<String, String> attachment = new HashMap<>();
+                attachment.put("filename", cvFileName != null ? cvFileName : "CV.pdf");
+                attachment.put("content", Base64.getEncoder().encodeToString(cvBytes));
+                attachments.add(attachment);
+                payload.put("attachments", attachments);
             }
 
-            mailSender.send(mimeMessage);
-            log.info("Email di candidatura inviata con successo da: {} {}", request.getFirstName(),
-                    request.getLastName());
+            // Headers della richiesta (API Key)
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(resendApiKey);
 
-        } catch (MessagingException e) {
-            log.error("Errore durante l'invio dell'email di candidatura", e);
+            HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(payload, headers);
+
+            // Lancia la richiesta HTTP bloccante (che ora vive e sosta dentro questo thread
+            // asincrono separato)
+            ResponseEntity<String> response = restTemplate.postForEntity("https://api.resend.com/emails", httpEntity,
+                    String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Email di candidatura inviata con successo via Resend API da: {} {}", request.getFirstName(),
+                        request.getLastName());
+            } else {
+                log.error("Fallimento imprevisto Resend API. Stato: {}, Risposta: {}", response.getStatusCode(),
+                        response.getBody());
+            }
+
+        } catch (Exception e) {
+            log.error("Errore di rete/imprevisto durante l'invio dell'email via Resend API", e);
         }
     }
 

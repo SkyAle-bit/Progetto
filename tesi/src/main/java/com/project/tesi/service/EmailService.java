@@ -12,4 +12,11 @@ public interface EmailService {
      * @param cv      il file CV in formato PDF (opzionale)
      */
     void sendJobApplication(JobApplicationRequest request, MultipartFile cv);
+
+    /**
+     * Metodo asincrono interno per l'invio post-elaborazione file.
+     * È esposto nell'interfaccia per poterne beneficiare tramite AOP (proxy) e
+     * Self-Injection.
+     */
+    void sendEmailAsync(JobApplicationRequest request, byte[] cvBytes, String cvFileName, String cvContentType);
 }
