@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/reviews/professional/**").permitAll()
                         .requestMatchers("/api/bookings/migrate-meet").permitAll()
                         .requestMatchers("/api/bookings/reset-database").permitAll()
+                        .requestMatchers("/api/job-applications/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

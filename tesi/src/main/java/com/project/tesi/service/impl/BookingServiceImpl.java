@@ -16,16 +16,18 @@ import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.BookingService;
+import com.project.tesi.service.strategy.BookingStrategy;
 import jakarta.persistence.OptimisticLockException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -33,6 +35,26 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final BookingMapper bookingMapper;
+
+    // Mappa per le strategie del tipo di professionista (Strategy Pattern)
+    private final Map<Role, BookingStrategy> strategyMap;
+
+    @Autowired
+    public BookingServiceImpl(
+            BookingRepository bookingRepository,
+            SlotRepository slotRepository,
+            UserRepository userRepository,
+            SubscriptionRepository subscriptionRepository,
+            BookingMapper bookingMapper,
+            List<BookingStrategy> strategies) {
+        this.bookingRepository = bookingRepository;
+        this.slotRepository = slotRepository;
+        this.userRepository = userRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.bookingMapper = bookingMapper;
+        this.strategyMap = strategies.stream()
+                .collect(Collectors.toMap(BookingStrategy::getSupportedRole, strategy -> strategy));
+    }
 
     @Override
     @Transactional
@@ -48,34 +70,23 @@ public class BookingServiceImpl implements BookingService {
             throw new SlotAlreadyBookedException("Slot non più disponibile");
         }
 
-        // 2. Controllo che il professionista dello slot sia quello assegnato al cliente
         User professional = slot.getProfessional();
-        if (professional.getRole() == Role.PERSONAL_TRAINER) {
-            if (user.getAssignedPT() == null || !user.getAssignedPT().getId().equals(professional.getId())) {
-                throw new IllegalStateException("Non sei assegnato a questo Personal Trainer");
-            }
-        } else if (professional.getRole() == Role.NUTRITIONIST) {
-            if (user.getAssignedNutritionist() == null
-                    || !user.getAssignedNutritionist().getId().equals(professional.getId())) {
-                throw new IllegalStateException("Non sei assegnato a questo Nutrizionista");
-            }
-        } else {
+
+        // --- APPLICAZIONE DELLO STRATEGY PATTERN ---
+        BookingStrategy strategy = strategyMap.get(professional.getRole());
+        if (strategy == null) {
             throw new IllegalStateException("Il professionista non è né PT né Nutrizionista");
         }
+
+        // 2. Controllo che il professionista dello slot sia quello assegnato al cliente
+        strategy.verifyAssignment(user, professional);
 
         // 3. Controllo abbonamento e crediti
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
                 .orElseThrow(() -> new IllegalStateException("Nessun abbonamento attivo trovato"));
 
-        if (professional.getRole() == Role.PERSONAL_TRAINER) {
-            if (sub.getCurrentCreditsPT() <= 0)
-                throw new IllegalStateException("Crediti PT esauriti");
-            sub.setCurrentCreditsPT(sub.getCurrentCreditsPT() - 1);
-        } else {
-            if (sub.getCurrentCreditsNutri() <= 0)
-                throw new IllegalStateException("Crediti Nutrizionista esauriti");
-            sub.setCurrentCreditsNutri(sub.getCurrentCreditsNutri() - 1);
-        }
+        strategy.consumeCredits(sub);
+        // ---------------------------------------------
 
         // 4. Occupazione slot con optimistic locking
         try {
@@ -100,7 +111,6 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        // Usa il mapper invece del metodo privato
         return bookingMapper.toResponse(saved);
     }
 }
