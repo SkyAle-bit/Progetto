@@ -4,13 +4,17 @@ import com.project.tesi.dto.request.JobApplicationRequest;
 import com.project.tesi.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @Service
 public class EmailServiceImpl implements EmailService {
@@ -28,6 +32,29 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendJobApplication(JobApplicationRequest request, MultipartFile cv) {
+        // Leggiamo i bytes del CV PRIMA di delegare al thread async,
+        // perché il MultipartFile viene rilasciato alla fine della request HTTP
+        byte[] cvBytes = null;
+        String cvFileName = null;
+        String cvContentType = null;
+
+        if (cv != null && !cv.isEmpty()) {
+            try {
+                cvBytes = cv.getBytes();
+                cvFileName = cv.getOriginalFilename();
+                cvContentType = cv.getContentType();
+            } catch (IOException e) {
+                log.error("Errore nella lettura del CV", e);
+            }
+        }
+
+        // Delega l'invio effettivo a un metodo @Async
+        sendEmailAsync(request, cvBytes, cvFileName, cvContentType);
+    }
+
+    @Async
+    public void sendEmailAsync(JobApplicationRequest request, byte[] cvBytes, String cvFileName,
+            String cvContentType) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -44,8 +71,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(htmlBody, true);
 
             // Allega il CV se presente
-            if (cv != null && !cv.isEmpty()) {
-                helper.addAttachment(cv.getOriginalFilename(), cv);
+            if (cvBytes != null && cvBytes.length > 0) {
+                ByteArrayDataSource dataSource = new ByteArrayDataSource(cvBytes,
+                        cvContentType != null ? cvContentType : "application/pdf");
+                helper.addAttachment(cvFileName != null ? cvFileName : "CV.pdf", dataSource);
             }
 
             mailSender.send(mimeMessage);
@@ -54,7 +83,6 @@ public class EmailServiceImpl implements EmailService {
 
         } catch (MessagingException e) {
             log.error("Errore durante l'invio dell'email di candidatura", e);
-            throw new RuntimeException("Impossibile inviare l'email di candidatura. Riprova più tardi.", e);
         }
     }
 
