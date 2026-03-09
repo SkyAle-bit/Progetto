@@ -14,6 +14,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -60,7 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             // Se il token è falso, scaduto o malformato, l'errore viene catturato e la richiesta fallirà
-            System.out.println("Errore validazione JWT: " + e.getMessage());
+            log.error("Errore validazione JWT: {}", e.getMessage());
         }
 
         // 8. Passa alla prossima fase (il Controller)
