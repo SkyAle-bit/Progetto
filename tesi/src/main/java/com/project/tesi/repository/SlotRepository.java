@@ -3,6 +3,7 @@ package com.project.tesi.repository;
 import com.project.tesi.model.Slot;
 import com.project.tesi.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -66,4 +67,8 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
      * @return lista degli slot non ancora prenotati
      */
     List<Slot> findByIsBookedFalse();
+
+    @Modifying
+    @Query("DELETE FROM Slot s WHERE s.professional.id = :profId")
+    void deleteByProfessionalId(@Param("profId") Long profId);
 }

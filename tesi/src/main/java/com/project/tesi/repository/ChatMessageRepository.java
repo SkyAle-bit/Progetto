@@ -104,4 +104,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             "WHERE m.receiver.id = :userId " +
             "AND m.status <> com.project.tesi.enums.MessageStatus.READ")
     int countAllUnreadMessages(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM ChatMessage m WHERE m.sender.id = :userId OR m.receiver.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

@@ -39,6 +39,11 @@ public class AdminServiceImpl implements AdminService {
     private final SubscriptionRepository subscriptionRepository;
     private final DocumentRepository documentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BookingRepository bookingRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final ReviewRepository reviewRepository;
+    private final SlotRepository slotRepository;
+    private final WeeklyScheduleRepository weeklyScheduleRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -136,7 +141,18 @@ public class AdminServiceImpl implements AdminService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", id));
 
-        documentRepository.findByOwner(user).forEach(documentRepository::delete);
+        // Rimuove l'utente dai clienti a cui è assegnato come PT o Nutrizionista
+        userRepository.clearAssignedPT(id);
+        userRepository.clearAssignedNutritionist(id);
+
+        // Elimina i log correlati per evitare vincoli di integrità referenziale
+        bookingRepository.deleteByUserId(id);
+        chatMessageRepository.deleteByUserId(id);
+        reviewRepository.deleteByUserId(id);
+        slotRepository.deleteByProfessionalId(id);
+        weeklyScheduleRepository.deleteByProfessionalId(id);
+        documentRepository.deleteByUserId(id);
+
         subscriptionRepository.findByUserId(id).ifPresent(subscriptionRepository::delete);
         userRepository.delete(user);
     }

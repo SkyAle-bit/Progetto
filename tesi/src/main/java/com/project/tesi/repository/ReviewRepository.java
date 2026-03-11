@@ -3,6 +3,7 @@ package com.project.tesi.repository;
 import com.project.tesi.model.Review;
 import com.project.tesi.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -51,4 +52,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
      * @return lista delle recensioni
      */
     List<Review> findByProfessional(User professional);
+
+    @Modifying
+    @Query("DELETE FROM Review r WHERE r.client.id = :userId OR r.professional.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

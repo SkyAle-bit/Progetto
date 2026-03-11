@@ -3,6 +3,7 @@ package com.project.tesi.repository;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -94,4 +95,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     @Query("SELECT b FROM Booking b WHERE b.professional = :professional AND b.bookedAt >= :since ORDER BY b.bookedAt DESC")
     List<Booking> findRecentByProfessional(@Param("professional") User professional, @Param("since") LocalDateTime since);
+
+    @Modifying
+    @Query("DELETE FROM Booking b WHERE b.user.id = :userId OR b.professional.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

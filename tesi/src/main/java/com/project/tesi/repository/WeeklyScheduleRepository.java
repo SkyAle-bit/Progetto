@@ -3,6 +3,9 @@ package com.project.tesi.repository;
 import com.project.tesi.model.WeeklySchedule;
 import com.project.tesi.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 /**
@@ -22,4 +25,8 @@ public interface WeeklyScheduleRepository extends JpaRepository<WeeklySchedule, 
      * @return lista delle fasce orarie ricorrenti
      */
     List<WeeklySchedule> findByProfessional(User professional);
+
+    @Modifying
+    @Query("DELETE FROM WeeklySchedule w WHERE w.professional.id = :profId")
+    void deleteByProfessionalId(@Param("profId") Long profId);
 }

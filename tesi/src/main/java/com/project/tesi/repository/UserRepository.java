@@ -3,6 +3,9 @@ package com.project.tesi.repository;
 import com.project.tesi.model.User;
 import com.project.tesi.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -76,4 +79,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return lista degli utenti corrispondenti
      */
     List<User> findByRoleIn(List<Role> roles);
+
+    @Modifying
+    @Query("UPDATE User u SET u.assignedPT = null WHERE u.assignedPT.id = :ptId")
+    void clearAssignedPT(@Param("ptId") Long ptId);
+
+    @Modifying
+    @Query("UPDATE User u SET u.assignedNutritionist = null WHERE u.assignedNutritionist.id = :nutriId")
+    void clearAssignedNutritionist(@Param("nutriId") Long nutriId);
 }
