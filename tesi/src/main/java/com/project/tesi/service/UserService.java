@@ -1,5 +1,6 @@
 package com.project.tesi.service;
 
+import com.project.tesi.dto.response.ClientBasicInfoResponse;
 import com.project.tesi.dto.response.ClientDashboardResponse;
 import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.request.RegisterRequest;
@@ -8,17 +9,27 @@ import com.project.tesi.enums.Role;
 
 import java.util.List;
 
+/**
+ * Interfaccia del servizio per la gestione degli utenti.
+ * Gestisce registrazione, profilo, dashboard cliente e lista clienti per professionisti.
+ */
 public interface UserService {
 
+    /** Registra un nuovo utente cliente e restituisce il profilo creato. */
     UserResponse registerUser(RegisterRequest request);
 
+    /** Aggiorna il profilo dell'utente (nome, cognome, password, immagine). */
     void updateProfile(Long userId, com.project.tesi.dto.request.ProfileUpdateRequest request);
 
+    /** Restituisce la lista dei professionisti disponibili per un dato ruolo. */
     List<ProfessionalSummaryDTO> findAvailableProfessionals(Role role);
 
+    /** Restituisce la dashboard completa del cliente. */
     ClientDashboardResponse getClientDashboard(Long userId);
 
-    List<com.project.tesi.dto.response.ClientBasicInfoResponse> getClientsForProfessional(Long professionalId);
+    /** Restituisce la lista dei clienti assegnati a un professionista. */
+    List<ClientBasicInfoResponse> getClientsForProfessional(Long professionalId);
 
-    com.project.tesi.dto.response.ClientBasicInfoResponse getAdmin();
+    /** Restituisce i dati dell'account Admin (per la chat di supporto). */
+    ClientBasicInfoResponse getAdmin();
 }

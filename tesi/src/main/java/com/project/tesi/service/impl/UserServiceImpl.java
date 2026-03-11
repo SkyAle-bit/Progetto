@@ -33,6 +33,19 @@ import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Implementazione del servizio per la gestione degli utenti.
+ *
+ * Gestisce:
+ * <ul>
+ *   <li>Registrazione nuovi clienti con assegnazione professionisti (round-robin)</li>
+ *   <li>Creazione automatica dell'abbonamento alla registrazione</li>
+ *   <li>Dashboard cliente con profilo, professionisti, abbonamento e prossimi appuntamenti</li>
+ *   <li>Lista clienti per professionisti</li>
+ *   <li>Aggiornamento profilo (nome, cognome, password, immagine)</li>
+ *   <li>Vetrina professionisti disponibili con media voti</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {

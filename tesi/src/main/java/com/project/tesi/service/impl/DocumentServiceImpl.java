@@ -1,6 +1,7 @@
 package com.project.tesi.service.impl;
 
 import com.project.tesi.enums.DocumentType;
+import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.exception.document.DocumentNotFoundException;
 import com.project.tesi.exception.document.DocumentStorageException;
@@ -22,9 +23,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+/**
+ * Implementazione del servizio per la gestione dei documenti.
+ *
+ * Gestisce il ciclo di vita completo dei file:
+ * <ul>
+ *   <li>Upload con validazione ruolo-tipo (es. solo PT può caricare schede allenamento)</li>
+ *   <li>Download con lettura dal filesystem</li>
+ *   <li>Eliminazione con pulizia file dal disco</li>
+ *   <li>Aggiornamento note testuali</li>
+ * </ul>
+ * I file vengono salvati nella directory configurata tramite {@code file.upload-dir}.
+ */
 @Service
 @RequiredArgsConstructor
 public class DocumentServiceImpl implements DocumentService {
@@ -35,16 +51,35 @@ public class DocumentServiceImpl implements DocumentService {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    // ── METODI PRINCIPALI (usati dal controller via facade) ─────
+
     @Override
     @Transactional
-    public Document uploadDocument(MultipartFile file, Long clientId, Long uploaderId, String docTypeStr) throws IOException {
+    public Map<String, Object> uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String docType) {
+        User uploader = userRepository.findById(uploaderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Uploader", uploaderId));
+
+        // Validazione ruolo ↔ tipo documento
+        if (uploader.getRole() == Role.PERSONAL_TRAINER && !"WORKOUT_PLAN".equals(docType)) {
+            throw new InvalidFileException("Il Personal Trainer può caricare solo schede di allenamento.");
+        }
+        if (uploader.getRole() == Role.NUTRITIONIST && !"DIET_PLAN".equals(docType)) {
+            throw new InvalidFileException("Il Nutrizionista può caricare solo piani alimentari.");
+        }
+
+        Document doc = uploadDocument(file, clientId, uploaderId, docType);
+        return toDto(doc);
+    }
+
+    @Override
+    @Transactional
+    public Document uploadDocument(MultipartFile file, Long clientId, Long uploaderId, String docTypeStr) {
         User client = userRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente", clientId));
 
         User uploader = userRepository.findById(uploaderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Uploader", uploaderId));
 
-        // 1. Salva file su disco
         File directory = new File(uploadDir);
         if (!directory.exists()) {
             if (!directory.mkdirs()) {
@@ -57,7 +92,7 @@ public class DocumentServiceImpl implements DocumentService {
             throw new InvalidFileException("Nome file non valido o estensione mancante.");
         }
         String extension = originalName.substring(originalName.lastIndexOf("."));
-        String storageName = UUID.randomUUID() + extension; // Nome univoco
+        String storageName = UUID.randomUUID() + extension;
         Path destinationPath = Paths.get(uploadDir, storageName);
 
         try {
@@ -66,7 +101,6 @@ public class DocumentServiceImpl implements DocumentService {
             throw new DocumentStorageException("Errore durante il salvataggio del file su disco.", e);
         }
 
-        // 2. Salva metadati su DB
         Document doc = Document.builder()
                 .fileName(originalName)
                 .filePath(destinationPath.toString())
@@ -81,7 +115,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public byte[] downloadDocument(Long documentId) throws IOException {
+    public byte[] downloadDocument(Long documentId) {
         Document doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException(documentId));
 
@@ -107,6 +141,11 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    public List<Map<String, Object>> getUserDocumentsDto(Long userId) {
+        return getUserDocuments(userId).stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
     public List<Document> getUserDocumentsByType(Long userId, String docType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
@@ -115,22 +154,56 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    public List<Map<String, Object>> getUserDocumentsByTypeDto(Long userId, String docType) {
+        return getUserDocumentsByType(userId, docType).stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
-    public void deleteDocument(Long documentId) throws IOException {
+    public void deleteDocument(Long documentId) {
         Document doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException(documentId));
 
-        // Elimina file da disco
         Path path = Paths.get(doc.getFilePath());
-        Files.deleteIfExists(path);
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw new DocumentStorageException("Errore durante l'eliminazione del file dal disco.", e);
+        }
 
-        // Elimina record da DB
         documentRepository.delete(doc);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> updateNotes(Long documentId, String notes) {
+        Document doc = getDocumentById(documentId);
+        doc.setNotes(notes);
+        documentRepository.save(doc);
+        return toDto(doc);
     }
 
     @Override
     @Transactional
     public Document saveDocument(Document document) {
         return documentRepository.save(document);
+    }
+
+    // ── DTO MAPPING ─────────────────────────────────────────────
+
+    @Override
+    public Map<String, Object> toDto(Document doc) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", doc.getId());
+        map.put("fileName", doc.getFileName());
+        map.put("contentType", doc.getContentType());
+        map.put("type", doc.getType().name());
+        map.put("uploadDate", doc.getUploadDate().toString());
+        map.put("ownerId", doc.getOwner().getId());
+        map.put("ownerName", doc.getOwner().getFirstName() + " " + doc.getOwner().getLastName());
+        map.put("uploadedById", doc.getUploadedBy().getId());
+        map.put("uploaderName", doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName());
+        map.put("notes", doc.getNotes());
+        return map;
     }
 }

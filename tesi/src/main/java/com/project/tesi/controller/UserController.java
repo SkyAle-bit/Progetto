@@ -2,42 +2,50 @@ package com.project.tesi.controller;
 
 import com.project.tesi.dto.response.ClientBasicInfoResponse;
 import com.project.tesi.dto.response.ClientDashboardResponse;
-import com.project.tesi.service.UserService;
+import com.project.tesi.dto.request.ProfileUpdateRequest;
+import com.project.tesi.facade.UserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.project.tesi.dto.request.ProfileUpdateRequest;
 
+import java.util.List;
+
+/**
+ * Controller REST per le operazioni dell'utente autenticato.
+ * Fornisce la dashboard cliente, la lista clienti per i professionisti,
+ * l'aggiornamento del profilo e il recupero dell'account admin.
+ * Delega alla {@link UserFacade} (pattern Facade).
+ */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final UserFacade userFacade;
 
-    // Il client vede i suoi dati e i PT/Nutrizionisti che lo seguono
+    /** Restituisce la dashboard completa del cliente (profilo, professionisti, abbonamento, prossimi appuntamenti). */
     @GetMapping("/dashboard/{userId}")
     public ResponseEntity<ClientDashboardResponse> getDashboard(@PathVariable Long userId) {
-        return ResponseEntity.ok(userService.getClientDashboard(userId));
+        return ResponseEntity.ok(userFacade.getClientDashboard(userId));
     }
 
-    // Il professionista vede i clienti associati
+    /** Restituisce la lista dei clienti assegnati a un professionista. */
     @GetMapping("/{userId}/clients")
-    public ResponseEntity<java.util.List<ClientBasicInfoResponse>> getClientsForProfessional(
+    public ResponseEntity<List<ClientBasicInfoResponse>> getClientsForProfessional(
             @PathVariable Long userId) {
-        return ResponseEntity.ok(userService.getClientsForProfessional(userId));
+        return ResponseEntity.ok(userFacade.getClientsForProfessional(userId));
     }
 
-    // Aggiornamento profilo utente
+    /** Aggiorna il profilo dell'utente (nome, cognome, password, immagine profilo). */
     @PutMapping("/{userId}/profile")
-    public ResponseEntity<?> updateProfile(@PathVariable Long userId, @RequestBody ProfileUpdateRequest request) {
-        userService.updateProfile(userId, request);
+    public ResponseEntity<Void> updateProfile(@PathVariable Long userId, @RequestBody ProfileUpdateRequest request) {
+        userFacade.updateProfile(userId, request);
         return ResponseEntity.ok().build();
     }
 
-    // Restituisce l'account Admin per avviare chat
+    /** Restituisce i dati dell'account Admin (usato dal client per avviare una chat con il supporto). */
     @GetMapping("/admin")
     public ResponseEntity<ClientBasicInfoResponse> getAdmin() {
-        return ResponseEntity.ok(userService.getAdmin());
+        return ResponseEntity.ok(userFacade.getAdmin());
     }
 }

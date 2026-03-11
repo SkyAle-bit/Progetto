@@ -11,6 +11,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
+/**
+ * Controller REST per l'invio di candidature lavorative.
+ * Permette a potenziali professionisti di candidarsi come PT o Nutrizionisti,
+ * allegando il proprio CV in formato PDF. L'email viene inviata all'amministratore.
+ * La validazione del formato PDF è delegata all'{@link EmailService}.
+ */
 @RestController
 @RequestMapping("/api/job-applications")
 @RequiredArgsConstructor
@@ -18,19 +24,17 @@ public class JobApplicationController {
 
     private final EmailService emailService;
 
+    /**
+     * Invia una candidatura lavorativa con dati e CV allegato.
+     *
+     * @param request dati della candidatura (nome, cognome, email, ruolo, messaggio)
+     * @param cv      curriculum vitae in formato PDF (opzionale)
+     * @return messaggio di conferma
+     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> submitApplication(
+    public ResponseEntity<Map<String, String>> submitApplication(
             @RequestPart("data") @Valid JobApplicationRequest request,
             @RequestPart(value = "cv", required = false) MultipartFile cv) {
-
-        // Validazione tipo file (solo PDF)
-        if (cv != null && !cv.isEmpty()) {
-            String contentType = cv.getContentType();
-            if (contentType == null || !contentType.equals("application/pdf")) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("message", "Il CV deve essere in formato PDF."));
-            }
-        }
 
         emailService.sendJobApplication(request, cv);
 

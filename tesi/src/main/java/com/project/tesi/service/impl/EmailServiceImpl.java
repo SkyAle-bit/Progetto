@@ -22,6 +22,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Implementazione del servizio di invio email tramite Resend API.
+ *
+ * Gestisce l'invio di candidature lavorative:
+ * <ul>
+ *   <li>Valida il formato del CV (solo PDF)</li>
+ *   <li>Legge il file in memoria e delega l'invio a un metodo asincrono</li>
+ *   <li>Invia l'email all'admin con i dati del candidato e il CV in allegato Base64</li>
+ * </ul>
+ * Usa Self-Injection per garantire il corretto funzionamento di {@code @Async}
+ * tramite il proxy Spring.
+ */
 @Service
 public class EmailServiceImpl implements EmailService {
 
@@ -47,6 +59,14 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendJobApplication(JobApplicationRequest request, MultipartFile cv) {
+        // Validazione tipo file (solo PDF)
+        if (cv != null && !cv.isEmpty()) {
+            String contentType = cv.getContentType();
+            if (contentType == null || !contentType.equals("application/pdf")) {
+                throw new IllegalArgumentException("Il CV deve essere in formato PDF.");
+            }
+        }
+
         // Leggiamo i bytes del CV o generiamo l'errore se impossibile prima che il
         // thread muoia
         byte[] cvBytes = null;

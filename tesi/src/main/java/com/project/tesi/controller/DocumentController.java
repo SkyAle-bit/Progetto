@@ -9,51 +9,37 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import com.project.tesi.enums.Role;
-import com.project.tesi.exception.common.ResourceNotFoundException;
-import com.project.tesi.exception.document.InvalidFileException;
-import com.project.tesi.model.User;
-import com.project.tesi.repository.UserRepository;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+/**
+ * Controller REST per la gestione dei documenti.
+ * Permette il caricamento, il download, la visualizzazione e l'eliminazione
+ * di file (schede allenamento, piani alimentari, polizze, certificati).
+ * La validazione del ruolo dell'uploader e il mapping DTO sono delegati al {@link DocumentService}.
+ */
 @RestController
 @RequestMapping("/api/documents")
 @RequiredArgsConstructor
 public class DocumentController {
 
     private final DocumentService documentService;
-    private final UserRepository userRepository;
 
+    /** Carica un documento validando il ruolo dell'uploader rispetto al tipo di file. */
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("clientId") Long clientId,
             @RequestParam("uploaderId") Long uploaderId,
-            @RequestParam("type") String type) throws IOException {
-
-        // Validazione ruolo: PT può caricare solo WORKOUT_PLAN, Nutrizionista solo DIET_PLAN
-        User uploader = userRepository.findById(uploaderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Uploader", uploaderId));
-        if (uploader.getRole() == Role.PERSONAL_TRAINER && !"WORKOUT_PLAN".equals(type)) {
-            throw new InvalidFileException("Il Personal Trainer può caricare solo schede di allenamento.");
-        }
-        if (uploader.getRole() == Role.NUTRITIONIST && !"DIET_PLAN".equals(type)) {
-            throw new InvalidFileException("Il Nutrizionista può caricare solo piani alimentari.");
-        }
-
-        Document doc = documentService.uploadDocument(file, clientId, uploaderId, type);
-        return ResponseEntity.ok(toDto(doc));
+            @RequestParam("type") String type) {
+        return ResponseEntity.ok(documentService.uploadDocumentWithValidation(file, clientId, uploaderId, type));
     }
 
+    /** Scarica il contenuto binario di un documento per la visualizzazione inline nel browser. */
     @GetMapping("/download/{id}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable Long id) throws IOException {
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long id) {
         Document doc = documentService.getDocumentById(id);
         byte[] data = documentService.downloadDocument(id);
-
         String contentType = doc.getContentType() != null ? doc.getContentType() : "application/octet-stream";
 
         return ResponseEntity.ok()
@@ -62,48 +48,31 @@ public class DocumentController {
                 .body(data);
     }
 
+    /** Restituisce tutti i documenti di un utente (qualsiasi tipo). */
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Map<String, Object>>> getUserDocuments(@PathVariable Long userId) {
-        List<Document> docs = documentService.getUserDocuments(userId);
-        return ResponseEntity.ok(docs.stream().map(this::toDto).collect(Collectors.toList()));
+        return ResponseEntity.ok(documentService.getUserDocumentsDto(userId));
     }
 
+    /** Restituisce i documenti di un utente filtrati per tipologia. */
     @GetMapping("/user/{userId}/type/{type}")
     public ResponseEntity<List<Map<String, Object>>> getUserDocumentsByType(
             @PathVariable Long userId, @PathVariable String type) {
-        List<Document> docs = documentService.getUserDocumentsByType(userId, type);
-        return ResponseEntity.ok(docs.stream().map(this::toDto).collect(Collectors.toList()));
+        return ResponseEntity.ok(documentService.getUserDocumentsByTypeDto(userId, type));
     }
 
+    /** Elimina un documento dal database e dal filesystem. */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) throws IOException {
+    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
         documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();
     }
 
+    /** Aggiorna le note testuali associate a un documento. */
     @PutMapping("/{id}/notes")
     public ResponseEntity<Map<String, Object>> updateNotes(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
-        String notes = body.get("notes");
-        Document doc = documentService.getDocumentById(id);
-        doc.setNotes(notes);
-        documentService.saveDocument(doc);
-        return ResponseEntity.ok(toDto(doc));
-    }
-
-    private Map<String, Object> toDto(Document doc) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", doc.getId());
-        map.put("fileName", doc.getFileName());
-        map.put("contentType", doc.getContentType());
-        map.put("type", doc.getType().name());
-        map.put("uploadDate", doc.getUploadDate().toString());
-        map.put("ownerId", doc.getOwner().getId());
-        map.put("ownerName", doc.getOwner().getFirstName() + " " + doc.getOwner().getLastName());
-        map.put("uploadedById", doc.getUploadedBy().getId());
-        map.put("uploaderName", doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName());
-        map.put("notes", doc.getNotes());
-        return map;
+        return ResponseEntity.ok(documentService.updateNotes(id, body.get("notes")));
     }
 }

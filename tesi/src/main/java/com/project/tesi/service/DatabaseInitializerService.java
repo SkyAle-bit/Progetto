@@ -17,6 +17,16 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servizio per il reset e la ripopolazione del database con dati di test.
+ *
+ * Svuota tutte le tabelle nell'ordine corretto (rispettando le FK)
+ * e le ripopola con utenti, piani, abbonamenti, slot, prenotazioni,
+ * recensioni e messaggi di esempio con link Jitsi per le videochiamate.
+ *
+ * Utilizzato solo in fase di sviluppo/demo tramite l'endpoint
+ * {@code GET /api/bookings/reset-database}.
+ */
 @Service
 @RequiredArgsConstructor
 public class DatabaseInitializerService {

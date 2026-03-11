@@ -9,6 +9,17 @@ import com.project.tesi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mapper per la conversione bidirezionale tra l'entità {@link User} e i suoi DTO.
+ *
+ * <ul>
+ *   <li>{@code toUserResponse} — User → UserResponse (con dati aggiuntivi dal DB)</li>
+ *   <li>{@code toUser} — RegisterRequest → User (per la registrazione)</li>
+ * </ul>
+ *
+ * Per i professionisti, arricchisce la risposta con la media voti (dal {@link ReviewRepository})
+ * e il conteggio clienti attivi (dal {@link UserRepository}).
+ */
 @Component
 @RequiredArgsConstructor
 public class UserMapper {
@@ -16,11 +27,21 @@ public class UserMapper {
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
 
-    // Metodo per convertire l'Entity User nel DTO UserResponse
+    /**
+     * Converte un'entità User nel DTO di risposta, arricchendo i dati:
+     * <ul>
+     *   <li>Per i clienti: nome del PT e Nutrizionista assegnati</li>
+     *   <li>Per i professionisti: media voti e numero clienti attivi</li>
+     * </ul>
+     *
+     * @param user l'entità utente
+     * @return il DTO di risposta con i dati completi
+     */
     public UserResponse toUserResponse(User user) {
         Double avgRating = null;
         Integer clientsCount = null;
 
+        // Arricchimento dati per i professionisti
         if (user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST) {
             avgRating = reviewRepository.getAverageRating(user.getId());
             if (avgRating == null) avgRating = 0.0;
@@ -46,6 +67,14 @@ public class UserMapper {
                 .build();
     }
 
+    /**
+     * Converte un DTO di registrazione in un'entità User.
+     * Imposta automaticamente il ruolo CLIENT.
+     * La password viene salvata in chiaro e sarà hashata nel service.
+     *
+     * @param request dati della registrazione
+     * @return l'entità User pronta per il salvataggio, oppure {@code null} se request è null
+     */
     public User toUser(RegisterRequest request) {
         if (request == null) {
             return null;
@@ -55,9 +84,9 @@ public class UserMapper {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
-                .password(request.getPassword()) // In futuro qui potrai iniettare il PasswordEncoder
+                .password(request.getPassword())
                 .profilePicture(request.getProfilePicture())
-                .role(Role.CLIENT) // Forziamo il ruolo
+                .role(Role.CLIENT)
                 .build();
     }
 }

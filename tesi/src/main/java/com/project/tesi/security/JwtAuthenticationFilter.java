@@ -16,6 +16,16 @@ import java.io.IOException;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Filtro di autenticazione JWT eseguito una volta per ogni richiesta HTTP.
+ *
+ * Intercetta l'header {@code Authorization: Bearer <token>}, estrae e valida il JWT,
+ * e se valido imposta l'autenticazione nel {@link SecurityContextHolder}
+ * in modo che i controller possano accedere all'utente autenticato.
+ *
+ * Se il token è assente, scaduto o non valido, la richiesta prosegue
+ * senza autenticazione e verrà bloccata dalle regole di {@link SecurityConfig}.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,6 +34,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
+    /**
+     * Filtra ogni richiesta HTTP per verificare la presenza di un token JWT valido.
+     *
+     * Flusso:
+     * <ol>
+     *   <li>Estrae l'header "Authorization" dalla richiesta</li>
+     *   <li>Se assente o non inizia con "Bearer ", lascia passare la richiesta</li>
+     *   <li>Estrae il token (rimuovendo il prefisso "Bearer ")</li>
+     *   <li>Estrae l'email dal token</li>
+     *   <li>Se l'utente non è già autenticato, carica i dati dal DB</li>
+     *   <li>Valida il token (firma + scadenza)</li>
+     *   <li>Se valido, salva l'autenticazione nel contesto di Spring Security</li>
+     *   <li>Passa alla prossima fase della filter chain</li>
+     * </ol>
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -33,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        // 2. Se non c'è il token, o non inizia con "Bearer ", lascia passare la richiesta nuda (che verrà poi bloccata)
+        // 2. Se non c'è il token, o non inizia con "Bearer ", lascia passare la richiesta
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -57,12 +82,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                    // 7. Salva l'utente autenticato nel contesto (lo fa "entrare" nel server)
+                    // 7. Salva l'utente autenticato nel contesto
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception e) {
-            // Se il token è falso, scaduto o malformato, l'errore viene catturato e la richiesta fallirà
             log.error("Errore validazione JWT: {}", e.getMessage());
         }
 

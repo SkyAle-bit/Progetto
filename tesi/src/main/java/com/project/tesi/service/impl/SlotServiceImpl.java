@@ -22,6 +22,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementazione del servizio per la gestione degli slot del calendario.
+ *
+ * Funzionalità:
+ * <ul>
+ *   <li>Creazione manuale di slot da parte del professionista</li>
+ *   <li>Generazione automatica settimanale degli slot dal {@link WeeklySchedule}</li>
+ *   <li>Recupero degli slot disponibili (futuri e non prenotati)</li>
+ *   <li>Eliminazione di uno slot specifico</li>
+ * </ul>
+ * Include uno scheduler {@code @Scheduled} per la generazione automatica ogni domenica.
+ */
 @Service
 @RequiredArgsConstructor
 public class SlotServiceImpl implements SlotService {

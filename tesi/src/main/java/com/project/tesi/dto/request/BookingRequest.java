@@ -5,13 +5,20 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * DTO di richiesta per la creazione di una prenotazione.
+ * Il client invia l'ID dell'utente che prenota e l'ID dello slot scelto.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingRequest {
-    @NotNull
-    private Long userId; // Chi prenota
 
+    /** ID del cliente che effettua la prenotazione. */
     @NotNull
-    private Long slotId; // Quale slot
+    private Long userId;
+
+    /** ID dello slot temporale da prenotare. */
+    @NotNull
+    private Long slotId;
 }

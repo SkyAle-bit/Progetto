@@ -18,6 +18,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementazione del servizio per la gestione delle recensioni.
+ *
+ * Regole di business applicate:
+ * <ul>
+ *   <li>Unicità: una sola recensione per coppia cliente-professionista</li>
+ *   <li>Tempo minimo: il cliente può recensire solo dopo 1 mese dalla registrazione</li>
+ *   <li>Voto: da 1 a 5 stelle con commento opzionale</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {

@@ -20,6 +20,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Optional;
 
+/**
+ * Implementazione del servizio per la gestione degli abbonamenti.
+ *
+ * Gestisce:
+ * <ul>
+ *   <li>Attivazione di un nuovo piano (disattivando il precedente se presente)</li>
+ *   <li>Calcolo delle date (inizio/fine) e delle rate in base al piano e alla frequenza</li>
+ *   <li>Inizializzazione dei crediti PT e Nutrizionista</li>
+ *   <li>Consultazione dello stato dell'abbonamento attivo</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 public class SubscriptionServiceImpl implements SubscriptionService {

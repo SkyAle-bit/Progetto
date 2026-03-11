@@ -5,6 +5,22 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 
+/**
+ * Entità Abbonamento — rappresenta la sottoscrizione attiva di un cliente
+ * a un determinato {@link Plan}.
+ *
+ * Gestisce:
+ * <ul>
+ *   <li><b>Stato pagamento</b> — frequenza (unica soluzione o rate mensili),
+ *       rate pagate e prossima scadenza</li>
+ *   <li><b>Durata temporale</b> — data di inizio e fine dell'abbonamento</li>
+ *   <li><b>Saldo crediti</b> — crediti residui per prenotare consulenze con PT e Nutrizionisti,
+ *       rinnovati mensilmente dallo scheduler {@code SubscriptionScheduler}</li>
+ * </ul>
+ *
+ * Ogni utente può avere al massimo <b>un solo abbonamento attivo</b> alla volta
+ * (campo {@code active = true}). L'attivazione di un nuovo piano disattiva il precedente.
+ */
 @Entity
 @Table(name = "subscriptions")
 @Data
@@ -13,34 +29,56 @@ import java.time.LocalDate;
 @Builder
 public class Subscription {
 
+    /** Identificativo univoco dell'abbonamento. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Cliente titolare dell'abbonamento (relazione 1:1). */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    /** Piano commerciale sottoscritto (caricato EAGER perché usato spesso). */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "plan_id", nullable = false)
     private Plan plan;
 
-    // STATO PAGAMENTO
+    // ── STATO PAGAMENTO ─────────────────────────────────────────
+
+    /** Modalità di pagamento scelta: UNICA_SOLUZIONE o RATE_MENSILI. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentFrequency paymentFrequency;
 
-    private int installmentsPaid;   // Rate pagate finora
-    private int totalInstallments;  // Totale rate previste (1, 6 o 12)
+    /** Numero di rate effettivamente pagate finora. */
+    private int installmentsPaid;
+
+    /** Numero totale di rate previste (1 per soluzione unica, 6 o 12 per rate). */
+    private int totalInstallments;
+
+    /** Data del prossimo pagamento atteso ({@code null} se pagato in soluzione unica). */
     private LocalDate nextPaymentDate;
 
-    // DURATA TEMPORALE
+    // ── DURATA TEMPORALE ────────────────────────────────────────
+
+    /** Data di attivazione dell'abbonamento. */
     private LocalDate startDate;
+
+    /** Data di scadenza dell'abbonamento. */
     private LocalDate endDate;
+
+    /** Indica se l'abbonamento è attualmente attivo. */
     private boolean active;
 
-    // SALDO CREDITI ATTUALE
+    // ── SALDO CREDITI CORRENTE ──────────────────────────────────
+
+    /** Crediti residui per prenotazioni con il Personal Trainer (reset mensile). */
     private int currentCreditsPT;
+
+    /** Crediti residui per prenotazioni con il Nutrizionista (reset mensile). */
     private int currentCreditsNutri;
-    private LocalDate lastRenewalDate; // Data ultimo reset crediti
+
+    /** Data dell'ultimo reset mensile dei crediti (usata dallo scheduler). */
+    private LocalDate lastRenewalDate;
 }

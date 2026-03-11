@@ -3,6 +3,10 @@ package com.project.tesi.service;
 import com.project.tesi.dto.request.JobApplicationRequest;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Interfaccia del servizio per l'invio di email.
+ * Gestisce le candidature lavorative con invio CV via email all'amministratore.
+ */
 public interface EmailService {
 
     /**

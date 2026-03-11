@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Implementazione del servizio per la gestione dei piani di abbonamento.
+ * Fornisce la lista di tutti i piani disponibili per la consultazione pubblica.
+ */
 @Service
 @RequiredArgsConstructor
 public class PlanServiceImpl implements PlanService {

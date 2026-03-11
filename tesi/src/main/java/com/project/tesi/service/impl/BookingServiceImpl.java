@@ -28,6 +28,21 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Implementazione del servizio per la gestione delle prenotazioni.
+ *
+ * Flusso di creazione prenotazione:
+ * <ol>
+ *   <li>Verifica disponibilità dello slot (Optimistic Locking)</li>
+ *   <li>Applica lo Strategy Pattern per verificare assegnazione e crediti</li>
+ *   <li>Occupa lo slot e scala i crediti dall'abbonamento</li>
+ *   <li>Genera il link Jitsi per la videochiamata</li>
+ *   <li>Salva la prenotazione con stato CONFIRMED</li>
+ * </ol>
+ *
+ * Usa il Design Pattern Strategy ({@link BookingStrategy}) per gestire
+ * le regole specifiche di PT e Nutrizionista.
+ */
 @Service
 public class BookingServiceImpl implements BookingService {
 

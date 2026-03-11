@@ -20,6 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementazione del servizio di messaggistica chat.
+ *
+ * Gestisce l'invio di messaggi (REST e WebSocket), il recupero delle conversazioni,
+ * la marcatura come letti e il conteggio dei non letti.
+ * Applica una regola di business: la chat è consentita solo tra
+ * un cliente e un professionista a lui assegnato, oppure con l'Admin.
+ */
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
@@ -184,5 +192,13 @@ public class ChatServiceImpl implements ChatService {
 
     private boolean isProfessional(User user) {
         return user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getUserFullName(Long userId) {
+        return userRepository.findById(userId)
+                .map(u -> u.getFirstName() + " " + u.getLastName())
+                .orElse("Utente");
     }
 }

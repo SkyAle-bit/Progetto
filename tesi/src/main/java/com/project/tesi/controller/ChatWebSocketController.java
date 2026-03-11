@@ -1,8 +1,6 @@
 package com.project.tesi.controller;
 
 import com.project.tesi.config.WebSocketEventListener;
-import com.project.tesi.repository.ChatMessageRepository;
-import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -15,18 +13,31 @@ import org.springframework.stereotype.Controller;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * Controller WebSocket (STOMP) per la chat in tempo reale.
+ *
+ * Gestisce tre operazioni tramite messaggi STOMP:
+ * <ul>
+ *   <li>{@code /app/chat.join} — l'utente entra in una stanza chat</li>
+ *   <li>{@code /app/chat.leave} — l'utente esce da una stanza chat</li>
+ *   <li>{@code /app/chat.send} — l'utente invia un messaggio</li>
+ *   <li>{@code /app/chat.read} — l'utente segna i messaggi come letti</li>
+ * </ul>
+ *
+ * L'invio dei messaggi segue un pattern "fire-and-persist":
+ * il messaggio viene inoltrato immediatamente via WebSocket alla stanza,
+ * e poi salvato in modo asincrono nel database tramite {@link ChatService}.
+ */
 @Controller
 @RequiredArgsConstructor
 public class ChatWebSocketController {
 
     private final SimpMessageSendingOperations messagingTemplate;
     private final WebSocketEventListener eventListener;
-    private final ChatMessageRepository chatMessageRepository;
-    private final UserRepository userRepository;
     private final ChatService chatService;
 
+    /** Registra l'ingresso dell'utente in una stanza chat (per tracciare la presenza). */
     @MessageMapping("/chat.join")
     public void joinRoom(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor ha) {
         String sid = ha.getSessionId();
@@ -35,6 +46,7 @@ public class ChatWebSocketController {
             eventListener.joinRoom(sid, rid);
     }
 
+    /** Registra l'uscita dell'utente da una stanza chat. */
     @MessageMapping("/chat.leave")
     public void leaveRoom(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor ha) {
         String sid = ha.getSessionId();
@@ -43,6 +55,12 @@ public class ChatWebSocketController {
             eventListener.leaveRoom(sid, rid);
     }
 
+    /**
+     * Gestisce l'invio di un messaggio in tempo reale.
+     * 1) Inoltra immediatamente il messaggio alla stanza via WebSocket
+     * 2) Persiste il messaggio nel database in modo asincrono
+     * 3) Se il destinatario non è nella stanza, invia una notifica push
+     */
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload Map<String, Object> payload) {
         Long senderId = toLong(payload.get("senderId"));
@@ -56,9 +74,9 @@ public class ChatWebSocketController {
         Map<String, Object> dto = new HashMap<>();
         dto.put("id", System.currentTimeMillis());
         dto.put("senderId", senderId);
-        dto.put("senderName", getUserName(senderId));
+        dto.put("senderName", chatService.getUserFullName(senderId));
         dto.put("receiverId", receiverId);
-        dto.put("receiverName", getUserName(receiverId));
+        dto.put("receiverName", chatService.getUserFullName(receiverId));
         dto.put("content", content);
         dto.put("status", "SENT");
         dto.put("createdAt", now.toString());
@@ -67,8 +85,7 @@ public class ChatWebSocketController {
         // STEP 1: Inoltra IMMEDIATAMENTE alla stanza
         messagingTemplate.convertAndSend("/topic/room/" + roomId, (Object) dto);
 
-        // STEP 2: Salva in DB in modo ASINCRONO – delegate al Service per
-        // @Transactional corretto
+        // STEP 2: Salva in DB in modo ASINCRONO
         saveMessageAsync(senderId, receiverId, content);
 
         // STEP 3: Se receiver non in stanza, notifica push
@@ -81,14 +98,13 @@ public class ChatWebSocketController {
         }
     }
 
+    /** Segna come letti tutti i messaggi di una conversazione e aggiorna il badge non letti. */
     @MessageMapping("/chat.read")
     public void markAsRead(@Payload Map<String, Object> payload) {
         Long uid = toLong(payload.get("userId"));
         Long oid = toLong(payload.get("otherUserId"));
         if (uid != null && oid != null) {
-            // Delegato al Service che ha l'AOP proxy corretto per @Transactional
             markAsReadAsync(uid, oid);
-            // Aggiorna il contatore non letti in tempo reale per il client
             sendUnreadUpdate(uid);
         }
     }
@@ -96,7 +112,6 @@ public class ChatWebSocketController {
     @Async
     public void saveMessageAsync(Long senderId, Long receiverId, String content) {
         try {
-            // Delegato al Service correttamente proxied per gestire la transazione
             chatService.sendMessageDirect(senderId, receiverId, content);
         } catch (Exception e) {
             System.err.println("[WS] Save error: " + e.getMessage());
@@ -106,7 +121,6 @@ public class ChatWebSocketController {
     @Async
     public void markAsReadAsync(Long receiverId, Long senderId) {
         try {
-            // Delegato al Service correttamente proxied per gestire la transazione
             chatService.markAsRead(receiverId, senderId);
         } catch (Exception e) {
             System.err.println("[WS] MarkAsRead error: " + e.getMessage());
@@ -115,7 +129,7 @@ public class ChatWebSocketController {
 
     private void sendUnreadUpdate(Long userId) {
         try {
-            int count = chatMessageRepository.countAllUnreadMessages(userId);
+            int count = chatService.getTotalUnreadCount(userId);
             Map<String, Object> update = new HashMap<>();
             update.put("type", "UNREAD_UPDATE");
             update.put("userId", userId);
@@ -123,15 +137,6 @@ public class ChatWebSocketController {
             messagingTemplate.convertAndSend("/user/" + userId + "/queue/notifications", (Object) update);
         } catch (Exception e) {
             /* ignore */ }
-    }
-
-    private String getUserName(Long userId) {
-        try {
-            Optional<com.project.tesi.model.User> user = userRepository.findById(userId);
-            return user.map(u -> u.getFirstName() + " " + u.getLastName()).orElse("Utente");
-        } catch (Exception e) {
-            return "Utente";
-        }
     }
 
     private Long toLong(Object value) {
