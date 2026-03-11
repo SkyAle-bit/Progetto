@@ -2,8 +2,9 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ReviewResponse;
-import com.project.tesi.exception.user.ResourceAlreadyExistsException;
-import com.project.tesi.exception.user.ResourceNotFoundException;
+import com.project.tesi.exception.common.ResourceAlreadyExistsException;
+import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.exception.review.ReviewNotAllowedException;
 import com.project.tesi.model.Review;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.ReviewRepository;
@@ -28,10 +29,10 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse addReview(ReviewRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
 
         User professional = userRepository.findById(request.getProfessionalId())
-                .orElseThrow(() -> new ResourceNotFoundException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", request.getProfessionalId()));
 
         // REGOLA BUSINESS: Unicità — una sola recensione per coppia
         // client-professionista
@@ -43,7 +44,7 @@ public class ReviewServiceImpl implements ReviewService {
         // registrazione
         if (user.getCreatedAt() == null ||
                 user.getCreatedAt().plusMonths(1).isAfter(LocalDateTime.now())) {
-            throw new IllegalStateException(
+            throw new ReviewNotAllowedException(
                     "Puoi recensire un professionista solo dopo 1 mese dalla tua registrazione.");
         }
 
@@ -62,7 +63,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional(readOnly = true)
     public List<ReviewResponse> getReviewsForProfessional(Long professionalId) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
         return reviewRepository.findByProfessional(professional).stream()
                 .map(this::mapToResponse)
@@ -73,7 +74,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional(readOnly = true)
     public boolean canClientReview(Long clientId, Long professionalId) {
         User client = userRepository.findById(clientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", clientId));
 
         // Ha già recensito?
         if (reviewRepository.existsByClientIdAndProfessionalId(clientId, professionalId)) {

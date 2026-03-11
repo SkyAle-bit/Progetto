@@ -2,6 +2,8 @@ package com.project.tesi.service.strategy;
 
 import org.springframework.stereotype.Component;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.booking.InsufficientCreditsException;
+import com.project.tesi.exception.booking.ProfessionalNotAssignedException;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
 
@@ -16,14 +18,14 @@ public class PersonalTrainerBookingStrategy implements BookingStrategy {
     @Override
     public void verifyAssignment(User client, User professional) {
         if (client.getAssignedPT() == null || !client.getAssignedPT().getId().equals(professional.getId())) {
-            throw new IllegalStateException("Non sei assegnato a questo Personal Trainer");
+            throw new ProfessionalNotAssignedException("Personal Trainer");
         }
     }
 
     @Override
     public void consumeCredits(Subscription subscription) {
         if (subscription.getCurrentCreditsPT() <= 0) {
-            throw new IllegalStateException("Crediti PT esauriti");
+            throw new InsufficientCreditsException("PT");
         }
         subscription.setCurrentCreditsPT(subscription.getCurrentCreditsPT() - 1);
     }

@@ -2,6 +2,7 @@ package com.project.tesi.controller;
 
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.Document;
 import com.project.tesi.model.User;
@@ -33,7 +34,7 @@ public class ActivityFeedController {
             @RequestParam(defaultValue = "15") int limit) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         List<Map<String, Object>> activities = new ArrayList<>();

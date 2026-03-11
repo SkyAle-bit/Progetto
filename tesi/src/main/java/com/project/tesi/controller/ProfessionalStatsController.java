@@ -2,6 +2,7 @@ package com.project.tesi.controller;
 
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.Document;
 import com.project.tesi.model.User;
@@ -31,7 +32,7 @@ public class ProfessionalStatsController {
     @GetMapping("/stats/{professionalId}")
     public ResponseEntity<Map<String, Object>> getStats(@PathVariable Long professionalId) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
         if (professional.getRole() != Role.PERSONAL_TRAINER && professional.getRole() != Role.NUTRITIONIST) {
             return ResponseEntity.badRequest().body(Map.of("error", "L'utente non è un professionista"));

@@ -2,6 +2,7 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.response.SlotDTO;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.model.Slot;
 import com.project.tesi.model.User;
 import com.project.tesi.model.WeeklySchedule;
@@ -33,7 +34,7 @@ public class SlotServiceImpl implements SlotService {
     @Transactional
     public List<SlotDTO> createSlots(Long professionalId, List<SlotDTO> slotsDTO) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
         List<Slot> slotsToSave = new ArrayList<>();
 
@@ -64,7 +65,7 @@ public class SlotServiceImpl implements SlotService {
     @Transactional
     public void generateSlotsFromSchedule(Long professionalId, LocalDate startDate, LocalDate endDate) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
         // Recupera le fasce orarie predefinite (es. Lunedì 09:00-13:00)
         List<WeeklySchedule> schedules = weeklyScheduleRepository.findByProfessional(professional);
@@ -114,7 +115,7 @@ public class SlotServiceImpl implements SlotService {
     @Transactional(readOnly = true)
     public List<SlotDTO> getAvailableSlots(Long professionalId) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new RuntimeException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
         return slotRepository.findByProfessional(professional).stream()
                 .map(this::mapToDTO)

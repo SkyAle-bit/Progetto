@@ -4,7 +4,8 @@ import com.project.tesi.dto.request.SendMessageRequest;
 import com.project.tesi.dto.response.ChatMessageResponse;
 import com.project.tesi.dto.response.ConversationPreviewResponse;
 import com.project.tesi.enums.Role;
-import com.project.tesi.exception.user.ResourceNotFoundException;
+import com.project.tesi.exception.chat.ChatNotAllowedException;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.mapper.ChatMessageMapper;
 import com.project.tesi.model.ChatMessage;
 import com.project.tesi.model.User;
@@ -35,10 +36,10 @@ public class ChatServiceImpl implements ChatService {
         }
 
         User sender = userRepository.findById(request.getSenderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Mittente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Mittente", request.getSenderId()));
 
         User receiver = userRepository.findById(request.getReceiverId())
-                .orElseThrow(() -> new ResourceNotFoundException("Destinatario non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Destinatario", request.getReceiverId()));
 
         // Regola business: solo client ↔ professionista assegnato
         validateChatPermission(sender, receiver);
@@ -73,9 +74,9 @@ public class ChatServiceImpl implements ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> getConversation(Long userId1, Long userId2, int page, int size) {
         User user1 = userRepository.findById(userId1)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId1 + " non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId1));
         User user2 = userRepository.findById(userId2)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId2 + " non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId2));
 
         // Regola business: solo client ↔ professionista assegnato
         validateChatPermission(user1, user2);
@@ -144,7 +145,7 @@ public class ChatServiceImpl implements ChatService {
         // Insurance Manager può chattare con Admin (già coperto sopra) — blocca tutto
         // il resto
         if (userA.getRole() == Role.INSURANCE_MANAGER || userB.getRole() == Role.INSURANCE_MANAGER) {
-            throw new IllegalStateException(
+            throw new ChatNotAllowedException(
                     "L'account polizze può comunicare solo con l'amministratore.");
         }
 
@@ -159,8 +160,7 @@ public class ChatServiceImpl implements ChatService {
             client = userB;
             professional = userA;
         } else {
-            throw new IllegalStateException(
-                    "La chat è permessa solo tra un cliente e un professionista a lui assegnato.");
+            throw new ChatNotAllowedException();
         }
 
         // Verifica che il professionista sia effettivamente assegnato al cliente
@@ -177,7 +177,7 @@ public class ChatServiceImpl implements ChatService {
         }
 
         if (!isAssigned) {
-            throw new IllegalStateException(
+            throw new ChatNotAllowedException(
                     "Non puoi comunicare con questo professionista: non è assegnato a te.");
         }
     }

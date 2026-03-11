@@ -4,8 +4,9 @@ import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.Role;
-import com.project.tesi.exception.Booking.SlotAlreadyBookedException;
-import com.project.tesi.exception.user.ResourceNotFoundException;
+import com.project.tesi.exception.booking.NoActiveSubscriptionException;
+import com.project.tesi.exception.booking.SlotAlreadyBookedException;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.mapper.BookingMapper;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.Slot;
@@ -60,10 +61,10 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
 
         Slot slot = slotRepository.findById(request.getSlotId())
-                .orElseThrow(() -> new ResourceNotFoundException("Slot non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Slot", request.getSlotId()));
 
         // 1. Controllo disponibilità slot
         if (slot.isBooked()) {
@@ -83,7 +84,7 @@ public class BookingServiceImpl implements BookingService {
 
         // 3. Controllo abbonamento e crediti
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(() -> new IllegalStateException("Nessun abbonamento attivo trovato"));
+                .orElseThrow(() -> new NoActiveSubscriptionException());
 
         strategy.consumeCredits(sub);
         // ---------------------------------------------

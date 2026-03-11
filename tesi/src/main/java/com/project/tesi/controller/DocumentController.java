@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.exception.document.InvalidFileException;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.UserRepository;
 import java.util.HashMap;
@@ -35,12 +37,12 @@ public class DocumentController {
 
         // Validazione ruolo: PT può caricare solo WORKOUT_PLAN, Nutrizionista solo DIET_PLAN
         User uploader = userRepository.findById(uploaderId)
-                .orElseThrow(() -> new RuntimeException("Uploader non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Uploader", uploaderId));
         if (uploader.getRole() == Role.PERSONAL_TRAINER && !"WORKOUT_PLAN".equals(type)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Il Personal Trainer può caricare solo schede di allenamento"));
+            throw new InvalidFileException("Il Personal Trainer può caricare solo schede di allenamento.");
         }
         if (uploader.getRole() == Role.NUTRITIONIST && !"DIET_PLAN".equals(type)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Il Nutrizionista può caricare solo piani alimentari"));
+            throw new InvalidFileException("Il Nutrizionista può caricare solo piani alimentari.");
         }
 
         Document doc = documentService.uploadDocument(file, clientId, uploaderId, type);

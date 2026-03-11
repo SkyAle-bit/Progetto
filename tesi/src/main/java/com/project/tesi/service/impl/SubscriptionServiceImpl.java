@@ -4,7 +4,8 @@ import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.response.SubscriptionResponse;
 import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.PlanDuration;
-import com.project.tesi.exception.user.ResourceNotFoundException;
+import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.exception.subscription.SubscriptionNotFoundException;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
@@ -31,10 +32,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     public SubscriptionResponse activateSubscription(PlanRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
 
         Plan plan = planRepository.findById(request.getPlanId())
-                .orElseThrow(() -> new ResourceNotFoundException("Piano non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Piano", request.getPlanId()));
 
         // Se esiste già un abbonamento attivo, lo disattiviamo (o lanciamo eccezione)
         // Qui scegliamo di disattivare il precedente e crearne uno nuovo
@@ -79,10 +80,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public SubscriptionResponse getSubscriptionStatus(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(() -> new RuntimeException("Nessun abbonamento attivo trovato"));
+                .orElseThrow(SubscriptionNotFoundException::new);
 
         return mapToResponse(sub);
     }

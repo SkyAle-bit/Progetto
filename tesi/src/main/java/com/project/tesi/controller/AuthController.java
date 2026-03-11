@@ -4,6 +4,7 @@ import com.project.tesi.dto.request.LoginRequest;
 import com.project.tesi.dto.request.RegisterRequest;
 import com.project.tesi.dto.response.AuthResponse;
 import com.project.tesi.dto.response.UserResponse;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.security.CustomUserDetailsService;
@@ -48,7 +49,7 @@ public class AuthController {
 
         // 4. RECUPERA TUTTI I DATI DELL'UTENTE DAL DB
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", "email", request.getEmail()));
 
         // 5. Restituisce Token + Dati Utente!
         return ResponseEntity.ok(AuthResponse.builder()

@@ -5,8 +5,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.project.tesi.dto.request.RegisterRequest;
 import com.project.tesi.dto.response.*;
 import com.project.tesi.enums.Role;
-import com.project.tesi.exception.user.ResourceAlreadyExistsException;
-import com.project.tesi.exception.user.ResourceNotFoundException;
+import com.project.tesi.exception.booking.ProfessionalSoldOutException;
+import com.project.tesi.exception.common.ResourceAlreadyExistsException;
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.mapper.SubscriptionMapper;
 import com.project.tesi.mapper.UserMapper;
 import com.project.tesi.model.Booking;
@@ -53,7 +54,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateProfile(Long userId, com.project.tesi.dto.request.ProfileUpdateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId + " non trovato."));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
         if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
             user.setFirstName(request.getFirstName().trim());
@@ -75,7 +76,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse registerUser(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ResourceAlreadyExistsException("Email già registrata. Usa un'altra email o fai il login.");
+            throw new ResourceAlreadyExistsException("Utente", "email", request.getEmail());
         }
 
         // 1T. DELEGHIAMO LA CREAZIONE DELL'UTENE AL MAPPER
@@ -91,7 +92,7 @@ public class UserServiceImpl implements UserService {
         // 3. DELEGHIAMO LA CREAZIONE DELL'ABBONAMENTO AL MAPPER
         if (request.getSelectedPlanId() != null && request.getPaymentFrequency() != null) {
             Plan selectedPlan = planRepository.findById(request.getSelectedPlanId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Piano non trovato."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Piano", request.getSelectedPlanId()));
 
             Subscription subscription = subscriptionMapper.toSubscription(request, savedUser, selectedPlan);
             subscriptionRepository.save(subscription);
@@ -130,7 +131,7 @@ public class UserServiceImpl implements UserService {
     public ClientDashboardResponse getClientDashboard(Long userId) {
         log.info("getClientDashboard called for userId: {}", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente con ID " + userId + " non trovato."));
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
         // Se è un professionista (PT o Nutrizionista)
         if (user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST) {
@@ -214,8 +215,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User professional = userRepository.findById(proId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Professionista con ID " + proId + " non trovato nel sistema."));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", proId));
 
         if (professional.getRole() != expectedRole) {
             throw new IllegalArgumentException("L'ID fornito non corrisponde a un " + expectedRole + ".");
@@ -228,8 +228,7 @@ public class UserServiceImpl implements UserService {
             activeClients = userRepository.countByAssignedNutritionist(professional);
         }
         if (activeClients >= 10) {
-            throw new IllegalStateException(
-                    "Il professionista " + professional.getFirstName() + " è attualmente Sold Out.");
+            throw new ProfessionalSoldOutException(professional.getFirstName());
         }
 
         // Ora usiamo i classici "Setter" sull'oggetto User
@@ -244,7 +243,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public List<ClientBasicInfoResponse> getClientsForProfessional(Long professionalId) {
         User professional = userRepository.findById(professionalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professionista non trovato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
         List<User> clients;
         if (professional.getRole() == Role.PERSONAL_TRAINER) {
