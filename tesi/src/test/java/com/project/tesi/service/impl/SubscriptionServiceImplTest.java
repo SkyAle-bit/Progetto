@@ -1,0 +1,201 @@
+package com.project.tesi.service.impl;
+
+import com.project.tesi.dto.request.PlanRequest;
+import com.project.tesi.dto.response.SubscriptionResponse;
+import com.project.tesi.enums.PaymentFrequency;
+import com.project.tesi.enums.PlanDuration;
+import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.exception.subscription.SubscriptionNotFoundException;
+import com.project.tesi.model.Plan;
+import com.project.tesi.model.Subscription;
+import com.project.tesi.model.User;
+import com.project.tesi.repository.PlanRepository;
+import com.project.tesi.repository.SubscriptionRepository;
+import com.project.tesi.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+/**
+ * Test unitari per {@link SubscriptionServiceImpl}.
+ */
+@ExtendWith(MockitoExtension.class)
+class SubscriptionServiceImplTest {
+
+    @Mock private SubscriptionRepository subscriptionRepository;
+    @Mock private PlanRepository planRepository;
+    @Mock private UserRepository userRepository;
+
+    @InjectMocks
+    private SubscriptionServiceImpl subscriptionService;
+
+    private User user;
+    private Plan annualPlan;
+    private Plan semestralPlan;
+
+    @BeforeEach
+    void setUp() {
+        user = User.builder().id(1L).firstName("Mario").lastName("Rossi").build();
+
+        annualPlan = Plan.builder().id(1L).name("Premium Annuale")
+                .duration(PlanDuration.ANNUALE)
+                .monthlyCreditsPT(8).monthlyCreditsNutri(4)
+                .fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
+
+        semestralPlan = Plan.builder().id(2L).name("Base Semestrale")
+                .duration(PlanDuration.SEMESTRALE)
+                .monthlyCreditsPT(4).monthlyCreditsNutri(2)
+                .fullPrice(500.0).monthlyInstallmentPrice(90.0).build();
+    }
+
+    @Test
+    @DisplayName("activateSubscription — piano annuale con unica soluzione")
+    void activateSubscription_annualUnicaSoluzione() {
+        PlanRequest request = new PlanRequest();
+        request.setUserId(1L);
+        request.setPlanId(1L);
+        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(planRepository.findById(1L)).thenReturn(Optional.of(annualPlan));
+        when(subscriptionRepository.findByUserAndActiveTrue(user)).thenReturn(Optional.empty());
+        when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(inv -> {
+            Subscription s = inv.getArgument(0);
+            s.setId(100L);
+            return s;
+        });
+
+        SubscriptionResponse response = subscriptionService.activateSubscription(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getPlanName()).isEqualTo("Premium Annuale");
+        assertThat(response.isActive()).isTrue();
+        assertThat(response.getRemainingPtCredits()).isEqualTo(8);
+        assertThat(response.getRemainingNutritionistCredits()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("activateSubscription — piano semestrale con rate mensili")
+    void activateSubscription_semestralRate() {
+        PlanRequest request = new PlanRequest();
+        request.setUserId(1L);
+        request.setPlanId(2L);
+        request.setPaymentFrequency(PaymentFrequency.RATE_MENSILI);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(planRepository.findById(2L)).thenReturn(Optional.of(semestralPlan));
+        when(subscriptionRepository.findByUserAndActiveTrue(user)).thenReturn(Optional.empty());
+        when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(inv -> {
+            Subscription s = inv.getArgument(0);
+            s.setId(101L);
+            return s;
+        });
+
+        SubscriptionResponse response = subscriptionService.activateSubscription(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getPlanName()).isEqualTo("Base Semestrale");
+    }
+
+    @Test
+    @DisplayName("activateSubscription — disattiva abbonamento precedente")
+    void activateSubscription_deactivatesPrevious() {
+        PlanRequest request = new PlanRequest();
+        request.setUserId(1L);
+        request.setPlanId(1L);
+        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+
+        Subscription existingSub = Subscription.builder().id(50L).user(user).active(true).build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(planRepository.findById(1L)).thenReturn(Optional.of(annualPlan));
+        when(subscriptionRepository.findByUserAndActiveTrue(user)).thenReturn(Optional.of(existingSub));
+        when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(inv -> {
+            Subscription s = inv.getArgument(0);
+            if (s.getId() == null) s.setId(100L);
+            return s;
+        });
+
+        subscriptionService.activateSubscription(request);
+
+        assertThat(existingSub.isActive()).isFalse();
+        verify(subscriptionRepository, atLeast(2)).save(any());
+    }
+
+    @Test
+    @DisplayName("activateSubscription — utente non trovato")
+    void activateSubscription_userNotFound() {
+        PlanRequest request = new PlanRequest();
+        request.setUserId(999L);
+        request.setPlanId(1L);
+        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> subscriptionService.activateSubscription(request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("activateSubscription — piano non trovato")
+    void activateSubscription_planNotFound() {
+        PlanRequest request = new PlanRequest();
+        request.setUserId(1L);
+        request.setPlanId(999L);
+        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(planRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> subscriptionService.activateSubscription(request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("getSubscriptionStatus — restituisce lo stato dell'abbonamento attivo")
+    void getSubscriptionStatus_success() {
+        Subscription sub = Subscription.builder().id(100L).user(user).plan(annualPlan)
+                .active(true).startDate(LocalDate.now()).endDate(LocalDate.now().plusYears(1))
+                .currentCreditsPT(8).currentCreditsNutri(4).build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(subscriptionRepository.findByUserAndActiveTrue(user)).thenReturn(Optional.of(sub));
+
+        SubscriptionResponse response = subscriptionService.getSubscriptionStatus(1L);
+
+        assertThat(response).isNotNull();
+        assertThat(response.isActive()).isTrue();
+        assertThat(response.getPlanName()).isEqualTo("Premium Annuale");
+    }
+
+    @Test
+    @DisplayName("getSubscriptionStatus — nessun abbonamento attivo lancia SubscriptionNotFoundException")
+    void getSubscriptionStatus_noSubscription() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(subscriptionRepository.findByUserAndActiveTrue(user)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> subscriptionService.getSubscriptionStatus(1L))
+                .isInstanceOf(SubscriptionNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("getSubscriptionStatus — utente non trovato")
+    void getSubscriptionStatus_userNotFound() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> subscriptionService.getSubscriptionStatus(999L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+}
+
