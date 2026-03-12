@@ -5,7 +5,10 @@ import com.project.tesi.model.Booking;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
-import com.project.tesi.repository.*;
+import com.project.tesi.repository.BookingRepository;
+import com.project.tesi.repository.PlanRepository;
+import com.project.tesi.repository.SubscriptionRepository;
+import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.AdminStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,7 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**

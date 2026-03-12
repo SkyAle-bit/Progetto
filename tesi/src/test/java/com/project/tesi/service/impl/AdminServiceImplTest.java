@@ -29,6 +29,11 @@ class AdminServiceImplTest {
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private DocumentRepository documentRepository;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private BookingRepository bookingRepository;
+    @Mock private ChatMessageRepository chatMessageRepository;
+    @Mock private ReviewRepository reviewRepository;
+    @Mock private SlotRepository slotRepository;
+    @Mock private WeeklyScheduleRepository weeklyScheduleRepository;
 
     @InjectMocks private AdminServiceImpl adminService;
 
@@ -111,7 +116,6 @@ class AdminServiceImplTest {
     @Test @DisplayName("deleteUser — elimina utente con documenti e abbonamento")
     void deleteUser_success() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(documentRepository.findByOwner(user)).thenReturn(List.of());
         when(subscriptionRepository.findByUserId(1L)).thenReturn(Optional.empty());
         adminService.deleteUser(1L);
         verify(userRepository).delete(user);
@@ -221,7 +225,6 @@ class AdminServiceImplTest {
     void deleteUser_withSubscription() {
         Subscription sub = Subscription.builder().id(1L).user(user).plan(plan).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(documentRepository.findByOwner(user)).thenReturn(List.of());
         when(subscriptionRepository.findByUserId(1L)).thenReturn(Optional.of(sub));
 
         adminService.deleteUser(1L);

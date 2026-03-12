@@ -3,7 +3,12 @@ package com.project.tesi.service.impl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.project.tesi.dto.request.RegisterRequest;
-import com.project.tesi.dto.response.*;
+import com.project.tesi.dto.response.BookingResponse;
+import com.project.tesi.dto.response.ClientBasicInfoResponse;
+import com.project.tesi.dto.response.ClientDashboardResponse;
+import com.project.tesi.dto.response.ProfessionalSummaryDTO;
+import com.project.tesi.dto.response.SubscriptionResponse;
+import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.booking.ProfessionalSoldOutException;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;

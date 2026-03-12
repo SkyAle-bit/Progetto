@@ -3,7 +3,6 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.request.ProfileUpdateRequest;
 import com.project.tesi.dto.response.*;
-import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.Role;
 import com.project.tesi.facade.AdminFacade;
 import com.project.tesi.facade.UserFacade;

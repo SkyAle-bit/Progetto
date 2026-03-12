@@ -8,7 +8,15 @@ import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
-import com.project.tesi.repository.*;
+import com.project.tesi.repository.BookingRepository;
+import com.project.tesi.repository.ChatMessageRepository;
+import com.project.tesi.repository.DocumentRepository;
+import com.project.tesi.repository.PlanRepository;
+import com.project.tesi.repository.ReviewRepository;
+import com.project.tesi.repository.SlotRepository;
+import com.project.tesi.repository.SubscriptionRepository;
+import com.project.tesi.repository.UserRepository;
+import com.project.tesi.repository.WeeklyScheduleRepository;
 import com.project.tesi.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**

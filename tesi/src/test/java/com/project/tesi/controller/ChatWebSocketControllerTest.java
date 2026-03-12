@@ -2,7 +2,6 @@ package com.project.tesi.controller;
 
 import com.project.tesi.config.WebSocketEventListener;
 import com.project.tesi.service.ChatService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
