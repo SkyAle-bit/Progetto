@@ -25,6 +25,7 @@ import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.UserService;
+import com.project.tesi.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +68,7 @@ public class UserServiceImpl implements UserService {
     private final SubscriptionMapper subscriptionMapper;
     private final BookingMapper bookingMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -114,6 +116,13 @@ public class UserServiceImpl implements UserService {
 
             Subscription subscription = subscriptionMapper.toSubscription(request, savedUser, selectedPlan);
             subscriptionRepository.save(subscription);
+        }
+
+        // 4. INVIAMO L'EMAIL DI BENVENUTO (asincrona, non blocca la registrazione)
+        try {
+            emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName());
+        } catch (Exception e) {
+            log.warn("Impossibile inviare email di benvenuto a {}: {}", savedUser.getEmail(), e.getMessage());
         }
 
         return userMapper.toUserResponse(savedUser);

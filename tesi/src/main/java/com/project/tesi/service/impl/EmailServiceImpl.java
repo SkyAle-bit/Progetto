@@ -16,6 +16,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -166,5 +168,113 @@ public class EmailServiceImpl implements EmailService {
                 + "<div style=\"background: #e9ecef; padding: 16px; text-align: center; font-size: 13px; color: #6c757d;\">"
                 + "Email generata automaticamente da Naval Gold Platform"
                 + "</div></div>";
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  EMAIL DI BENVENUTO (REGISTRAZIONE)
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    @Async
+    public void sendWelcomeEmail(String toEmail, String firstName) {
+        try {
+            String subject = "Benvenuto su Kore, " + firstName + "! 🎉";
+            String html = buildWelcomeHtml(firstName);
+            sendSimpleEmail(toEmail, subject, html);
+            log.info("Email di benvenuto inviata a {}", toEmail);
+        } catch (Exception e) {
+            log.error("Errore nell'invio dell'email di benvenuto a {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    private String buildWelcomeHtml(String firstName) {
+        return "<div style=\"font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;border-radius:12px;overflow:hidden\">"
+             + "<div style=\"background:linear-gradient(135deg,#1a3462,#112240);padding:40px 30px;text-align:center\">"
+             + "<h1 style=\"color:#c9a96e;margin:0;font-size:28px\">Benvenuto su Kore!</h1>"
+             + "<p style=\"color:#b1c0d4;margin:12px 0 0;font-size:15px\">Il tuo account è stato creato con successo</p>"
+             + "</div>"
+             + "<div style=\"padding:30px\">"
+             + "<p style=\"color:#212529;font-size:16px;line-height:1.6;margin:0 0 20px\">Ciao <strong>" + firstName + "</strong>,</p>"
+             + "<p style=\"color:#495057;font-size:15px;line-height:1.6;margin:0 0 20px\">Siamo felici di averti con noi! "
+             + "Il tuo account è attivo e pronto all'uso. Ora puoi accedere alla piattaforma e iniziare a prenotare le tue consulenze.</p>"
+             + "<div style=\"text-align:center;margin:30px 0\">"
+             + "<a href=\"https://progetto-fe.vercel.app/login\" style=\"background:linear-gradient(135deg,#e2b93b,#c49a20);color:#1a3462;padding:14px 40px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px;display:inline-block\">Accedi alla Piattaforma</a>"
+             + "</div>"
+             + "<p style=\"color:#6c757d;font-size:14px;line-height:1.5;margin:0\">Se hai bisogno di aiuto, rispondi a questa email o contattaci nella chat di supporto.</p>"
+             + "</div>"
+             + "<div style=\"background:#e9ecef;padding:16px;text-align:center;font-size:13px;color:#6c757d\">"
+             + "Email generata automaticamente da Kore Platform"
+             + "</div></div>";
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  EMAIL DI PROMEMORIA PRENOTAZIONE (30 MIN PRIMA)
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    @Async
+    public void sendBookingReminderEmail(String toEmail, String recipientName, String otherPartyName,
+                                          LocalDateTime startTime, String meetingLink, boolean isForClient) {
+        try {
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy 'alle' HH:mm");
+            String formattedTime = startTime.format(fmt);
+            String subject = "\uD83D\uDD14 Promemoria: appuntamento tra 30 minuti — " + formattedTime;
+            String html = buildReminderHtml(recipientName, otherPartyName, formattedTime, meetingLink, isForClient);
+            sendSimpleEmail(toEmail, subject, html);
+            log.info("Email promemoria inviata a {} per appuntamento delle {}", toEmail, formattedTime);
+        } catch (Exception e) {
+            log.error("Errore nell'invio del promemoria a {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    private String buildReminderHtml(String recipientName, String otherPartyName,
+                                      String formattedTime, String meetingLink, boolean isForClient) {
+        String roleLabel = isForClient ? "il tuo professionista" : "il tuo cliente";
+        return "<div style=\"font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;border-radius:12px;overflow:hidden\">"
+             + "<div style=\"background:linear-gradient(135deg,#1a3462,#112240);padding:40px 30px;text-align:center\">"
+             + "<h1 style=\"color:#c9a96e;margin:0;font-size:26px\">\uD83D\uDD14 Promemoria Appuntamento</h1>"
+             + "<p style=\"color:#b1c0d4;margin:12px 0 0;font-size:15px\">Il tuo appuntamento è tra 30 minuti</p>"
+             + "</div>"
+             + "<div style=\"padding:30px\">"
+             + "<p style=\"color:#212529;font-size:16px;line-height:1.6;margin:0 0 20px\">Ciao <strong>" + recipientName + "</strong>,</p>"
+             + "<p style=\"color:#495057;font-size:15px;line-height:1.6;margin:0 0 24px\">Ti ricordiamo che hai un appuntamento programmato con " + roleLabel + " <strong>" + otherPartyName + "</strong>.</p>"
+             + "<div style=\"background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:20px;margin:0 0 24px\">"
+             + "<table style=\"width:100%;border-collapse:collapse\">"
+             + "<tr><td style=\"padding:8px 0;font-weight:bold;color:#495057;width:120px\">\uD83D\uDCC5 Data e ora</td>"
+             + "<td style=\"padding:8px 0;color:#212529\">" + formattedTime + "</td></tr>"
+             + "<tr><td style=\"padding:8px 0;font-weight:bold;color:#495057\">\uD83D\uDC64 Con</td>"
+             + "<td style=\"padding:8px 0;color:#212529\">" + otherPartyName + "</td></tr>"
+             + "</table></div>"
+             + "<div style=\"text-align:center;margin:30px 0\">"
+             + "<a href=\"" + meetingLink + "\" style=\"background:linear-gradient(135deg,#e2b93b,#c49a20);color:#1a3462;padding:14px 40px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px;display:inline-block\">Unisciti alla Videochiamata</a>"
+             + "</div>"
+             + "<p style=\"color:#6c757d;font-size:13px;line-height:1.5;margin:0;text-align:center\">Assicurati di avere una connessione stabile e una webcam funzionante.</p>"
+             + "</div>"
+             + "<div style=\"background:#e9ecef;padding:16px;text-align:center;font-size:13px;color:#6c757d\">"
+             + "Email generata automaticamente da Kore Platform"
+             + "</div></div>";
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  METODO HELPER: invio email semplice via Resend API
+    // ══════════════════════════════════════════════════════════════
+
+    private void sendSimpleEmail(String to, String subject, String html) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("from", resendFrom);
+        payload.put("to", new String[] { to });
+        payload.put("subject", subject);
+        payload.put("html", html);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(resendApiKey);
+
+        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(payload, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity("https://api.resend.com/emails", httpEntity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Resend API errore — Stato: {}, Risposta: {}", response.getStatusCode(), response.getBody());
+        }
     }
 }

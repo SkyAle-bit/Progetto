@@ -68,5 +68,10 @@ public class Booking {
 
     /** Link alla videochiamata Jitsi Meet, generato automaticamente alla creazione. */
     @Column(nullable = false)
-    private String meetingLink; // Il link Google Meet generato
+    private String meetingLink;
+
+    /** Indica se l'email di promemoria (30 min prima) è già stata inviata. */
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean reminderSent = false;
 }

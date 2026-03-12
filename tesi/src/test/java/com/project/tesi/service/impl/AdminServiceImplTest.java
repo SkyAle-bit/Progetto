@@ -118,6 +118,12 @@ class AdminServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(subscriptionRepository.findByUserId(1L)).thenReturn(Optional.empty());
         adminService.deleteUser(1L);
+        verify(bookingRepository).deleteByUserId(1L);
+        verify(chatMessageRepository).deleteByUserId(1L);
+        verify(reviewRepository).deleteByUserId(1L);
+        verify(slotRepository).deleteByProfessionalId(1L);
+        verify(weeklyScheduleRepository).deleteByProfessionalId(1L);
+        verify(documentRepository).deleteByUserId(1L);
         verify(userRepository).delete(user);
     }
 

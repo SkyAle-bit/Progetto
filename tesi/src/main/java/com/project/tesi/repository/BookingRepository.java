@@ -99,4 +99,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Modifying
     @Query("DELETE FROM Booking b WHERE b.user.id = :userId OR b.professional.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+
+    /**
+     * Trova le prenotazioni CONFIRMED il cui slot inizia tra {@code from} e {@code to}
+     * e per le quali non è ancora stato inviato il promemoria email.
+     */
+    @Query("SELECT b FROM Booking b " +
+           "WHERE b.status = com.project.tesi.enums.BookingStatus.CONFIRMED " +
+           "AND b.reminderSent = false " +
+           "AND b.slot.startTime >= :from " +
+           "AND b.slot.startTime <= :to")
+    List<Booking> findUpcomingNeedingReminder(@Param("from") LocalDateTime from,
+                                              @Param("to") LocalDateTime to);
 }
