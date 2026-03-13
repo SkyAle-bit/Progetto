@@ -14,6 +14,7 @@ import com.project.tesi.mapper.SubscriptionMapper;
 import com.project.tesi.mapper.UserMapper;
 import com.project.tesi.model.*;
 import com.project.tesi.repository.*;
+import com.project.tesi.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class UserServiceImplTest {
     @Mock private SubscriptionMapper subscriptionMapper;
     @Mock private BookingMapper bookingMapper;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private EmailService emailService;
 
     @InjectMocks private UserServiceImpl userService;
 

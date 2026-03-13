@@ -72,6 +72,5 @@ public class Booking {
 
     /** Indica se l'email di promemoria (30 min prima) è già stata inviata. */
     @Builder.Default
-    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean reminderSent = false;
 }

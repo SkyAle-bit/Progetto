@@ -1,37 +1,35 @@
 package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.JobApplicationRequest;
+import com.project.tesi.exception.email.EmailDeliveryException;
 import com.project.tesi.service.EmailService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
- * Implementazione del servizio di invio email tramite Resend API.
+ * Implementazione del servizio di invio email tramite SMTP (JavaMailSender).
  *
  * Gestisce l'invio di candidature lavorative:
  * <ul>
  *   <li>Valida il formato del CV (solo PDF)</li>
  *   <li>Legge il file in memoria e delega l'invio a un metodo asincrono</li>
- *   <li>Invia l'email all'admin con i dati del candidato e il CV in allegato Base64</li>
+ *   <li>Invia l'email all'admin con i dati del candidato e il CV in allegato</li>
  * </ul>
  * Usa Self-Injection per garantire il corretto funzionamento di {@code @Async}
  * tramite il proxy Spring.
@@ -41,22 +39,31 @@ public class EmailServiceImpl implements EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailServiceImpl.class);
 
-    private final String resendApiKey;
-    private final String resendFrom;
+    private final String mailFrom;
     private final String adminEmail;
     private final EmailService self;
-    private final RestTemplate restTemplate;
+    private final JavaMailSender javaMailSender;
 
     public EmailServiceImpl(
-            @Value("${resend.api.key}") String resendApiKey,
-            @Value("${resend.api.from}") String resendFrom,
+            @Value("${mail.from:${spring.mail.username}}") String mailFrom,
             @Value("${admin.email}") String adminEmail,
+            JavaMailSender javaMailSender,
             @Lazy EmailService self) {
-        this.resendApiKey = resendApiKey;
-        this.resendFrom = resendFrom;
+        this.mailFrom = mailFrom;
         this.adminEmail = adminEmail;
+        this.javaMailSender = javaMailSender;
         this.self = self;
-        this.restTemplate = new RestTemplate();
+    }
+
+    @PostConstruct
+    void validateEmailConfiguration() {
+        log.info("Configurazione email attiva: provider='smtp', mail.from='{}'", mailFrom);
+        if (javaMailSender == null) {
+            log.error("Provider email impostato a SMTP ma JavaMailSender non è disponibile. Configura spring.mail.*.");
+        }
+        if (mailFrom == null || mailFrom.isBlank()) {
+            log.error("Configurazione mittente mancante: imposta 'mail.from' o 'spring.mail.username'.");
+        }
     }
 
     @Override
@@ -97,45 +104,23 @@ public class EmailServiceImpl implements EmailService {
                     + roleName;
             String htmlBody = buildHtmlBody(request, roleName);
 
-            // Costruiamo il payload JSON per l'API di Resend
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("from", resendFrom);
-            payload.put("to", new String[] { adminEmail });
-            payload.put("subject", subject);
-            payload.put("html", htmlBody);
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailFrom);
+            helper.setTo(adminEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
 
-            // Alleghiamo il CV formattandolo in Base64 (Richiesto da Resend)
             if (cvBytes != null && cvBytes.length > 0) {
-                List<Map<String, String>> attachments = new ArrayList<>();
-                Map<String, String> attachment = new HashMap<>();
-                attachment.put("filename", cvFileName != null ? cvFileName : "CV.pdf");
-                attachment.put("content", Base64.getEncoder().encodeToString(cvBytes));
-                attachments.add(attachment);
-                payload.put("attachments", attachments);
+                String safeFileName = (cvFileName != null && !cvFileName.isBlank()) ? cvFileName : "CV.pdf";
+                helper.addAttachment(safeFileName, new ByteArrayResource(cvBytes), cvContentType);
             }
 
-            // Headers della richiesta (API Key)
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(resendApiKey);
+            javaMailSender.send(message);
+            log.info("Email candidatura inviata via SMTP (messageId={})", message.getMessageID());
 
-            HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(payload, headers);
-
-            // Lancia la richiesta HTTP bloccante (che ora vive e sosta dentro questo thread
-            // asincrono separato)
-            ResponseEntity<String> response = restTemplate.postForEntity("https://api.resend.com/emails", httpEntity,
-                    String.class);
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Email di candidatura inviata con successo via Resend API da: {} {}", request.getFirstName(),
-                        request.getLastName());
-            } else {
-                log.error("Fallimento imprevisto Resend API. Stato: {}, Risposta: {}", response.getStatusCode(),
-                        response.getBody());
-            }
-
-        } catch (Exception e) {
-            log.error("Errore di rete/imprevisto durante l'invio dell'email via Resend API", e);
+        } catch (MessagingException | MailException e) {
+            log.error("Errore SMTP durante l'invio della candidatura", e);
         }
     }
 
@@ -178,12 +163,13 @@ public class EmailServiceImpl implements EmailService {
     @Async
     public void sendWelcomeEmail(String toEmail, String firstName) {
         try {
+            validateRecipient(toEmail);
             String subject = "Benvenuto su Kore, " + firstName + "! 🎉";
             String html = buildWelcomeHtml(firstName);
             sendSimpleEmail(toEmail, subject, html);
             log.info("Email di benvenuto inviata a {}", toEmail);
         } catch (Exception e) {
-            log.error("Errore nell'invio dell'email di benvenuto a {}: {}", toEmail, e.getMessage());
+            log.error("Errore nell'invio dell'email di benvenuto a {}", toEmail, e);
         }
     }
 
@@ -212,19 +198,19 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
-    @Async
     public void sendBookingReminderEmail(String toEmail, String recipientName, String otherPartyName,
                                           LocalDateTime startTime, String meetingLink, boolean isForClient) {
-        try {
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy 'alle' HH:mm");
-            String formattedTime = startTime.format(fmt);
-            String subject = "\uD83D\uDD14 Promemoria: appuntamento tra 30 minuti — " + formattedTime;
-            String html = buildReminderHtml(recipientName, otherPartyName, formattedTime, meetingLink, isForClient);
-            sendSimpleEmail(toEmail, subject, html);
-            log.info("Email promemoria inviata a {} per appuntamento delle {}", toEmail, formattedTime);
-        } catch (Exception e) {
-            log.error("Errore nell'invio del promemoria a {}: {}", toEmail, e.getMessage());
+        validateRecipient(toEmail);
+        if (meetingLink == null || meetingLink.isBlank()) {
+            throw new IllegalArgumentException("Link meeting mancante per il promemoria.");
         }
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy 'alle' HH:mm");
+        String formattedTime = startTime.format(fmt);
+        String subject = "\uD83D\uDD14 Promemoria: appuntamento tra 30 minuti — " + formattedTime;
+        String html = buildReminderHtml(recipientName, otherPartyName, formattedTime, meetingLink, isForClient);
+        sendSimpleEmail(toEmail, subject, html);
+        log.info("Email promemoria inviata a {} per appuntamento delle {}", toEmail, formattedTime);
     }
 
     private String buildReminderHtml(String recipientName, String otherPartyName,
@@ -256,25 +242,36 @@ public class EmailServiceImpl implements EmailService {
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  METODO HELPER: invio email semplice via Resend API
+    //  METODO HELPER: invio email semplice via SMTP
     // ══════════════════════════════════════════════════════════════
 
     private void sendSimpleEmail(String to, String subject, String html) {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("from", resendFrom);
-        payload.put("to", new String[] { to });
-        payload.put("subject", subject);
-        payload.put("html", html);
+        validateRecipient(to);
+        sendSimpleEmailViaSmtp(to, subject, html);
+    }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(resendApiKey);
+    private void sendSimpleEmailViaSmtp(String to, String subject, String html) {
+        if (javaMailSender == null) {
+            throw new EmailDeliveryException("JavaMailSender non disponibile: controlla la configurazione SMTP.");
+        }
 
-        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(payload, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity("https://api.resend.com/emails", httpEntity, String.class);
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+            helper.setFrom(mailFrom);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            javaMailSender.send(message);
+            log.info("Email inviata via SMTP a {} (messageId={})", to, message.getMessageID());
+        } catch (MessagingException | MailException ex) {
+            throw new EmailDeliveryException("Invio SMTP fallito", ex);
+        }
+    }
 
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("Resend API errore — Stato: {}, Risposta: {}", response.getStatusCode(), response.getBody());
+    private void validateRecipient(String toEmail) {
+        if (toEmail == null || toEmail.isBlank()) {
+            throw new IllegalArgumentException("Email destinatario mancante.");
         }
     }
 }

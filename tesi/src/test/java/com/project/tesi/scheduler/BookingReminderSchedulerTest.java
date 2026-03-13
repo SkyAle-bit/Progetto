@@ -1,0 +1,82 @@
+package com.project.tesi.scheduler;
+
+import com.project.tesi.enums.BookingStatus;
+import com.project.tesi.exception.email.EmailDeliveryException;
+import com.project.tesi.model.Booking;
+import com.project.tesi.model.Slot;
+import com.project.tesi.model.User;
+import com.project.tesi.repository.BookingRepository;
+import com.project.tesi.service.EmailService;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class BookingReminderSchedulerTest {
+
+    @Mock
+    private BookingRepository bookingRepository;
+
+    @Mock
+    private EmailService emailService;
+
+    @InjectMocks
+    private BookingReminderScheduler scheduler;
+
+    @Test
+    @DisplayName("sendBookingReminders - invia due email e marca reminderSent su successo")
+    void sendBookingReminders_success() {
+        Booking booking = buildBooking(1L);
+        when(bookingRepository.findUpcomingNeedingReminder(any(), any())).thenReturn(List.of(booking));
+
+        scheduler.sendBookingReminders();
+
+        verify(emailService, times(2)).sendBookingReminderEmail(anyString(), anyString(), anyString(), any(), anyString(), anyBoolean());
+        ArgumentCaptor<Booking> savedBooking = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(savedBooking.capture());
+        assertThat(savedBooking.getValue().isReminderSent()).isTrue();
+    }
+
+    @Test
+    @DisplayName("sendBookingReminders - se invio fallisce non marca reminderSent")
+    void sendBookingReminders_failureDoesNotMarkAsSent() {
+        Booking booking = buildBooking(2L);
+        when(bookingRepository.findUpcomingNeedingReminder(any(), any())).thenReturn(List.of(booking));
+        doThrow(new EmailDeliveryException("provider down"))
+                .when(emailService)
+                .sendBookingReminderEmail(anyString(), anyString(), anyString(), any(), anyString(), anyBoolean());
+
+        scheduler.sendBookingReminders();
+
+        verify(bookingRepository, never()).save(any());
+        assertThat(booking.isReminderSent()).isFalse();
+    }
+
+    private Booking buildBooking(Long id) {
+        User client = User.builder().firstName("Mario").lastName("Rossi").email("mario@test.com").build();
+        User professional = User.builder().firstName("Luca").lastName("Bianchi").email("luca@test.com").build();
+        Slot slot = Slot.builder().startTime(LocalDateTime.now().plusMinutes(30)).build();
+
+        return Booking.builder()
+                .id(id)
+                .user(client)
+                .professional(professional)
+                .slot(slot)
+                .status(BookingStatus.CONFIRMED)
+                .meetingLink("https://meet.jit.si/test-room")
+                .reminderSent(false)
+                .build();
+    }
+}
+
