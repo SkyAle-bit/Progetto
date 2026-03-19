@@ -74,6 +74,16 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**")
                         .permitAll()
+                        // Gestione utenti globale riservata all'Admin
+                        .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
+                        // Gestione utenti limitata del Moderatore
+                        .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasRole("MODERATOR")
+                        // Sezioni riservate esclusivamente all'Admin
+                        .requestMatchers(
+                                "/api/admin/plans", "/api/admin/plans/**",
+                                "/api/admin/subscriptions", "/api/admin/subscriptions/**",
+                                "/api/admin/stats", "/api/admin/stats/**")
+                        .hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Sessione STATELESS: nessun cookie di sessione, solo JWT
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

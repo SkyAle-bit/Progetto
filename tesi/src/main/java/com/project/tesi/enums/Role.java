@@ -8,6 +8,7 @@ public enum Role {
     CLIENT,             // Utente finale
     PERSONAL_TRAINER,   // Professionista PT
     NUTRITIONIST,       // Professionista Nutrizionista
+    MODERATOR,          // Moderatore operativo
     INSURANCE_MANAGER,  // Gestore polizze
     ADMIN               // Amministratore sistema
 }

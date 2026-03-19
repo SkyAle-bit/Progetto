@@ -46,6 +46,8 @@ public class DatabaseInitializerService {
 
         @Transactional
         public void initialize() {
+                ensureUsersRoleCheckSupportsModerator();
+
                 // Svuota tutte le tabelle nell'ordine corretto (rispetta le FK)
                 chatMessageRepository.deleteAllInBatch();
                 bookingRepository.deleteAllInBatch();
@@ -101,6 +103,9 @@ public class DatabaseInitializerService {
                 // Admin e Insurance Manager
                 createUser("Admin", "Sistema", "admin@test.com", Role.ADMIN, null, null, null);
                 createUser("Paolo", "Assicurazioni", "insurance@test.com", Role.INSURANCE_MANAGER, null, null, null);
+                createUser("Marta", "Moderatrice", "moderator1@test.com", Role.MODERATOR, null, null, null);
+                createUser("Lorenzo", "Support", "moderator2@test.com", Role.MODERATOR, null, null, null);
+                createUser("Elisa", "Care", "moderator3@test.com", Role.MODERATOR, null, null, null);
 
                 // 5. Abbonamenti
                 Plan[] plans = { basicS, basicA, premiumS, premiumA };
@@ -158,6 +163,18 @@ public class DatabaseInitializerService {
         }
 
         // --- METODI HELPER ---
+
+        private void ensureUsersRoleCheckSupportsModerator() {
+                String constraintName = "users_role_check";
+                try {
+                        jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS " + constraintName);
+                        jdbcTemplate.execute(
+                                        "ALTER TABLE users ADD CONSTRAINT " + constraintName
+                                                        + " CHECK (role IN ('CLIENT','PERSONAL_TRAINER','NUTRITIONIST','MODERATOR','INSURANCE_MANAGER','ADMIN'))");
+                } catch (Exception ignored) {
+                        // In ambienti senza tabella users o con schema differente ignoriamo il tentativo.
+                }
+        }
 
         private void createOrUpdatePlan(String name, PlanDuration duration, int ptCredits, int nutriCredits,
                         double fullPrice, double monthlyPrice) {

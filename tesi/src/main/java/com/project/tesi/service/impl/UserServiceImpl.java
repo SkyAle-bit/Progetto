@@ -1,7 +1,6 @@
 package com.project.tesi.service.impl;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
-
+import com.project.tesi.dto.request.ProfileUpdateRequest;
 import com.project.tesi.dto.request.RegisterRequest;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.dto.response.ClientBasicInfoResponse;
@@ -13,6 +12,7 @@ import com.project.tesi.enums.Role;
 import com.project.tesi.exception.booking.ProfessionalSoldOutException;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.mapper.BookingMapper;
 import com.project.tesi.mapper.SubscriptionMapper;
 import com.project.tesi.mapper.UserMapper;
 import com.project.tesi.model.Booking;
@@ -20,50 +20,44 @@ import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.BookingRepository;
+import com.project.tesi.repository.ChatMessageRepository;
 import com.project.tesi.repository.PlanRepository;
 import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
-import com.project.tesi.service.UserService;
 import com.project.tesi.service.EmailService;
+import com.project.tesi.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import com.project.tesi.mapper.BookingMapper;
-import java.time.LocalDateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Implementazione del servizio per la gestione degli utenti.
- *
- * Gestisce:
- * <ul>
- *   <li>Registrazione nuovi clienti con assegnazione professionisti (round-robin)</li>
- *   <li>Creazione automatica dell'abbonamento alla registrazione</li>
- *   <li>Dashboard cliente con profilo, professionisti, abbonamento e prossimi appuntamenti</li>
- *   <li>Lista clienti per professionisti</li>
- *   <li>Aggiornamento profilo (nome, cognome, password, immagine)</li>
- *   <li>Vetrina professionisti disponibili con media voti</li>
- * </ul>
+ * Implementazione del servizio utente.
  */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final ReviewRepository reviewRepository;
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
-
-    // MAPPER INIETTATI
     private final UserMapper userMapper;
     private final SubscriptionMapper subscriptionMapper;
     private final BookingMapper bookingMapper;
@@ -72,7 +66,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void updateProfile(Long userId, com.project.tesi.dto.request.ProfileUpdateRequest request) {
+    public void updateProfile(Long userId, ProfileUpdateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
@@ -99,17 +93,13 @@ public class UserServiceImpl implements UserService {
             throw new ResourceAlreadyExistsException("Utente", "email", request.getEmail());
         }
 
-        // 1T. DELEGHIAMO LA CREAZIONE DELL'UTENE AL MAPPER
         User newUser = userMapper.toUser(request);
 
-        // 2. ASSEGNIAMO I PROFESSIONISTI ALL'ENTITÀ GIÀ CREATA
         assignProfessional(newUser, request.getSelectedPtId(), Role.PERSONAL_TRAINER);
         assignProfessional(newUser, request.getSelectedNutritionistId(), Role.NUTRITIONIST);
 
-        // Salviamo l'utente
         User savedUser = userRepository.save(newUser);
 
-        // 3. DELEGHIAMO LA CREAZIONE DELL'ABBONAMENTO AL MAPPER
         if (request.getSelectedPlanId() != null && request.getPaymentFrequency() != null) {
             Plan selectedPlan = planRepository.findById(request.getSelectedPlanId())
                     .orElseThrow(() -> new ResourceNotFoundException("Piano", request.getSelectedPlanId()));
@@ -118,7 +108,6 @@ public class UserServiceImpl implements UserService {
             subscriptionRepository.save(subscription);
         }
 
-        // 4. INVIAMO L'EMAIL DI BENVENUTO (asincrona, non blocca la registrazione)
         try {
             emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName());
         } catch (Exception e) {
@@ -134,12 +123,10 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByRole(role).stream()
                 .map(pro -> {
                     Double avg = reviewRepository.getAverageRating(pro.getId());
-                    long activeClients;
-                    if (pro.getRole() == Role.PERSONAL_TRAINER) {
-                        activeClients = userRepository.countByAssignedPT(pro);
-                    } else {
-                        activeClients = userRepository.countByAssignedNutritionist(pro);
-                    }
+                    long activeClients = pro.getRole() == Role.PERSONAL_TRAINER
+                            ? userRepository.countByAssignedPT(pro)
+                            : userRepository.countByAssignedNutritionist(pro);
+
                     return ProfessionalSummaryDTO.builder()
                             .id(pro.getId())
                             .fullName(pro.getFirstName() + " " + pro.getLastName())
@@ -156,34 +143,22 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public ClientDashboardResponse getClientDashboard(Long userId) {
-        log.info("getClientDashboard called for userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
-        // Se è un professionista (PT o Nutrizionista)
         if (user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST) {
-            log.info("User is a professional, returning professional view");
-
-            // Recupera le prenotazioni in cui è il professionista (non il cliente)
-            List<Booking> proBookings = bookingRepository.findByProfessional(user);
-            List<BookingResponse> proBookingResponses = proBookings.stream()
+            List<BookingResponse> proBookingResponses = bookingRepository.findByProfessional(user).stream()
                     .map(bookingMapper::toResponse)
                     .collect(Collectors.toList());
 
-            // Costruisce una dashboard semplificata (senza abbonamento e senza
-            // followingProfessionals)
             return ClientDashboardResponse.builder()
                     .profile(userMapper.toUserResponse(user))
-                    .followingProfessionals(new ArrayList<>()) // lista vuota
-                    .subscription(null) // nessun abbonamento
-                    .upcomingBookings(proBookingResponses) // prenotazioni come professionista
+                    .followingProfessionals(new ArrayList<>())
+                    .subscription(null)
+                    .upcomingBookings(proBookingResponses)
                     .build();
         }
 
-        // Altrimenti è un cliente: procedi con la logica originale
-        log.info("User is a client, returning client dashboard");
-
-        // 1. Professionisti assegnati
         List<ProfessionalSummaryDTO> followingProfessionals = new ArrayList<>();
         if (user.getAssignedPT() != null) {
             followingProfessionals.add(buildProfessionalSummary(user.getAssignedPT()));
@@ -192,7 +167,6 @@ public class UserServiceImpl implements UserService {
             followingProfessionals.add(buildProfessionalSummary(user.getAssignedNutritionist()));
         }
 
-        // 2. Abbonamento attivo
         SubscriptionResponse subResponse = null;
         Optional<Subscription> subOpt = subscriptionRepository.findByUserAndActiveTrue(user);
         if (subOpt.isPresent()) {
@@ -208,62 +182,16 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 
-        // 3. Prenotazioni future del cliente (usando la query JPQL)
-        List<Booking> upcoming = bookingRepository.findFutureByUser(user, LocalDateTime.now());
-        List<BookingResponse> upcomingBookings = upcoming.stream()
+        List<BookingResponse> upcomingBookings = bookingRepository.findFutureByUser(user, LocalDateTime.now()).stream()
                 .map(bookingMapper::toResponse)
                 .collect(Collectors.toList());
 
-        // 4. Risposta finale
         return ClientDashboardResponse.builder()
                 .profile(userMapper.toUserResponse(user))
                 .followingProfessionals(followingProfessionals)
                 .subscription(subResponse)
                 .upcomingBookings(upcomingBookings)
                 .build();
-    }
-
-    // --- Aggiungi questo piccolo Helper privato in fondo alla classe ---
-    private ProfessionalSummaryDTO buildProfessionalSummary(User pro) {
-        return ProfessionalSummaryDTO.builder()
-                .id(pro.getId())
-                .fullName(pro.getFirstName() + " " + pro.getLastName())
-                .role(pro.getRole())
-                // Eventualmente in futuro potrai aggiungerci la foto profilo
-                .build();
-    }
-
-    // --- Metodi privati di supporto (Aggiornato per accettare User invece di
-    // UserBuilder) ---
-
-    private void assignProfessional(User user, Long proId, Role expectedRole) {
-        if (proId == null) {
-            throw new IllegalArgumentException("Devi selezionare un " + expectedRole);
-        }
-
-        User professional = userRepository.findById(proId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professionista", proId));
-
-        if (professional.getRole() != expectedRole) {
-            throw new IllegalArgumentException("L'ID fornito non corrisponde a un " + expectedRole + ".");
-        }
-
-        long activeClients;
-        if (expectedRole == Role.PERSONAL_TRAINER) {
-            activeClients = userRepository.countByAssignedPT(professional);
-        } else {
-            activeClients = userRepository.countByAssignedNutritionist(professional);
-        }
-        if (activeClients >= 10) {
-            throw new ProfessionalSoldOutException(professional.getFirstName());
-        }
-
-        // Ora usiamo i classici "Setter" sull'oggetto User
-        if (expectedRole == Role.PERSONAL_TRAINER) {
-            user.setAssignedPT(professional);
-        } else {
-            user.setAssignedNutritionist(professional);
-        }
     }
 
     @Override
@@ -278,7 +206,7 @@ public class UserServiceImpl implements UserService {
         } else if (professional.getRole() == Role.NUTRITIONIST) {
             clients = userRepository.findByAssignedNutritionist(professional);
         } else {
-            throw new IllegalArgumentException("L'utente non è un professionista");
+            throw new IllegalArgumentException("L'utente non e un professionista");
         }
 
         return clients.stream()
@@ -287,7 +215,8 @@ public class UserServiceImpl implements UserService {
                         .firstName(client.getFirstName())
                         .lastName(client.getLastName())
                         .email(client.getEmail())
-                        .profilePictureUrl(client.getProfilePicture() != null ? client.getProfilePicture()
+                        .profilePictureUrl(client.getProfilePicture() != null
+                                ? client.getProfilePicture()
                                 : client.getProfilePictureUrl())
                         .build())
                 .collect(Collectors.toList());
@@ -295,16 +224,108 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public ClientBasicInfoResponse getSupportOperator() {
+        List<User> moderators = userRepository.findByRole(Role.MODERATOR);
+        if (!moderators.isEmpty()) {
+            Optional<User> currentUser = findAuthenticatedUser();
+            if (currentUser.isPresent()) {
+                User actor = currentUser.get();
+
+                if (actor.getRole() == Role.MODERATOR) {
+                    return toBasicInfo(actor);
+                }
+
+                Optional<User> existing = findExistingModeratorConversation(actor.getId(), moderators);
+                User selected = existing.orElseGet(() -> {
+                    int index = ThreadLocalRandom.current().nextInt(moderators.size());
+                    return moderators.get(index);
+                });
+                return toBasicInfo(selected);
+            }
+
+            return toBasicInfo(moderators.get(0));
+        }
+
+        // Fallback legacy: se non ci sono moderatori, usa admin.
+        return userRepository.findByRole(Role.ADMIN).stream().findFirst()
+                .map(this::toBasicInfo)
+                .orElseThrow(() -> new ResourceNotFoundException("Operatore di supporto non trovato nel sistema."));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ClientBasicInfoResponse getAdmin() {
         return userRepository.findByRole(Role.ADMIN).stream().findFirst()
-                .map(admin -> ClientBasicInfoResponse.builder()
-                        .id(admin.getId())
-                        .firstName(admin.getFirstName())
-                        .lastName(admin.getLastName())
-                        .email(admin.getEmail())
-                        .profilePictureUrl(admin.getProfilePicture() != null ? admin.getProfilePicture()
-                                : admin.getProfilePictureUrl())
-                        .build())
+                .map(this::toBasicInfo)
                 .orElseThrow(() -> new ResourceNotFoundException("Amministratore non trovato nel sistema."));
     }
+
+    private ProfessionalSummaryDTO buildProfessionalSummary(User pro) {
+        return ProfessionalSummaryDTO.builder()
+                .id(pro.getId())
+                .fullName(pro.getFirstName() + " " + pro.getLastName())
+                .role(pro.getRole())
+                .build();
+    }
+
+    private void assignProfessional(User user, Long proId, Role expectedRole) {
+        if (proId == null) {
+            throw new IllegalArgumentException("Devi selezionare un " + expectedRole);
+        }
+
+        User professional = userRepository.findById(proId)
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", proId));
+
+        if (professional.getRole() != expectedRole) {
+            throw new IllegalArgumentException("L'ID fornito non corrisponde a un " + expectedRole + ".");
+        }
+
+        long activeClients = expectedRole == Role.PERSONAL_TRAINER
+                ? userRepository.countByAssignedPT(professional)
+                : userRepository.countByAssignedNutritionist(professional);
+        if (activeClients >= 10) {
+            throw new ProfessionalSoldOutException(professional.getFirstName());
+        }
+
+        if (expectedRole == Role.PERSONAL_TRAINER) {
+            user.setAssignedPT(professional);
+        } else {
+            user.setAssignedNutritionist(professional);
+        }
+    }
+
+    private ClientBasicInfoResponse toBasicInfo(User user) {
+        return ClientBasicInfoResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .profilePictureUrl(user.getProfilePicture() != null
+                        ? user.getProfilePicture()
+                        : user.getProfilePictureUrl())
+                .build();
+    }
+
+    private Optional<User> findAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            return Optional.empty();
+        }
+        return userRepository.findByEmail(authentication.getName());
+    }
+
+    private Optional<User> findExistingModeratorConversation(Long userId, List<User> moderators) {
+        List<User> partners = chatMessageRepository.findConversationPartners(userId);
+        if (partners == null || partners.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return partners.stream()
+                .filter(p -> p.getRole() == Role.MODERATOR)
+                .filter(p -> moderators.stream().anyMatch(m -> m.getId().equals(p.getId())))
+                .findFirst();
+    }
 }
+
+

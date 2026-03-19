@@ -145,16 +145,34 @@ public class ChatServiceImpl implements ChatService {
     // ── Validazione permessi chat ──────────────────────────────────────────────
 
     private void validateChatPermission(User userA, User userB) {
-        // Admin può chattare con chiunque
+        // Admin può comunicare solo con moderatore/insurance manager
         if (userA.getRole() == Role.ADMIN || userB.getRole() == Role.ADMIN) {
-            return;
+            boolean allowed = userA.getRole() == Role.MODERATOR
+                    || userB.getRole() == Role.MODERATOR
+                    || userA.getRole() == Role.INSURANCE_MANAGER
+                    || userB.getRole() == Role.INSURANCE_MANAGER;
+            if (allowed) {
+                return;
+            }
+            throw new ChatNotAllowedException("L'amministratore non gestisce chat assistenza dirette con utenti/clienti.");
         }
 
-        // Insurance Manager può chattare con Admin (già coperto sopra) — blocca tutto
-        // il resto
+        // Insurance Manager può chattare solo con Admin
         if (userA.getRole() == Role.INSURANCE_MANAGER || userB.getRole() == Role.INSURANCE_MANAGER) {
             throw new ChatNotAllowedException(
                     "L'account polizze può comunicare solo con l'amministratore.");
+        }
+
+        // Supporto: Cliente/Professionista <-> Moderatore
+        if (userA.getRole() == Role.MODERATOR || userB.getRole() == Role.MODERATOR) {
+            boolean counterpartAllowed = userA.getRole() == Role.CLIENT
+                    || userB.getRole() == Role.CLIENT
+                    || isProfessional(userA)
+                    || isProfessional(userB);
+            if (counterpartAllowed) {
+                return;
+            }
+            throw new ChatNotAllowedException();
         }
 
         // Client ↔ Professionista assegnato

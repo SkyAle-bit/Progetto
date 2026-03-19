@@ -71,12 +71,11 @@ public class UserFacade {
 
     /** Restituisce i dati dell'account Admin (per avviare chat di supporto). */
     public ClientBasicInfoResponse getAdmin() {
-        return userService.getAdmin();
+        return userService.getSupportOperator();
     }
 
     // ── PRENOTAZIONI ────────────────────────────────────────────
 
-    /** Crea una nuova prenotazione verificando crediti, assegnazione e disponibilità slot. */
     public BookingResponse createBooking(BookingRequest request) {
         return bookingService.createBooking(request);
     }

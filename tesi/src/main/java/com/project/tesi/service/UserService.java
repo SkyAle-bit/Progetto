@@ -30,6 +30,9 @@ public interface UserService {
     /** Restituisce la lista dei clienti assegnati a un professionista. */
     List<ClientBasicInfoResponse> getClientsForProfessional(Long professionalId);
 
+    /** Restituisce l'operatore di supporto (moderatore) da usare in chat assistenza. */
+    ClientBasicInfoResponse getSupportOperator();
+
     /** Restituisce i dati dell'account Admin (per la chat di supporto). */
     ClientBasicInfoResponse getAdmin();
 }
