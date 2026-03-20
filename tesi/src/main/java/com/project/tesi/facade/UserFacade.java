@@ -80,6 +80,11 @@ public class UserFacade {
         return bookingService.createBooking(request);
     }
 
+    /** Annulla una prenotazione esistente, liberando lo slot e riaccreditando il credito. */
+    public void cancelBooking(Long bookingId, Long userId) {
+        bookingService.cancelBooking(bookingId, userId);
+    }
+
     // ── RECENSIONI ──────────────────────────────────────────────
 
     /** Il cliente lascia una recensione a un professionista. */

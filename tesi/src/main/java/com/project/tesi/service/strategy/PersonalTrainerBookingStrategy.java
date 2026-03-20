@@ -46,4 +46,10 @@ public class PersonalTrainerBookingStrategy implements BookingStrategy {
         }
         subscription.setCurrentCreditsPT(subscription.getCurrentCreditsPT() - 1);
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public void refundCredits(Subscription subscription) {
+        subscription.setCurrentCreditsPT(subscription.getCurrentCreditsPT() + 1);
+    }
 }

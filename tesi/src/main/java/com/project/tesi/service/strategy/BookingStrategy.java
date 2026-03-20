@@ -42,4 +42,12 @@ public interface BookingStrategy {
      * @throws com.project.tesi.exception.booking.InsufficientCreditsException se i crediti sono esauriti
      */
     void consumeCredits(Subscription subscription);
+
+    /**
+     * Riaccredita un credito all'abbonamento del cliente (operazione inversa di consumeCredits).
+     * Usato quando una prenotazione viene annullata.
+     *
+     * @param subscription l'abbonamento attivo del cliente
+     */
+    void refundCredits(Subscription subscription);
 }

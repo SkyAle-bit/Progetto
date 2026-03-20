@@ -242,6 +242,46 @@ public class EmailServiceImpl implements EmailService {
     }
 
     // ══════════════════════════════════════════════════════════════
+    //  EMAIL DI RESET PASSWORD
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    @Async
+    public void sendPasswordResetEmail(String toEmail, String firstName, String resetToken) {
+        try {
+            validateRecipient(toEmail);
+            String subject = "🔑 Recupero Password — Kore";
+            String resetLink = "https://progetto-fe.vercel.app/reset-password?token=" + resetToken;
+            String html = buildPasswordResetHtml(firstName, resetLink);
+            sendSimpleEmail(toEmail, subject, html);
+            log.info("Email di reset password inviata a {}", toEmail);
+        } catch (Exception e) {
+            log.error("Errore nell'invio dell'email di reset password a {}", toEmail, e);
+        }
+    }
+
+    private String buildPasswordResetHtml(String firstName, String resetLink) {
+        return "<div style=\"font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;border-radius:12px;overflow:hidden\">"
+             + "<div style=\"background:linear-gradient(135deg,#1a3462,#112240);padding:40px 30px;text-align:center\">"
+             + "<h1 style=\"color:#c9a96e;margin:0;font-size:28px\">🔑 Recupero Password</h1>"
+             + "<p style=\"color:#b1c0d4;margin:12px 0 0;font-size:15px\">Hai richiesto di reimpostare la tua password</p>"
+             + "</div>"
+             + "<div style=\"padding:30px\">"
+             + "<p style=\"color:#212529;font-size:16px;line-height:1.6;margin:0 0 20px\">Ciao <strong>" + firstName + "</strong>,</p>"
+             + "<p style=\"color:#495057;font-size:15px;line-height:1.6;margin:0 0 20px\">Abbiamo ricevuto una richiesta di reset della tua password. "
+             + "Clicca il pulsante qui sotto per impostare una nuova password:</p>"
+             + "<div style=\"text-align:center;margin:30px 0\">"
+             + "<a href=\"" + resetLink + "\" style=\"background:linear-gradient(135deg,#e2b93b,#c49a20);color:#1a3462;padding:14px 40px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px;display:inline-block\">Reimposta Password</a>"
+             + "</div>"
+             + "<p style=\"color:#6c757d;font-size:14px;line-height:1.5;margin:0 0 10px\">Il link scadrà tra <strong>30 minuti</strong>.</p>"
+             + "<p style=\"color:#6c757d;font-size:13px;line-height:1.5;margin:0\">Se non hai richiesto tu il reset della password, ignora questa email. Il tuo account rimarrà sicuro.</p>"
+             + "</div>"
+             + "<div style=\"background:#e9ecef;padding:16px;text-align:center;font-size:13px;color:#6c757d\">"
+             + "Email generata automaticamente da Kore Platform"
+             + "</div></div>";
+    }
+
+    // ══════════════════════════════════════════════════════════════
     //  METODO HELPER: invio email semplice via SMTP
     // ══════════════════════════════════════════════════════════════
 

@@ -47,4 +47,10 @@ public class NutritionistBookingStrategy implements BookingStrategy {
         }
         subscription.setCurrentCreditsNutri(subscription.getCurrentCreditsNutri() - 1);
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public void refundCredits(Subscription subscription) {
+        subscription.setCurrentCreditsNutri(subscription.getCurrentCreditsNutri() + 1);
+    }
 }

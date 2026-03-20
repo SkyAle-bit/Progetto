@@ -129,4 +129,47 @@ public class BookingServiceImpl implements BookingService {
 
         return bookingMapper.toResponse(saved);
     }
+
+    @Override
+    @Transactional
+    public void cancelBooking(Long bookingId, Long userId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Prenotazione", bookingId));
+
+        // Verifica che l'utente sia il proprietario della prenotazione
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Non puoi annullare una prenotazione che non ti appartiene.");
+        }
+
+        // Verifica che la prenotazione sia in stato CONFIRMED
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Questa prenotazione non può essere annullata (stato: " + booking.getStatus() + ").");
+        }
+
+        // Verifica limite delle 24 ore
+        Slot slot = booking.getSlot();
+        if (slot.getStartTime().isBefore(java.time.LocalDateTime.now().plusHours(24))) {
+            throw new IllegalArgumentException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
+        }
+
+        // 1. Libera lo slot
+        slot.setBooked(false);
+        slotRepository.save(slot);
+
+        // 2. Riaccredita il credito all'abbonamento
+        User professional = booking.getProfessional();
+        BookingStrategy strategy = strategyMap.get(professional.getRole());
+        if (strategy != null) {
+            Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
+                    .orElse(null);
+            if (sub != null) {
+                strategy.refundCredits(sub);
+                subscriptionRepository.save(sub);
+            }
+        }
+
+        // 3. Aggiorna lo stato della prenotazione
+        booking.setStatus(BookingStatus.CANCELED);
+        bookingRepository.save(booking);
+    }
 }

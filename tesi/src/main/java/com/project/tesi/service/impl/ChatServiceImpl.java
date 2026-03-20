@@ -145,16 +145,9 @@ public class ChatServiceImpl implements ChatService {
     // ── Validazione permessi chat ──────────────────────────────────────────────
 
     private void validateChatPermission(User userA, User userB) {
-        // Admin può comunicare solo con moderatore/insurance manager
+        // Admin può comunicare con chiunque
         if (userA.getRole() == Role.ADMIN || userB.getRole() == Role.ADMIN) {
-            boolean allowed = userA.getRole() == Role.MODERATOR
-                    || userB.getRole() == Role.MODERATOR
-                    || userA.getRole() == Role.INSURANCE_MANAGER
-                    || userB.getRole() == Role.INSURANCE_MANAGER;
-            if (allowed) {
-                return;
-            }
-            throw new ChatNotAllowedException("L'amministratore non gestisce chat assistenza dirette con utenti/clienti.");
+            return;
         }
 
         // Insurance Manager può chattare solo con Admin

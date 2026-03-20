@@ -29,4 +29,13 @@ public interface EmailService {
      */
     void sendBookingReminderEmail(String toEmail, String recipientName, String otherPartyName,
                                    java.time.LocalDateTime startTime, String meetingLink, boolean isForClient);
+
+    /**
+     * Invia l'email con il link per reimpostare la password.
+     *
+     * @param toEmail    email del destinatario
+     * @param firstName  nome del destinatario
+     * @param resetToken il token UUID da includere nel link
+     */
+    void sendPasswordResetEmail(String toEmail, String firstName, String resetToken);
 }

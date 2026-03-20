@@ -1,10 +1,13 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.request.ForgotPasswordRequest;
 import com.project.tesi.dto.request.LoginRequest;
 import com.project.tesi.dto.request.RegisterRequest;
+import com.project.tesi.dto.request.ResetPasswordRequest;
 import com.project.tesi.dto.response.AuthResponse;
 import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,9 +16,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 /**
  * Controller REST per l'autenticazione degli utenti.
- * Gestisce registrazione, login e health-check del backend.
+ * Gestisce registrazione, login, recupero password e health-check del backend.
  * Tutta la logica è delegata all'{@link AuthService}.
  */
 @RestController
@@ -37,9 +42,23 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    /** Richiede il reset della password inviando un link via email. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(Map.of("message", "Se l'email è registrata, riceverai un link per reimpostare la password."));
+    }
+
+    /** Reimposta la password usando il token ricevuto via email. */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Password reimpostata con successo."));
+    }
+
     /** Endpoint di health-check per verificare che il backend sia raggiungibile. */
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("Il Backend è online e funziona correttamente! 🚀");
     }
-}
+}
