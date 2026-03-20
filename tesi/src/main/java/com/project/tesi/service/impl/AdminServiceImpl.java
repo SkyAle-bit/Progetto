@@ -80,6 +80,18 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getModeratorChatContacts() {
+        User actor = getAuthenticatedActor();
+        ensureRole(actor, Role.MODERATOR);
+
+        return userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.ADMIN || u.getRole() == Role.INSURANCE_MANAGER)
+                .map(this::toUserMap)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public Map<String, Object> createUser(Map<String, Object> body) {
         return createUserInternal(body, null);
@@ -129,8 +141,32 @@ public class AdminServiceImpl implements AdminService {
             map.put("startDate", s.getStartDate() != null ? s.getStartDate().toString() : null);
             map.put("endDate", s.getEndDate() != null ? s.getEndDate().toString() : null);
             map.put("monthlyPrice", s.getPlan() != null ? s.getPlan().getMonthlyInstallmentPrice() : 0);
+            map.put("currentCreditsPT", s.getCurrentCreditsPT());
+            map.put("currentCreditsNutri", s.getCurrentCreditsNutri());
             return map;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> updateSubscriptionCredits(Long subscriptionId, int creditsPT, int creditsNutri) {
+        User actor = getAuthenticatedActor();
+        if (actor.getRole() != Role.ADMIN && actor.getRole() != Role.MODERATOR) {
+            throw new UnauthorizedAccessException("Non hai i permessi per modificare i crediti.");
+        }
+
+        Subscription sub = subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Abbonamento", subscriptionId));
+
+        sub.setCurrentCreditsPT(creditsPT);
+        sub.setCurrentCreditsNutri(creditsNutri);
+        Subscription saved = subscriptionRepository.save(sub);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", saved.getId());
+        map.put("currentCreditsPT", saved.getCurrentCreditsPT());
+        map.put("currentCreditsNutri", saved.getCurrentCreditsNutri());
+        return map;
     }
 
     @Override
@@ -433,6 +469,18 @@ public class AdminServiceImpl implements AdminService {
         map.put("lastName", user.getLastName());
         map.put("email", user.getEmail());
         map.put("role", user.getRole().name());
+        map.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
+        map.put("professionalBio", user.getProfessionalBio());
+
+        if (user.getRole() == Role.CLIENT) {
+            if (user.getAssignedPT() != null) {
+                map.put("assignedPTName", user.getAssignedPT().getFirstName() + " " + user.getAssignedPT().getLastName());
+            }
+            if (user.getAssignedNutritionist() != null) {
+                map.put("assignedNutritionistName", user.getAssignedNutritionist().getFirstName() + " " + user.getAssignedNutritionist().getLastName());
+            }
+        }
+
         return map;
     }
 

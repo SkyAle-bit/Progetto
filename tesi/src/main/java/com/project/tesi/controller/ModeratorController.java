@@ -30,6 +30,16 @@ public class ModeratorController {
         return ResponseEntity.ok(moderatorFacade.getManageableUsers());
     }
 
+    @GetMapping("/subscriptions")
+    public ResponseEntity<List<Map<String, Object>>> getAllSubscriptions() {
+        return ResponseEntity.ok(moderatorFacade.getAllSubscriptions());
+    }
+
+    @GetMapping("/chat-contacts")
+    public ResponseEntity<List<Map<String, Object>>> getChatContacts() {
+        return ResponseEntity.ok(moderatorFacade.getChatContacts());
+    }
+
     @PostMapping("/users")
     public ResponseEntity<Map<String, Object>> createUser(@RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(moderatorFacade.createUser(body));
@@ -45,6 +55,15 @@ public class ModeratorController {
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
         moderatorFacade.deleteUser(id);
         return ResponseEntity.ok(Map.of("message", "Utente eliminato"));
+    }
+
+    @PutMapping("/subscriptions/{id}/credits")
+    public ResponseEntity<Map<String, Object>> updateSubscriptionCredits(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        return ResponseEntity.ok(moderatorFacade.updateSubscriptionCredits(
+                id,
+                body.getOrDefault("creditsPT", 0),
+                body.getOrDefault("creditsNutri", 0)
+        ));
     }
 }
 

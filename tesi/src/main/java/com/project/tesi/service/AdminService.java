@@ -15,6 +15,9 @@ public interface AdminService {
     /** Restituisce gli utenti gestibili dal moderatore. */
     List<Map<String, Object>> getModeratorManageableUsers();
 
+    /** Restituisce i contatti chat per il moderatore (Admin e Insurance Manager). */
+    List<Map<String, Object>> getModeratorChatContacts();
+
     /** Crea un nuovo utente con i dati specificati. */
     Map<String, Object> createUser(Map<String, Object> body);
 
@@ -32,6 +35,9 @@ public interface AdminService {
 
     /** Restituisce la lista di tutti gli abbonamenti. */
     List<Map<String, Object>> getAllSubscriptions();
+
+    /** Aggiorna i crediti PT e Nutrizionista di un abbonamento. */
+    Map<String, Object> updateSubscriptionCredits(Long subscriptionId, int creditsPT, int creditsNutri);
 
     /** Crea un nuovo piano commerciale. */
     Map<String, Object> createPlan(Map<String, Object> body);

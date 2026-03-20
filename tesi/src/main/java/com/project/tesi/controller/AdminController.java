@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -49,6 +50,16 @@ public class AdminController {
     @GetMapping("/subscriptions")
     public ResponseEntity<List<Map<String, Object>>> getAllSubscriptions() {
         return ResponseEntity.ok(adminFacade.getAllSubscriptions());
+    }
+
+    /** Aggiorna i crediti PT e Nutrizionista di un abbonamento. */
+    @PutMapping("/subscriptions/{id}/credits")
+    public ResponseEntity<Map<String, Object>> updateSubscriptionCredits(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        return ResponseEntity.ok(adminFacade.updateSubscriptionCredits(
+                id,
+                body.getOrDefault("creditsPT", 0),
+                body.getOrDefault("creditsNutri", 0)
+        ));
     }
 
     /** Crea un nuovo piano commerciale con i dati specificati nel body. */

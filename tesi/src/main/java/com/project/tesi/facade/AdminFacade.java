@@ -50,6 +50,11 @@ public class AdminFacade {
         return adminService.getAllSubscriptions();
     }
 
+    /** Aggiorna i crediti PT e Nutrizionista di un abbonamento. */
+    public Map<String, Object> updateSubscriptionCredits(Long id, int pt, int nutri) {
+        return adminService.updateSubscriptionCredits(id, pt, nutri);
+    }
+
     // ── PIANI ───────────────────────────────────────────────────
 
     /** Crea un nuovo piano commerciale con i dati specificati. */

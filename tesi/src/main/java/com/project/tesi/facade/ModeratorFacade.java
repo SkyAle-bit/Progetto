@@ -23,6 +23,14 @@ public class ModeratorFacade {
         return adminService.getModeratorManageableUsers();
     }
 
+    public List<Map<String, Object>> getAllSubscriptions() {
+        return adminService.getAllSubscriptions();
+    }
+
+    public List<Map<String, Object>> getChatContacts() {
+        return adminService.getModeratorChatContacts();
+    }
+
     public Map<String, Object> createUser(Map<String, Object> body) {
         return adminService.createUserAsModerator(body);
     }
@@ -33,6 +41,10 @@ public class ModeratorFacade {
 
     public void deleteUser(Long id) {
         adminService.deleteUserAsModerator(id);
+    }
+
+    public Map<String, Object> updateSubscriptionCredits(Long id, int pt, int nutri) {
+        return adminService.updateSubscriptionCredits(id, pt, nutri);
     }
 }
 
