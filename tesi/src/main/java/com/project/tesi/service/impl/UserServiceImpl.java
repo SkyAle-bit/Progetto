@@ -15,7 +15,6 @@ import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.mapper.BookingMapper;
 import com.project.tesi.mapper.SubscriptionMapper;
 import com.project.tesi.mapper.UserMapper;
-import com.project.tesi.model.Booking;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
@@ -94,6 +93,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User newUser = userMapper.toUser(request);
+        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
 
         assignProfessional(newUser, request.getSelectedPtId(), Role.PERSONAL_TRAINER);
         assignProfessional(newUser, request.getSelectedNutritionistId(), Role.NUTRITIONIST);

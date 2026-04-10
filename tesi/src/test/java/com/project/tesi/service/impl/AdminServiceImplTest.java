@@ -264,7 +264,7 @@ class AdminServiceImplTest {
         when(userRepository.save(any())).thenReturn(saved);
         when(planRepository.findById(2L)).thenReturn(Optional.of(semPlan));
 
-        Map<String, Object> result = adminService.createUser(body);
+        adminService.createUser(body);
         verify(subscriptionRepository).save(any(Subscription.class));
     }
 }

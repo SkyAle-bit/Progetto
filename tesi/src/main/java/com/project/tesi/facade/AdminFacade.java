@@ -1,76 +1,133 @@
 package com.project.tesi.facade;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.response.PlanResponseDTO;
+import com.project.tesi.dto.response.SubscriptionResponseDTO;
+import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Facade per il pannello amministrativo (Design Pattern Facade).
  *
- * Fornisce un punto d'accesso unificato a tutte le operazioni admin,
- * coordinando {@link AdminService} (operazioni CRUD) e {@link AdminStatsService} (statistiche).
- * I controller admin comunicano esclusivamente con questa facade,
- * senza conoscere i servizi sottostanti.
+ * Fornisce un punto d'accesso unificato a tutte le operazioni admin.
  */
 @Component
 @RequiredArgsConstructor
 public class AdminFacade {
 
-    /** Servizio per le operazioni CRUD su utenti, abbonamenti e piani. */
     private final AdminService adminService;
-
-    /** Servizio per il calcolo delle statistiche aggregate del pannello admin. */
     private final AdminStatsService adminStatsService;
 
     // ── UTENTI ──────────────────────────────────────────────────
 
-    /** Restituisce la lista di tutti gli utenti registrati nel sistema. */
-    public List<Map<String, Object>> getAllUsers() {
-        return adminService.getAllUsers();
+    public List<UserResponseDTO> getAllUsers() {
+        return adminService.getAllUsers().stream()
+                .map(this::mapToUserResponse)
+                .collect(Collectors.toList());
     }
 
-    /** Crea un nuovo utente (professionista o cliente) con i dati specificati. */
-    public Map<String, Object> createUser(Map<String, Object> body) {
-        return adminService.createUser(body);
+    public UserResponseDTO createUser(UserCreateRequestDTO request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("email", request.email());
+        body.put("firstName", request.firstName());
+        body.put("lastName", request.lastName());
+        body.put("password", request.password());
+        body.put("role", request.role());
+        if (request.assignedPTId() != null) body.put("assignedPTId", request.assignedPTId());
+        if (request.assignedNutritionistId() != null) body.put("assignedNutritionistId", request.assignedNutritionistId());
+
+        return mapToUserResponse(adminService.createUser(body));
     }
 
-    /** Elimina un utente e tutte le sue entità collegate (documenti, abbonamento). */
     public void deleteUser(Long id) {
         adminService.deleteUser(id);
     }
 
     // ── ABBONAMENTI ─────────────────────────────────────────────
 
-    /** Restituisce la lista di tutti gli abbonamenti (attivi e scaduti). */
-    public List<Map<String, Object>> getAllSubscriptions() {
-        return adminService.getAllSubscriptions();
+    public List<SubscriptionResponseDTO> getAllSubscriptions() {
+        return adminService.getAllSubscriptions().stream()
+                .map(this::mapToSubscriptionResponse)
+                .collect(Collectors.toList());
     }
 
-    /** Aggiorna i crediti PT e Nutrizionista di un abbonamento. */
-    public Map<String, Object> updateSubscriptionCredits(Long id, int pt, int nutri) {
-        return adminService.updateSubscriptionCredits(id, pt, nutri);
+    public SubscriptionResponseDTO updateSubscriptionCredits(Long id, int pt, int nutri) {
+        return mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
     }
 
     // ── PIANI ───────────────────────────────────────────────────
 
-    /** Crea un nuovo piano commerciale con i dati specificati. */
-    public Map<String, Object> createPlan(Map<String, Object> body) {
-        return adminService.createPlan(body);
+    public PlanResponseDTO createPlan(PlanCreateRequestDTO request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("name", request.name());
+        body.put("duration", request.duration());
+        body.put("fullPrice", request.fullPrice());
+        body.put("monthlyInstallmentPrice", request.monthlyInstallmentPrice());
+        body.put("monthlyCreditsPT", request.monthlyCreditsPT());
+        body.put("monthlyCreditsNutri", request.monthlyCreditsNutri());
+
+        return mapToPlanResponse(adminService.createPlan(body));
     }
 
-    /** Elimina un piano commerciale dal sistema. */
     public void deletePlan(Long id) {
         adminService.deletePlan(id);
     }
 
     // ── STATISTICHE ─────────────────────────────────────────────
 
-    /** Restituisce le statistiche aggregate per la dashboard admin (utenti, fatturato, crediti, ecc.). */
     public Map<String, Object> getAdminStats() {
         return adminStatsService.getAdminStats();
+    }
+
+    // ── PRIVATE MAPPERS ─────────────────────────────────────────
+
+    private UserResponseDTO mapToUserResponse(Map<String, Object> map) {
+        return new UserResponseDTO(
+                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
+                (String) map.get("firstName"),
+                (String) map.get("lastName"),
+                (String) map.get("email"),
+                (String) map.get("role"),
+                (String) map.get("createdAt"),
+                (String) map.get("professionalBio"),
+                (String) map.get("assignedPTName"),
+                (String) map.get("assignedNutritionistName")
+        );
+    }
+
+    private SubscriptionResponseDTO mapToSubscriptionResponse(Map<String, Object> map) {
+        return new SubscriptionResponseDTO(
+                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
+                map.get("userId") != null ? Long.parseLong(map.get("userId").toString()) : null,
+                (String) map.get("userName"),
+                (String) map.get("planName"),
+                map.get("active") != null ? (Boolean) map.get("active") : false,
+                (String) map.get("startDate"),
+                (String) map.get("endDate"),
+                map.get("monthlyPrice") != null ? Double.parseDouble(map.get("monthlyPrice").toString()) : 0.0,
+                map.get("currentCreditsPT") != null ? Integer.parseInt(map.get("currentCreditsPT").toString()) : 0,
+                map.get("currentCreditsNutri") != null ? Integer.parseInt(map.get("currentCreditsNutri").toString()) : 0
+        );
+    }
+
+    private PlanResponseDTO mapToPlanResponse(Map<String, Object> map) {
+        return new PlanResponseDTO(
+                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
+                (String) map.get("name"),
+                (String) map.get("duration"),
+                map.get("fullPrice") != null ? Double.parseDouble(map.get("fullPrice").toString()) : null,
+                map.get("monthlyInstallmentPrice") != null ? Double.parseDouble(map.get("monthlyInstallmentPrice").toString()) : null,
+                map.get("monthlyCreditsPT") != null ? Integer.parseInt(map.get("monthlyCreditsPT").toString()) : 0,
+                map.get("monthlyCreditsNutri") != null ? Integer.parseInt(map.get("monthlyCreditsNutri").toString()) : 0
+        );
     }
 }

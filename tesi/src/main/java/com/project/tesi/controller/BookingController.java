@@ -46,8 +46,8 @@ public class BookingController {
 
     /** Svuota e ripopola il database con i dati di test (solo per sviluppo). */
     @GetMapping("/reset-database")
-    public ResponseEntity<String> resetDatabase() {
+    public ResponseEntity<Map<String, String>> resetDatabase() {
         databaseInitializerService.initialize();
-        return ResponseEntity.ok("Database svuotato e ripopolato con i nuovi dati di test/link Jitsi!");
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Database svuotato e ripopolato con i nuovi dati di test/link Jitsi!"));
     }
 }

@@ -22,6 +22,7 @@ import jakarta.persistence.OptimisticLockException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 
 import java.util.List;
 import java.util.Map;
@@ -52,22 +53,23 @@ public class BookingServiceImpl implements BookingService {
     private final SubscriptionRepository subscriptionRepository;
     private final BookingMapper bookingMapper;
 
-    // Mappa per le strategie del tipo di professionista (Strategy Pattern)
     private final Map<Role, BookingStrategy> strategyMap;
+    private final java.time.Clock clock;
 
-    @Autowired
     public BookingServiceImpl(
             BookingRepository bookingRepository,
             SlotRepository slotRepository,
             UserRepository userRepository,
             SubscriptionRepository subscriptionRepository,
             BookingMapper bookingMapper,
-            List<BookingStrategy> strategies) {
+            List<BookingStrategy> strategies,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) java.time.Clock clock) {
         this.bookingRepository = bookingRepository;
         this.slotRepository = slotRepository;
         this.userRepository = userRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.bookingMapper = bookingMapper;
+        this.clock = clock != null ? clock : java.time.Clock.systemDefaultZone();
         this.strategyMap = strategies.stream()
                 .collect(Collectors.toMap(BookingStrategy::getSupportedRole, strategy -> strategy));
     }
@@ -88,29 +90,41 @@ public class BookingServiceImpl implements BookingService {
 
         User professional = slot.getProfessional();
 
-        // --- APPLICAZIONE DELLO STRATEGY PATTERN ---
         BookingStrategy strategy = strategyMap.get(professional.getRole());
         if (strategy == null) {
             throw new IllegalStateException("Il professionista non è né PT né Nutrizionista");
         }
 
-        // 2. Controllo che il professionista dello slot sia quello assegnato al cliente
         strategy.verifyAssignment(user, professional);
 
-        // 3. Controllo abbonamento e crediti
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
                 .orElseThrow(() -> new NoActiveSubscriptionException());
 
-        strategy.consumeCredits(sub);
-        // ---------------------------------------------
+        LocalDate today = clock != null ? java.time.LocalDate.now(clock) : java.time.LocalDate.now();
+        if (today.isAfter(sub.getEndDate())) {
+            throw new com.project.tesi.exception.booking.SubscriptionExpiredException(
+                    "Impossibile prenotare: il tuo abbonamento è già scaduto in data " + sub.getEndDate() + "."
+            );
+        } else if (slot.getStartTime().toLocalDate().isAfter(sub.getEndDate())) {
+            throw new com.project.tesi.exception.booking.SubscriptionExpiredException(
+                    "Operazione rifiutata: l'abbonamento scadrà il " + sub.getEndDate() +
+                    ", prima della data prevista per questo slot (" + slot.getStartTime().toLocalDate() + ")."
+            );
+        }
 
-        // 4. Occupazione slot con optimistic locking
+        strategy.consumeCredits(sub);
+
         try {
             slot.setBooked(true);
             slotRepository.save(slot);
-            subscriptionRepository.save(sub);
         } catch (OptimisticLockException e) {
             throw new SlotAlreadyBookedException("Qualcun altro ha prenotato questo slot appena prima di te. Riprova.");
+        }
+
+        try {
+            subscriptionRepository.save(sub);
+        } catch (OptimisticLockException e) {
+            throw new com.project.tesi.exception.common.ConcurrentUpdateException("Conflitto nell'aggiornamento dei crediti dell'abbonamento. Riprova.");
         }
 
         // 5. Generazione link Jitsi
@@ -136,20 +150,17 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Prenotazione", bookingId));
 
-        // Verifica che l'utente sia il proprietario della prenotazione
         if (!booking.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Non puoi annullare una prenotazione che non ti appartiene.");
+            throw new com.project.tesi.exception.booking.BookingCancellationException("Non puoi annullare una prenotazione che non ti appartiene.");
         }
 
-        // Verifica che la prenotazione sia in stato CONFIRMED
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new IllegalArgumentException("Questa prenotazione non può essere annullata (stato: " + booking.getStatus() + ").");
+            throw new com.project.tesi.exception.booking.BookingCancellationException("Questa prenotazione non può essere annullata (stato: " + booking.getStatus() + ").");
         }
 
-        // Verifica limite delle 24 ore
         Slot slot = booking.getSlot();
-        if (slot.getStartTime().isBefore(java.time.LocalDateTime.now().plusHours(24))) {
-            throw new IllegalArgumentException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
+        if (slot.getStartTime().isBefore(java.time.LocalDateTime.now(clock).plusHours(24))) {
+            throw new com.project.tesi.exception.booking.BookingCancellationException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
         }
 
         // 1. Libera lo slot

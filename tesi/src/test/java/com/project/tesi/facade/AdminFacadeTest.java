@@ -1,5 +1,10 @@
 package com.project.tesi.facade;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.response.PlanResponseDTO;
+import com.project.tesi.dto.response.SubscriptionResponseDTO;
+import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
 import org.junit.jupiter.api.DisplayName;
@@ -15,9 +20,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-/**
- * Test unitari per {@link AdminFacade}.
- */
 @ExtendWith(MockitoExtension.class)
 class AdminFacadeTest {
 
@@ -28,60 +30,63 @@ class AdminFacadeTest {
     private AdminFacade adminFacade;
 
     @Test
-    @DisplayName("getAllUsers — delega al AdminService")
+    @DisplayName("getAllUsers")
     void getAllUsers() {
-        List<Map<String, Object>> users = List.of(Map.of("id", 1L));
+        List<Map<String, Object>> users = List.of(Map.of("id", 1L, "firstName", "Test"));
         when(adminService.getAllUsers()).thenReturn(users);
 
-        assertThat(adminFacade.getAllUsers()).isEqualTo(users);
-        verify(adminService).getAllUsers();
+        List<UserResponseDTO> response = adminFacade.getAllUsers();
+        assertThat(response.get(0).id()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("createUser — delega al AdminService")
+    @DisplayName("createUser")
     void createUser() {
-        Map<String, Object> body = Map.of("email", "test@test.com");
-        Map<String, Object> result = Map.of("id", 1L);
-        when(adminService.createUser(body)).thenReturn(result);
+        UserCreateRequestDTO request = new UserCreateRequestDTO("test@test.com", "Test", "User", "pass", "CLIENT", null, null);
+        Map<String, Object> result = Map.of("id", 1L, "email", "test@test.com");
+        when(adminService.createUser(anyMap())).thenReturn(result);
 
-        assertThat(adminFacade.createUser(body)).isEqualTo(result);
+        UserResponseDTO response = adminFacade.createUser(request);
+        assertThat(response.id()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("deleteUser — delega al AdminService")
+    @DisplayName("deleteUser")
     void deleteUser() {
         adminFacade.deleteUser(1L);
         verify(adminService).deleteUser(1L);
     }
 
     @Test
-    @DisplayName("getAllSubscriptions — delega al AdminService")
+    @DisplayName("getAllSubscriptions")
     void getAllSubscriptions() {
         List<Map<String, Object>> subs = List.of(Map.of("id", 1L));
         when(adminService.getAllSubscriptions()).thenReturn(subs);
 
-        assertThat(adminFacade.getAllSubscriptions()).isEqualTo(subs);
+        List<SubscriptionResponseDTO> response = adminFacade.getAllSubscriptions();
+        assertThat(response.get(0).id()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("createPlan — delega al AdminService")
+    @DisplayName("createPlan")
     void createPlan() {
-        Map<String, Object> body = Map.of("name", "Premium");
+        PlanCreateRequestDTO request = new PlanCreateRequestDTO("Premium", "MENSILE", 100.0, 100.0, 5, 5);
         Map<String, Object> result = Map.of("id", 1L);
-        when(adminService.createPlan(body)).thenReturn(result);
+        when(adminService.createPlan(anyMap())).thenReturn(result);
 
-        assertThat(adminFacade.createPlan(body)).isEqualTo(result);
+        PlanResponseDTO response = adminFacade.createPlan(request);
+        assertThat(response.id()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("deletePlan — delega al AdminService")
+    @DisplayName("deletePlan")
     void deletePlan() {
         adminFacade.deletePlan(1L);
         verify(adminService).deletePlan(1L);
     }
 
     @Test
-    @DisplayName("getAdminStats — delega al AdminStatsService")
+    @DisplayName("getAdminStats")
     void getAdminStats() {
         Map<String, Object> stats = Map.of("totalUsers", 50);
         when(adminStatsService.getAdminStats()).thenReturn(stats);
@@ -89,4 +94,3 @@ class AdminFacadeTest {
         assertThat(adminFacade.getAdminStats()).isEqualTo(stats);
     }
 }
-

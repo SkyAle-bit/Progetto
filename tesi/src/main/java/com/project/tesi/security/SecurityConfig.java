@@ -8,11 +8,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.List;
 
 /**
@@ -32,6 +33,9 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     /**
      * Configura la catena di filtri di sicurezza HTTP.
      *
@@ -45,10 +49,7 @@ public class SecurityConfig {
                 // Configurazione CORS: consente richieste dai domini frontend
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of(
-                            "http://localhost:4200",
-                            "https://progetto-fe.vercel.app",
-                            "https://backend-tesi-l6ca.onrender.com"));
+                    config.setAllowedOrigins(allowedOrigins);
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
@@ -75,15 +76,15 @@ public class SecurityConfig {
                                 "/webjars/**")
                         .permitAll()
                         // Gestione utenti globale riservata all'Admin
-                        .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/users", "/api/admin/users/**").hasAuthority("ADMIN")
                         // Gestione utenti limitata del Moderatore
-                        .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasRole("MODERATOR")
+                        .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasAuthority("MODERATOR")
                         // Sezioni riservate esclusivamente all'Admin
                         .requestMatchers(
                                 "/api/admin/plans", "/api/admin/plans/**",
                                 "/api/admin/subscriptions", "/api/admin/subscriptions/**",
                                 "/api/admin/stats", "/api/admin/stats/**")
-                        .hasRole("ADMIN")
+                        .hasAuthority("ADMIN")
                         .anyRequest().authenticated())
                 // Sessione STATELESS: nessun cookie di sessione, solo JWT
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -106,14 +107,12 @@ public class SecurityConfig {
 
     /**
      * Definisce il PasswordEncoder da usare per la verifica delle password.
-     * Attualmente usa NoOpPasswordEncoder (password in chiaro) per sviluppo.
-     * Da sostituire con BCryptPasswordEncoder in produzione.
+     * Utilizza BCryptPasswordEncoder per la sicurezza delle password.
      *
      * @return il PasswordEncoder
      */
     @Bean
-    @SuppressWarnings("deprecation")
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 }

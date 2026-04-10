@@ -1,5 +1,11 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
+import com.project.tesi.dto.request.SubscriptionCreditsUpdateDTO;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.response.PlanResponseDTO;
+import com.project.tesi.dto.response.SubscriptionResponseDTO;
+import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.facade.AdminFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controller REST per le operazioni CRUD del pannello amministrativo.
- * Gestisce utenti, abbonamenti e piani commerciali.
- * Tutta la logica è delegata all'{@link AdminFacade} (pattern Facade).
- */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -27,51 +28,44 @@ public class AdminController {
 
     private final AdminFacade adminFacade;
 
-    /** Restituisce la lista di tutti gli utenti registrati. */
     @GetMapping("/users")
-    public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         return ResponseEntity.ok(adminFacade.getAllUsers());
     }
 
-    /** Crea un nuovo utente con i dati specificati nel body. */
     @PostMapping("/users")
-    public ResponseEntity<Map<String, Object>> createUser(@RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(adminFacade.createUser(body));
+    public ResponseEntity<UserResponseDTO> createUser(@RequestBody UserCreateRequestDTO request) {
+        return ResponseEntity.ok(adminFacade.createUser(request));
     }
 
-    /** Elimina un utente, i suoi documenti e il suo abbonamento. */
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
         adminFacade.deleteUser(id);
-        return ResponseEntity.ok(Map.of("message", "Utente eliminato"));
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
     }
 
-    /** Restituisce la lista di tutti gli abbonamenti (attivi e non). */
     @GetMapping("/subscriptions")
-    public ResponseEntity<List<Map<String, Object>>> getAllSubscriptions() {
+    public ResponseEntity<List<SubscriptionResponseDTO>> getAllSubscriptions() {
         return ResponseEntity.ok(adminFacade.getAllSubscriptions());
     }
 
-    /** Aggiorna i crediti PT e Nutrizionista di un abbonamento. */
     @PutMapping("/subscriptions/{id}/credits")
-    public ResponseEntity<Map<String, Object>> updateSubscriptionCredits(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+    public ResponseEntity<SubscriptionResponseDTO> updateSubscriptionCredits(@PathVariable Long id, @RequestBody SubscriptionCreditsUpdateDTO request) {
         return ResponseEntity.ok(adminFacade.updateSubscriptionCredits(
                 id,
-                body.getOrDefault("creditsPT", 0),
-                body.getOrDefault("creditsNutri", 0)
+                request.creditsPT() != null ? request.creditsPT() : 0,
+                request.creditsNutri() != null ? request.creditsNutri() : 0
         ));
     }
 
-    /** Crea un nuovo piano commerciale con i dati specificati nel body. */
     @PostMapping("/plans")
-    public ResponseEntity<Map<String, Object>> createPlan(@RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(adminFacade.createPlan(body));
+    public ResponseEntity<PlanResponseDTO> createPlan(@RequestBody PlanCreateRequestDTO request) {
+        return ResponseEntity.ok(adminFacade.createPlan(request));
     }
 
-    /** Elimina un piano commerciale (solo se non ha sottoscrittori attivi). */
     @DeleteMapping("/plans/{id}")
     public ResponseEntity<Map<String, String>> deletePlan(@PathVariable Long id) {
         adminFacade.deletePlan(id);
-        return ResponseEntity.ok(Map.of("message", "Piano eliminato"));
+        return ResponseEntity.ok(Map.of("message", "Plan deleted successfully"));
     }
 }

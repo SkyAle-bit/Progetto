@@ -178,7 +178,7 @@ class DocumentServiceImplTest {
         when(documentRepository.findById(1L)).thenReturn(Optional.of(doc));
         when(documentRepository.save(doc)).thenReturn(doc);
 
-        Map<String, Object> result = documentService.updateNotes(1L, "Nuove note");
+        documentService.updateNotes(1L, "Nuove note");
         assertThat(doc.getNotes()).isEqualTo("Nuove note");
     }
 

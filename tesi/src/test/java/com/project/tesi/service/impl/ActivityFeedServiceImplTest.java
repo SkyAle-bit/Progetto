@@ -34,12 +34,11 @@ class ActivityFeedServiceImplTest {
 
     @InjectMocks private ActivityFeedServiceImpl activityFeedService;
 
-    private User client, pt, nutri;
+    private User client, pt;
 
     @BeforeEach
     void setUp() {
         pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
-        nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").role(Role.NUTRITIONIST).build();
         client = User.builder().id(1L).firstName("Mario").lastName("Rossi").role(Role.CLIENT).build();
     }
 

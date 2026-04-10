@@ -14,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -60,10 +62,10 @@ class AuthControllerTest {
     @Test
     @DisplayName("ping — restituisce messaggio di health check")
     void ping() {
-        ResponseEntity<String> response = authController.ping();
+        ResponseEntity<Map<String, String>> response = authController.ping();
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).contains("online");
+        assertThat(response.getBody().get("status")).isEqualTo("UP");
     }
 }
 

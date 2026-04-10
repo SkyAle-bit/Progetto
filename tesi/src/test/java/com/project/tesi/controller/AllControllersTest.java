@@ -1,7 +1,9 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.request.ProfileUpdateRequest;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.*;
 import com.project.tesi.enums.Role;
 import com.project.tesi.facade.AdminFacade;
@@ -27,15 +29,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-/**
- * Test unitari per tutti i controller rimanenti.
- */
 @ExtendWith(MockitoExtension.class)
 class AllControllersTest {
 
-    // ═══════════════════════════════════════════════════════════
-    // ADMIN CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class AdminControllerTests {
         @Mock private AdminFacade adminFacade;
@@ -43,25 +39,25 @@ class AllControllersTest {
 
         @Test @DisplayName("getAllUsers")
         void getAllUsers() {
-            when(adminFacade.getAllUsers()).thenReturn(List.of(Map.of("id", 1L)));
-            ResponseEntity<List<Map<String, Object>>> resp = adminController.getAllUsers();
+            when(adminFacade.getAllUsers()).thenReturn(List.of(new UserResponseDTO(1L, null, null, null, null, null, null, null, null)));
+            ResponseEntity<List<UserResponseDTO>> resp = adminController.getAllUsers();
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
             assertThat(resp.getBody()).hasSize(1);
         }
 
         @Test @DisplayName("createUser")
         void createUser() {
-            Map<String, Object> body = Map.of("email", "test@test.com");
-            when(adminFacade.createUser(body)).thenReturn(Map.of("id", 1L));
-            ResponseEntity<Map<String, Object>> resp = adminController.createUser(body);
-            assertThat(resp.getBody().get("id")).isEqualTo(1L);
+            UserCreateRequestDTO body = new UserCreateRequestDTO("test@test.com", "test", "test", "test", "CLIENT", null, null);
+            when(adminFacade.createUser(body)).thenReturn(new UserResponseDTO(1L, null, null, null, null, null, null, null, null));
+            ResponseEntity<UserResponseDTO> resp = adminController.createUser(body);
+            assertThat(resp.getBody().id()).isEqualTo(1L);
         }
 
         @Test @DisplayName("deleteUser")
         void deleteUser() {
             ResponseEntity<Map<String, String>> resp = adminController.deleteUser(1L);
             verify(adminFacade).deleteUser(1L);
-            assertThat(resp.getBody().get("message")).contains("eliminato");
+            assertThat(resp.getBody().get("message")).contains("deleted");
         }
 
         @Test @DisplayName("getAllSubscriptions")
@@ -72,22 +68,19 @@ class AllControllersTest {
 
         @Test @DisplayName("createPlan")
         void createPlan() {
-            Map<String, Object> body = Map.of("name", "Premium");
-            when(adminFacade.createPlan(body)).thenReturn(Map.of("id", 1L));
-            assertThat(adminController.createPlan(body).getBody().get("id")).isEqualTo(1L);
+            PlanCreateRequestDTO body = new PlanCreateRequestDTO("Premium", "MENSILE", 100.0, 100.0, 5, 5);
+            when(adminFacade.createPlan(body)).thenReturn(new PlanResponseDTO(1L, null, null, null, null, null, null));
+            assertThat(adminController.createPlan(body).getBody().id()).isEqualTo(1L);
         }
 
         @Test @DisplayName("deletePlan")
         void deletePlan() {
             ResponseEntity<Map<String, String>> resp = adminController.deletePlan(1L);
             verify(adminFacade).deletePlan(1L);
-            assertThat(resp.getBody().get("message")).contains("eliminato");
+            assertThat(resp.getBody().get("message")).contains("deleted");
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ADMIN STATS CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class AdminStatsControllerTests {
         @Mock private AdminFacade adminFacade;
@@ -101,9 +94,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // USER CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class UserControllerTests {
         @Mock private UserFacade userFacade;
@@ -138,9 +128,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SUBSCRIPTION CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class SubscriptionControllerTests {
         @Mock private UserFacade userFacade;
@@ -162,9 +149,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // PROFESSIONAL CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class ProfessionalControllerTests {
         @Mock private UserFacade userFacade;
@@ -197,9 +181,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // PROFESSIONAL STATS CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class ProfessionalStatsControllerTests {
         @Mock private UserFacade userFacade;
@@ -212,9 +193,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ACTIVITY FEED CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class ActivityFeedControllerTests {
         @Mock private UserFacade userFacade;
@@ -228,9 +206,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // CHAT CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class ChatControllerTests {
         @Mock private ChatService chatService;
@@ -270,9 +245,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // DOCUMENT CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class DocumentControllerTests {
         @Mock private DocumentService documentService;
@@ -326,9 +298,6 @@ class AllControllersTest {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // JOB APPLICATION CONTROLLER
-    // ═══════════════════════════════════════════════════════════
     @Nested
     class JobApplicationControllerTests {
         @Mock private EmailService emailService;
@@ -343,4 +312,3 @@ class AllControllersTest {
         }
     }
 }
-

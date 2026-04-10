@@ -237,6 +237,7 @@ public class DatabaseInitializerService {
                 }
         }
 
+        @SuppressWarnings("unused")
         private void createReview(User client, User professional, int rating, String comment) {
                 if (!reviewRepository.existsByClientIdAndProfessionalId(client.getId(), professional.getId())) {
                         Review review = Review.builder()

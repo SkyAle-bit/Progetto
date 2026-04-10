@@ -63,12 +63,12 @@ class BookingServiceImplTest {
                 .isBooked(false).build();
 
         subscription = Subscription.builder()
-                .id(100L).user(client).active(true).currentCreditsPT(5).currentCreditsNutri(3).build();
+                .id(100L).user(client).active(true).currentCreditsPT(5).currentCreditsNutri(3).endDate(LocalDateTime.now().plusMonths(1).toLocalDate()).build();
 
         // Crea strategy reale per PT
         BookingStrategy ptStrategy = new PersonalTrainerBookingStrategy();
         bookingService = new BookingServiceImpl(bookingRepository, slotRepository, userRepository,
-                subscriptionRepository, bookingMapper, List.of(ptStrategy));
+                subscriptionRepository, bookingMapper, List.of(ptStrategy), java.time.Clock.systemDefaultZone());
     }
 
     @Test

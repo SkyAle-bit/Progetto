@@ -58,7 +58,7 @@ public class AuthController {
 
     /** Endpoint di health-check per verificare che il backend sia raggiungibile. */
     @GetMapping("/ping")
-    public ResponseEntity<String> ping() {
-        return ResponseEntity.ok("Il Backend è online e funziona correttamente! 🚀");
+    public ResponseEntity<Map<String, String>> ping() {
+        return ResponseEntity.ok(Map.of("status", "UP", "message", "Il Backend è online e funziona correttamente"));
     }
 }

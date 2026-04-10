@@ -13,6 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -46,11 +48,11 @@ class BookingControllerTest {
     @Test
     @DisplayName("resetDatabase — resetta e restituisce messaggio di conferma")
     void resetDatabase() {
-        ResponseEntity<String> response = bookingController.resetDatabase();
+        ResponseEntity<Map<String, String>> response = bookingController.resetDatabase();
 
         verify(databaseInitializerService).initialize();
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).contains("Database");
+        assertThat(response.getBody().get("message")).contains("Database");
     }
 }
 
