@@ -15,6 +15,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -42,11 +44,13 @@ public class ChatTermination {
     /** L'utente che ha terminato la chat. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "terminated_by_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User terminatedBy;
 
     /** L'operatore (admin/moderatore) con cui la chat è stata terminata. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "other_user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User otherUser;
 
     /** Data e ora della terminazione. */
