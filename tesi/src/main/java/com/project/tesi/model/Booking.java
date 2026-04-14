@@ -54,8 +54,8 @@ public class Booking {
     private User professional;
 
     /** Slot temporale prenotato (relazione 1:1, uno slot = una sola prenotazione). */
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "slot_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "slot_id", nullable = false)
     private Slot slot;
 
     /** Stato corrente della prenotazione (CONFIRMED, CANCELLED, COMPLETED). */

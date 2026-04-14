@@ -1,6 +1,8 @@
 package com.project.tesi.repository;
 
+import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.model.Booking;
+import com.project.tesi.model.Slot;
 import com.project.tesi.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -95,6 +97,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     @Query("SELECT b FROM Booking b WHERE b.professional = :professional AND b.bookedAt >= :since ORDER BY b.bookedAt DESC")
     List<Booking> findRecentByProfessional(@Param("professional") User professional, @Param("since") LocalDateTime since);
+
+    /**
+     * Verifica se esiste già una prenotazione con un dato stato per uno slot specifico.
+     * Usato per impedire la doppia prenotazione a livello business dopo la rimozione
+     * del vincolo UNIQUE su slot_id.
+     *
+     * @param slot   lo slot da verificare
+     * @param status lo stato della prenotazione (tipicamente CONFIRMED)
+     * @return {@code true} se esiste almeno una prenotazione con quello stato per lo slot
+     */
+    boolean existsBySlotAndStatus(Slot slot, BookingStatus status);
+
+    @Modifying
+    @Query("DELETE FROM Booking b WHERE b.slot = :slot")
+    void deleteBySlot(@Param("slot") Slot slot);
 
     @Modifying
     @Query("DELETE FROM Booking b WHERE b.user.id = :userId OR b.professional.id = :userId")

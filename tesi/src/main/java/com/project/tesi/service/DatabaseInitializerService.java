@@ -39,6 +39,7 @@ public class DatabaseInitializerService {
         private final BookingRepository bookingRepository;
         private final ReviewRepository reviewRepository;
         private final ChatMessageRepository chatMessageRepository;
+        private final ChatTerminationRepository chatTerminationRepository;
         private final DocumentRepository documentRepository;
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
@@ -46,9 +47,11 @@ public class DatabaseInitializerService {
 
         @Transactional
         public void initialize() {
+                dropLegacySlotIdUniqueConstraint();
                 ensureUsersRoleCheckSupportsModerator();
 
                 // Svuota tutte le tabelle nell'ordine corretto (rispetta le FK)
+                chatTerminationRepository.deleteAllInBatch();
                 chatMessageRepository.deleteAllInBatch();
                 bookingRepository.deleteAllInBatch();
                 slotRepository.deleteAllInBatch();
@@ -163,6 +166,27 @@ public class DatabaseInitializerService {
         }
 
         // --- METODI HELPER ---
+
+        private void dropLegacySlotIdUniqueConstraint() {
+                try {
+                        String sql = "DO $$ " +
+                                     "DECLARE " +
+                                     "    constraint_name text; " +
+                                     "BEGIN " +
+                                     "    SELECT conname INTO constraint_name " +
+                                     "    FROM pg_constraint " +
+                                     "    WHERE conrelid = 'bookings'::regclass AND contype = 'u' " +
+                                     "    AND conkey = (SELECT array_agg(attnum) FROM pg_attribute WHERE attrelid = 'bookings'::regclass AND attname = 'slot_id'); " +
+                                     "    " +
+                                     "    IF constraint_name IS NOT NULL THEN " +
+                                     "        EXECUTE 'ALTER TABLE bookings DROP CONSTRAINT ' || constraint_name; " +
+                                     "    END IF; " +
+                                     "END $$;";
+                        jdbcTemplate.execute(sql);
+                } catch (Exception ignored) {
+                        // Ignoriamo in caso di schema differente, H2, ecc.
+                }
+        }
 
         private void ensureUsersRoleCheckSupportsModerator() {
                 String constraintName = "users_role_check";

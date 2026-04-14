@@ -88,6 +88,15 @@ public class BookingServiceImpl implements BookingService {
             throw new SlotAlreadyBookedException("Slot non più disponibile");
         }
 
+        // 1b. Controllo business-level: verifica che non esista già un booking CONFIRMED per questo slot
+        if (bookingRepository.existsBySlotAndStatus(slot, BookingStatus.CONFIRMED)) {
+            throw new SlotAlreadyBookedException("Esiste già una prenotazione confermata per questo slot.");
+        }
+
+        // Elimina eventuali prenotazioni preesistenti per lo stesso slot (es. annullate)
+        // per evitare doppie visualizzazioni (una cancellata, una attiva) nello stesso blocco orario.
+        bookingRepository.deleteBySlot(slot);
+
         User professional = slot.getProfessional();
 
         BookingStrategy strategy = strategyMap.get(professional.getRole());
