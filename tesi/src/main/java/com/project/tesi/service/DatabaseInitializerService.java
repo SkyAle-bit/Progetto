@@ -39,7 +39,6 @@ public class DatabaseInitializerService {
         private final BookingRepository bookingRepository;
         private final ReviewRepository reviewRepository;
         private final ChatMessageRepository chatMessageRepository;
-        private final ChatTerminationRepository chatTerminationRepository;
         private final DocumentRepository documentRepository;
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
@@ -57,7 +56,6 @@ public class DatabaseInitializerService {
                 reviewRepository.deleteAllInBatch();
                 subscriptionRepository.deleteAllInBatch();
                 documentRepository.deleteAllInBatch();
-                chatTerminationRepository.deleteAllInBatch();
                 userRepository.deleteAllInBatch();
                 planRepository.deleteAllInBatch();
                 entityManager.flush();
@@ -174,7 +172,8 @@ public class DatabaseInitializerService {
                                         "ALTER TABLE users ADD CONSTRAINT " + constraintName
                                                         + " CHECK (role IN ('CLIENT','PERSONAL_TRAINER','NUTRITIONIST','MODERATOR','INSURANCE_MANAGER','ADMIN'))");
                 } catch (Exception ignored) {
-                        // In ambienti senza tabella users o con schema differente ignoriamo il tentativo.
+                        // In ambienti senza tabella users o con schema differente ignoriamo il
+                        // tentativo.
                 }
         }
 
