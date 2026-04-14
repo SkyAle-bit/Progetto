@@ -46,4 +46,14 @@ public interface ChatService {
      * @return nome completo (nome + cognome)
      */
     String getUserFullName(Long userId);
+
+    /**
+     * Termina una chat di supporto per un utente.
+     * La chat scompare dalla lista dell'utente ma resta visibile per l'operatore
+     * con un'indicazione che la conversazione è stata terminata.
+     *
+     * @param userId      ID dell'utente che termina la chat
+     * @param otherUserId ID dell'operatore (admin/moderatore)
+     */
+    void terminateChat(Long userId, Long otherUserId);
 }

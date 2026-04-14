@@ -66,10 +66,10 @@ class UserFacadeTest {
     }
 
     @Test
-    @DisplayName("getAdmin — delega al UserService")
+    @DisplayName("getAdmin — delega al UserService (support operator)")
     void getAdmin() {
         ClientBasicInfoResponse admin = ClientBasicInfoResponse.builder().id(99L).build();
-        when(userService.getAdmin()).thenReturn(admin);
+        when(userService.getSupportOperator()).thenReturn(admin);
 
         assertThat(userFacade.getAdmin()).isEqualTo(admin);
     }

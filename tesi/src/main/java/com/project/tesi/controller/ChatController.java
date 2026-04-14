@@ -73,4 +73,12 @@ public class ChatController {
     public ResponseEntity<Integer> getTotalUnreadCount(@PathVariable Long userId) {
         return ResponseEntity.ok(chatService.getTotalUnreadCount(userId));
     }
+
+    /** Termina una chat per un utente, nascondendola dalla sua vista. */
+    @Operation(summary = "Termina una conversazione")
+    @PostMapping("/terminate/{userId}/{otherUserId}")
+    public ResponseEntity<Void> terminateChat(@PathVariable Long userId, @PathVariable Long otherUserId) {
+        chatService.terminateChat(userId, otherUserId);
+        return ResponseEntity.ok().build();
+    }
 }

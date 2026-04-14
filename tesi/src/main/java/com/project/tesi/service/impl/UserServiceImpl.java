@@ -226,30 +226,37 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public ClientBasicInfoResponse getSupportOperator() {
         List<User> moderators = userRepository.findByRole(Role.MODERATOR);
-        if (!moderators.isEmpty()) {
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+        List<User> operators = new ArrayList<>();
+        operators.addAll(moderators);
+        operators.addAll(admins);
+
+        if (!operators.isEmpty()) {
             Optional<User> currentUser = findAuthenticatedUser();
             if (currentUser.isPresent()) {
                 User actor = currentUser.get();
 
-                if (actor.getRole() == Role.MODERATOR) {
+                if (actor.getRole() == Role.MODERATOR || actor.getRole() == Role.ADMIN) {
                     return toBasicInfo(actor);
                 }
 
-                Optional<User> existing = findExistingModeratorConversation(actor.getId(), moderators);
+                Optional<User> existing = findExistingOperatorConversation(actor.getId(), operators);
                 User selected = existing.orElseGet(() -> {
-                    int index = ThreadLocalRandom.current().nextInt(moderators.size());
-                    return moderators.get(index);
+                    if (!moderators.isEmpty()) {
+                        int index = ThreadLocalRandom.current().nextInt(moderators.size());
+                        return moderators.get(index);
+                    } else {
+                        return admins.get(0);
+                    }
                 });
                 return toBasicInfo(selected);
             }
 
-            return toBasicInfo(moderators.get(0));
+            return toBasicInfo(moderators.isEmpty() ? admins.get(0) : moderators.get(0));
         }
 
-        // Fallback legacy: se non ci sono moderatori, usa admin.
-        return userRepository.findByRole(Role.ADMIN).stream().findFirst()
-                .map(this::toBasicInfo)
-                .orElseThrow(() -> new ResourceNotFoundException("Operatore di supporto non trovato nel sistema."));
+        throw new ResourceNotFoundException("Operatore di supporto non trovato nel sistema.");
     }
 
     @Override
@@ -315,15 +322,15 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(authentication.getName());
     }
 
-    private Optional<User> findExistingModeratorConversation(Long userId, List<User> moderators) {
+    private Optional<User> findExistingOperatorConversation(Long userId, List<User> operators) {
         List<User> partners = chatMessageRepository.findConversationPartners(userId);
         if (partners == null || partners.isEmpty()) {
             return Optional.empty();
         }
 
         return partners.stream()
-                .filter(p -> p.getRole() == Role.MODERATOR)
-                .filter(p -> moderators.stream().anyMatch(m -> m.getId().equals(p.getId())))
+                .filter(p -> p.getRole() == Role.MODERATOR || p.getRole() == Role.ADMIN)
+                .filter(p -> operators.stream().anyMatch(o -> o.getId().equals(p.getId())))
                 .findFirst();
     }
 }

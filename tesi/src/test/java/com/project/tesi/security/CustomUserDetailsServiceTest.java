@@ -40,7 +40,7 @@ class CustomUserDetailsServiceTest {
         assertThat(details.getUsername()).isEqualTo("mario@test.com");
         assertThat(details.getPassword()).isEqualTo("hashed");
         assertThat(details.getAuthorities()).hasSize(1);
-        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("ROLE_CLIENT");
+        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("CLIENT");
     }
 
     @Test
@@ -52,7 +52,7 @@ class CustomUserDetailsServiceTest {
 
         UserDetails details = userDetailsService.loadUserByUsername("pt@test.com");
 
-        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("ROLE_PERSONAL_TRAINER");
+        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("PERSONAL_TRAINER");
     }
 
     @Test

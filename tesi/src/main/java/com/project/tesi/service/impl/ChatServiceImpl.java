@@ -11,6 +11,8 @@ import com.project.tesi.model.ChatMessage;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.ChatMessageRepository;
 import com.project.tesi.repository.UserRepository;
+import com.project.tesi.repository.ChatTerminationRepository;
+import com.project.tesi.model.ChatTermination;
 import com.project.tesi.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +37,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final ChatMessageMapper chatMessageMapper;
+    private final ChatTerminationRepository chatTerminationRepository;
 
     @Override
     @Transactional
@@ -51,6 +54,9 @@ public class ChatServiceImpl implements ChatService {
 
         // Regola business: solo client ↔ professionista assegnato
         validateChatPermission(sender, receiver);
+
+        // Se il mittente aveva terminato la chat, la riapriamo rimuovendo la terminazione
+        chatTerminationRepository.deleteByTerminatedByIdAndOtherUserId(sender.getId(), receiver.getId());
 
         ChatMessage message = ChatMessage.builder()
                 .sender(sender)
@@ -69,6 +75,9 @@ public class ChatServiceImpl implements ChatService {
         User receiver = userRepository.findById(receiverId).orElse(null);
         if (sender == null || receiver == null)
             return;
+
+        // Se il mittente aveva terminato la chat, la riapriamo rimuovendo la terminazione
+        chatTerminationRepository.deleteByTerminatedByIdAndOtherUserId(sender.getId(), receiver.getId());
 
         ChatMessage message = ChatMessage.builder()
                 .sender(sender)
@@ -105,14 +114,32 @@ public class ChatServiceImpl implements ChatService {
         }
 
         List<User> partners = chatMessageRepository.findConversationPartners(userId);
+        
+        // Determina se l'utente è un operatore o meno
+        User user = userRepository.findById(userId).orElseThrow();
+        boolean isOperator = user.getRole() == Role.ADMIN || user.getRole() == Role.MODERATOR;
+
+        // Se l'utente non è un operatore, filtriamo via le chat che ha terminato
+        List<Long> terminatedIds = chatTerminationRepository.findTerminatedOtherUserIdsByUserId(userId);
+        
+        // Se l'utente è un operatore, recuperiamo le chat terminate dai clienti verso di lui
+        List<Long> terminatedByUserIds = isOperator ? chatTerminationRepository.findTerminatedByUserIdsForOperator(userId) : List.of();
 
         return partners.stream()
+                // Escludi le chat che l'utente stesso ha terminato (visibili solo agli operatori)
+                .filter(partner -> isOperator || !terminatedIds.contains(partner.getId()))
                 .map(partner -> {
                     List<ChatMessage> lastMsgs = chatMessageRepository.findLastMessages(userId, partner.getId(),
                             PageRequest.of(0, 1));
                     ChatMessage lastMsg = lastMsgs.isEmpty() ? null : lastMsgs.get(0);
                     int unread = chatMessageRepository.countUnreadMessages(userId, partner.getId());
-                    return chatMessageMapper.toConversationPreview(partner, lastMsg, unread);
+                    boolean terminated = isOperator && terminatedByUserIds.contains(partner.getId());
+                    
+                    ConversationPreviewResponse preview = chatMessageMapper.toConversationPreview(partner, lastMsg, unread);
+                    if (preview != null) {
+                        preview.setTerminated(terminated);
+                    }
+                    return preview;
                 })
                 .sorted((a, b) -> {
                     if (a.getLastMessageTime() == null)
@@ -211,5 +238,22 @@ public class ChatServiceImpl implements ChatService {
         return userRepository.findById(userId)
                 .map(u -> u.getFirstName() + " " + u.getLastName())
                 .orElse("Utente");
+    }
+
+    @Override
+    @Transactional
+    public void terminateChat(Long userId, Long otherUserId) {
+        if (!chatTerminationRepository.existsByTerminatedByIdAndOtherUserId(userId, otherUserId)) {
+            User terminatedBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
+            User otherUser = userRepository.findById(otherUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Utente", otherUserId));
+
+            ChatTermination termination = ChatTermination.builder()
+                    .terminatedBy(terminatedBy)
+                    .otherUser(otherUser)
+                    .build();
+            chatTerminationRepository.save(termination);
+        }
     }
 }

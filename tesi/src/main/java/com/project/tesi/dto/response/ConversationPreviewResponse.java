@@ -34,4 +34,8 @@ public class ConversationPreviewResponse {
 
     /** Numero di messaggi non letti in questa conversazione. */
     private int unreadCount;
+
+    /** Indica se l'utente ha terminato questa conversazione (visibile solo all'operatore). */
+    @Builder.Default
+    private boolean terminated = false;
 }
