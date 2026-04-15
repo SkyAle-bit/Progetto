@@ -16,6 +16,7 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
+import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.service.strategy.PersonalTrainerBookingStrategy;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,7 @@ class BookingServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private BookingMapper bookingMapper;
+    @Mock private VideoConferenceService videoConferenceService;
 
     private BookingServiceImpl bookingService;
 
@@ -68,7 +70,7 @@ class BookingServiceImplTest {
         // Crea strategy reale per PT
         BookingStrategy ptStrategy = new PersonalTrainerBookingStrategy();
         bookingService = new BookingServiceImpl(bookingRepository, slotRepository, userRepository,
-                subscriptionRepository, bookingMapper, List.of(ptStrategy), java.time.Clock.systemDefaultZone());
+                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService);
     }
 
     @Test

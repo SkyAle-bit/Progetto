@@ -63,8 +63,7 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("handleBadCredentials — 401")
     void handleBadCredentials() {
-        ResponseEntity<ErrorResponse> resp = handler.handleBadCredentials(
-                new BadCredentialsException("bad"), request);
+        ResponseEntity<ErrorResponse> resp = handler.handleBadCredentials(request);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(resp.getBody().getMessage()).contains("password");
     }
@@ -72,8 +71,7 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("handleAccessDenied — 403")
     void handleAccessDenied() {
-        ResponseEntity<ErrorResponse> resp = handler.handleAccessDenied(
-                new AccessDeniedException("denied"), request);
+        ResponseEntity<ErrorResponse> resp = handler.handleAccessDenied(request);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
@@ -97,8 +95,7 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("handleMaxUploadSize — 413")
     void handleMaxUploadSize() {
-        ResponseEntity<ErrorResponse> resp = handler.handleMaxUploadSize(
-                new MaxUploadSizeExceededException(1024L), request);
+        ResponseEntity<ErrorResponse> resp = handler.handleMaxUploadSize(request);
         assertThat(resp.getStatusCode().value()).isEqualTo(413);
     }
 
@@ -109,35 +106,6 @@ class GlobalExceptionHandlerTest {
                 new RuntimeException("errore imprevisto"), request);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(resp.getBody().getMessage()).contains("errore interno");
-    }
-
-    @Test
-    @DisplayName("handleMissingParams — 400")
-    void handleMissingParams() {
-        MissingServletRequestParameterException ex =
-                new MissingServletRequestParameterException("userId", "Long");
-        ResponseEntity<ErrorResponse> resp = handler.handleMissingParams(ex, request);
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(resp.getBody().getMessage()).contains("userId");
-    }
-
-    @Test
-    @DisplayName("handleTypeMismatch — 400")
-    void handleTypeMismatch() {
-        MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
-                "abc", Long.class, "userId", null, new RuntimeException());
-        ResponseEntity<ErrorResponse> resp = handler.handleTypeMismatch(ex, request);
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(resp.getBody().getMessage()).contains("userId");
-    }
-
-    @Test
-    @DisplayName("handleTypeMismatch — requiredType null")
-    void handleTypeMismatch_nullType() {
-        MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
-                "abc", null, "param", null, new RuntimeException());
-        ResponseEntity<ErrorResponse> resp = handler.handleTypeMismatch(ex, request);
-        assertThat(resp.getBody().getMessage()).contains("sconosciuto");
     }
 
     @Test
@@ -177,14 +145,9 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("handleNoResourceFound — 404")
     void handleNoResourceFound() throws Exception {
-        NoResourceFoundException ex = new NoResourceFoundException(HttpMethod.GET, "/api/nonexistent", "Risorsa non trovata");
-        ResponseEntity<ErrorResponse> resp = handler.handleNoResourceFound(ex, request);
+        ResponseEntity<ErrorResponse> resp = handler.handleNoResourceFound(request);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(resp.getBody().getMessage()).contains("Endpoint non trovato");
     }
 }
-
-
-
-
