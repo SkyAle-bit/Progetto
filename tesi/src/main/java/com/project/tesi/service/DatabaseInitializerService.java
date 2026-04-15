@@ -64,7 +64,6 @@ public class DatabaseInitializerService {
                 entityManager.flush();
                 entityManager.clear();
 
-                // 1. Piani
                 createOrUpdatePlan("Basic Pack Semestrale", PlanDuration.SEMESTRALE, 1, 1, 960.0, 160.0);
                 createOrUpdatePlan("Basic Pack Annuale", PlanDuration.ANNUALE, 1, 1, 1800.0, 150.0);
                 createOrUpdatePlan("Premium Pack Semestrale", PlanDuration.SEMESTRALE, 2, 2, 1620.0, 270.0);
@@ -75,19 +74,16 @@ public class DatabaseInitializerService {
                 Plan premiumS = planRepository.findByName("Premium Pack Semestrale").orElseThrow();
                 Plan premiumA = planRepository.findByName("Premium Pack Annuale").orElseThrow();
 
-                // 2. Personal Trainer (2)
                 User pt1 = createUser("Marco", "Rossi", "pt1@test.com", Role.PERSONAL_TRAINER,
                                 "Specializzato in allenamento funzionale e riabilitazione.", null, null);
                 User pt2 = createUser("Giulia", "Bianchi", "pt2@test.com", Role.PERSONAL_TRAINER,
                                 "Esperta in powerlifting e preparazione atletica.", null, null);
 
-                // 3. Nutrizionisti (2)
                 User nut1 = createUser("Laura", "Verdi", "nutri1@test.com", Role.NUTRITIONIST,
                                 "Biologa nutrizionista, esperta in dieta mediterranea e sportiva.", null, null);
                 User nut2 = createUser("Andrea", "Esposito", "nutri2@test.com", Role.NUTRITIONIST,
                                 "Specializzato in nutrizione clinica e intolleranze alimentari.", null, null);
 
-                // 4. Clienti (4 normali)
                 User c1 = createUser("Luca", "Ferri", "luca@test.com", Role.CLIENT, null, pt1, nut1);
                 User c2 = createUser("Sofia", "Conti", "sofia@test.com", Role.CLIENT, null, pt1, nut2);
                 User c3 = createUser("Matteo", "Galli", "matteo@test.com", Role.CLIENT, null, pt2, nut1);
@@ -110,7 +106,6 @@ public class DatabaseInitializerService {
                 createUser("Lorenzo", "Support", "moderator2@test.com", Role.MODERATOR, null, null, null);
                 createUser("Elisa", "Care", "moderator3@test.com", Role.MODERATOR, null, null, null);
 
-                // 5. Abbonamenti
                 Plan[] plans = { basicS, basicA, premiumS, premiumA };
                 PaymentFrequency[] freqs = { PaymentFrequency.UNICA_SOLUZIONE, PaymentFrequency.RATE_MENSILI };
                 User[] clients = { c1, c2, c3, c4 };
@@ -118,9 +113,7 @@ public class DatabaseInitializerService {
                         createSubscription(clients[i], plans[i % 4], freqs[i % 2]);
                 }
 
-                // 6. Recensioni — inserite direttamente dagli utenti tramite l'app
 
-                // 7. Orari settimanali
                 createWeeklySchedule(pt1, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(13, 0));
                 createWeeklySchedule(pt1, DayOfWeek.WEDNESDAY, LocalTime.of(15, 0), LocalTime.of(19, 0));
                 createWeeklySchedule(pt1, DayOfWeek.FRIDAY, LocalTime.of(9, 0), LocalTime.of(13, 0));
@@ -135,14 +128,12 @@ public class DatabaseInitializerService {
                 createWeeklySchedule(nut2, DayOfWeek.THURSDAY, LocalTime.of(15, 0), LocalTime.of(19, 0));
                 createWeeklySchedule(nut2, DayOfWeek.SATURDAY, LocalTime.of(10, 0), LocalTime.of(13, 0));
 
-                // 8. Genera slot (prossimi 7 giorni)
                 LocalDate start = LocalDate.now().plusDays(1);
                 LocalDate end = start.plusDays(6);
                 User[] pros = { pt1, pt2, nut1, nut2 };
                 for (User pro : pros)
                         generateSlotsForProfessional(pro, start, end);
 
-                // 9. Prenotazioni campione
                 bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt1), 0, c1, pt1, true);
                 bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt1), 1, c2, pt1, true);
                 bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt2), 0, c3, pt2, true);

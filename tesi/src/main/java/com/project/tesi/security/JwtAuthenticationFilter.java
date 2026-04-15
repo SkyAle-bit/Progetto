@@ -53,36 +53,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Estrae l'header "Authorization" dalla richiesta
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
 
-        // 2. Se non c'è il token, o non inizia con "Bearer ", lascia passare la richiesta
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Estrae il Token (tolto il prefisso "Bearer ")
         jwt = authHeader.substring(7);
 
         try {
-            // 4. Estrae l'email dal token
             userEmail = jwtUtil.extractUsername(jwt);
 
-            // 5. Se l'utente non è ancora autenticato nel contesto di Spring...
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                // 6. Controlla se il token è valido e non scaduto
                 if (jwtUtil.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                    // 7. Salva l'utente autenticato nel contesto
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
@@ -90,7 +83,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("Errore validazione JWT: {}", e.getMessage());
         }
 
-        // 8. Passa alla prossima fase (il Controller)
         filterChain.doFilter(request, response);
     }
 }

@@ -82,13 +82,10 @@ public class ChatWebSocketController {
         dto.put("createdAt", now.toString());
         dto.put("roomId", roomId);
 
-        // STEP 1: Inoltra IMMEDIATAMENTE alla stanza
         messagingTemplate.convertAndSend("/topic/room/" + roomId, (Object) dto);
 
-        // STEP 2: Salva in DB in modo ASINCRONO
         saveMessageAsync(senderId, receiverId, content);
 
-        // STEP 3: Se receiver non in stanza, notifica push
         if (!eventListener.isUserInRoom(receiverId, roomId)) {
             Map<String, Object> notif = new HashMap<>();
             notif.put("type", "NEW_MESSAGE");

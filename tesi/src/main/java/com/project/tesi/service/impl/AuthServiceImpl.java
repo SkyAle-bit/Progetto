@@ -57,22 +57,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        // 1. Spring Security verifica email e password
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        // 2. Carica i dati base per Spring Security
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
 
-        // 3. Genera il Token JWT
         String jwtToken = jwtUtil.generateToken(userDetails);
 
-        // 4. Recupera tutti i dati dell'utente dal DB
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", "email", request.getEmail()));
 
-        // 5. Costruisce la risposta
         return AuthResponse.builder()
                 .token(jwtToken)
                 .id(user.getId())
