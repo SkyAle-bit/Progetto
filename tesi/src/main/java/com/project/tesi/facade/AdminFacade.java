@@ -27,7 +27,6 @@ public class AdminFacade {
     private final AdminService adminService;
     private final AdminStatsService adminStatsService;
 
-    // ── UTENTI ──────────────────────────────────────────────────
 
     public List<UserResponseDTO> getAllUsers() {
         return adminService.getAllUsers().stream()
@@ -52,7 +51,6 @@ public class AdminFacade {
         adminService.deleteUser(id);
     }
 
-    // ── ABBONAMENTI ─────────────────────────────────────────────
 
     public List<SubscriptionResponseDTO> getAllSubscriptions() {
         return adminService.getAllSubscriptions().stream()
@@ -64,7 +62,6 @@ public class AdminFacade {
         return mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
     }
 
-    // ── PIANI ───────────────────────────────────────────────────
 
     public PlanResponseDTO createPlan(PlanCreateRequestDTO request) {
         Map<String, Object> body = new HashMap<>();
@@ -82,13 +79,11 @@ public class AdminFacade {
         adminService.deletePlan(id);
     }
 
-    // ── STATISTICHE ─────────────────────────────────────────────
 
     public Map<String, Object> getAdminStats() {
         return adminStatsService.getAdminStats();
     }
 
-    // ── PRIVATE MAPPERS ─────────────────────────────────────────
 
     private UserResponseDTO mapToUserResponse(Map<String, Object> map) {
         return new UserResponseDTO(

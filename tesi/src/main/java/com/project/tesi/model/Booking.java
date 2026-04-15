@@ -38,39 +38,31 @@ import java.time.LocalDateTime;
 @Builder
 public class Booking {
 
-    /** Identificativo univoco della prenotazione. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Cliente che ha effettuato la prenotazione. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /** Professionista con cui è stato prenotato l'appuntamento. */
     @ManyToOne
     @JoinColumn(name = "professional_id")
     private User professional;
 
-    /** Slot temporale prenotato (relazione 1:1, uno slot = una sola prenotazione). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "slot_id", nullable = false)
     private Slot slot;
 
-    /** Stato corrente della prenotazione (CONFIRMED, CANCELLED, COMPLETED). */
     @Enumerated(EnumType.STRING)
     private BookingStatus status;
 
-    /** Data e ora in cui la prenotazione è stata creata (impostata automaticamente). */
     @CreationTimestamp
     private LocalDateTime bookedAt;
 
-    /** Link alla videochiamata Jitsi Meet, generato automaticamente alla creazione. */
     @Column(nullable = false)
     private String meetingLink;
 
-    /** Indica se l'email di promemoria (30 min prima) è già stata inviata. */
     @Builder.Default
     private boolean reminderSent = false;
 }

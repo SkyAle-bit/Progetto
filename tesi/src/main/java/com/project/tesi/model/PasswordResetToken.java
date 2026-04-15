@@ -32,24 +32,19 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Token UUID univoco inviato via email. */
     @Column(nullable = false, unique = true)
     private String token;
 
-    /** Utente a cui appartiene il token. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /** Data/ora di scadenza del token. */
     @Column(nullable = false)
     private LocalDateTime expiryDate;
 
-    /** Indica se il token è già stato utilizzato. */
     @Builder.Default
     private boolean used = false;
 
-    /** Verifica se il token è scaduto. */
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiryDate);
     }

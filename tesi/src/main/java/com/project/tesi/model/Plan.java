@@ -35,40 +35,29 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Plan {
 
-    /** Identificativo univoco del piano. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Nome commerciale del piano (univoco, es. "Gold Annuale"). */
     @Column(nullable = false, unique = true)
     private String name;
 
-    /** Durata del piano: SEMESTRALE (6 mesi) o ANNUALE (12 mesi). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlanDuration duration;
 
-    // ── PREZZI ──────────────────────────────────────────────────
 
-    /** Prezzo totale del piano se pagato in un'unica soluzione (€). */
     @Column(nullable = false)
     private Double fullPrice;
 
-    /** Prezzo della singola rata mensile se pagato a rate (€). */
     @Column(nullable = false)
     private Double monthlyInstallmentPrice;
 
-    // ── CREDITI MENSILI ─────────────────────────────────────────
 
-    /** Numero di crediti mensili per prenotare consulenze con il Personal Trainer. */
     private int monthlyCreditsPT;
 
-    /** Numero di crediti mensili per prenotare consulenze con il Nutrizionista. */
     private int monthlyCreditsNutri;
 
-    // ── ASSICURAZIONE ───────────────────────────────────────────
 
-    /** Descrizione testuale della copertura assicurativa inclusa nel piano. */
     private String insuranceCoverageDetails;
 }

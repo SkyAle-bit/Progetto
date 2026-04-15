@@ -39,17 +39,14 @@ public class ChatTermination {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** L'utente che ha terminato la chat. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "terminated_by_id", nullable = false)
     private User terminatedBy;
 
-    /** L'operatore (admin/moderatore) con cui la chat è stata terminata. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "other_user_id", nullable = false)
     private User otherUser;
 
-    /** Data e ora della terminazione. */
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime terminatedAt;

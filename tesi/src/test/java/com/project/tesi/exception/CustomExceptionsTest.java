@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class CustomExceptionsTest {
 
-    // ── COMMON ──────────────────────────────────────────────────
 
     @Test
     @DisplayName("ResourceNotFoundException — con messaggio")
@@ -67,7 +66,6 @@ class CustomExceptionsTest {
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
-    // ── AUTH ─────────────────────────────────────────────────────
 
     @Test
     @DisplayName("InvalidCredentialsException — costruttori")
@@ -79,7 +77,6 @@ class CustomExceptionsTest {
         assertThat(ex2.getMessage()).isEqualTo("Personalizzato");
     }
 
-    // ── BOOKING ─────────────────────────────────────────────────
 
     @Test
     @DisplayName("InsufficientCreditsException — 422")
@@ -127,7 +124,6 @@ class CustomExceptionsTest {
         assertThat(ex2.getMessage()).isEqualTo("Custom");
     }
 
-    // ── CHAT ────────────────────────────────────────────────────
 
     @Test
     @DisplayName("ChatNotAllowedException — costruttori")
@@ -139,7 +135,6 @@ class CustomExceptionsTest {
         assertThat(ex2.getMessage()).isEqualTo("Custom");
     }
 
-    // ── DOCUMENT ────────────────────────────────────────────────
 
     @Test
     @DisplayName("DocumentNotFoundException — costruttori")
@@ -170,7 +165,6 @@ class CustomExceptionsTest {
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
-    // ── REVIEW ──────────────────────────────────────────────────
 
     @Test
     @DisplayName("ReviewNotAllowedException — 422")
@@ -179,7 +173,6 @@ class CustomExceptionsTest {
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.valueOf(422));
     }
 
-    // ── SUBSCRIPTION ────────────────────────────────────────────
 
     @Test
     @DisplayName("SubscriptionNotFoundException — costruttori")

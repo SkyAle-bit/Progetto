@@ -17,21 +17,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProfessionalSummaryDTO {
 
-    /** ID del professionista. */
     private Long id;
 
-    /** Nome completo (Nome + Cognome concatenati). */
     private String fullName;
 
-    /** Media voti ricevuti dalle recensioni (1.0 – 5.0, null se nessuna recensione). */
     private Double averageRating;
 
-    /** Numero attuale di clienti assegnati (es. 7 su un massimo di 10). */
     private Integer currentActiveClients;
 
-    /** Indica se il professionista ha raggiunto il limite massimo di clienti. */
     private boolean isSoldOut;
 
-    /** Ruolo del professionista (PERSONAL_TRAINER o NUTRITIONIST). */
     private Role role;
 }

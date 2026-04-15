@@ -45,25 +45,20 @@ import java.time.LocalDateTime;
 @Builder
 public class Slot {
 
-    /** Identificativo univoco dello slot. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Professionista proprietario dello slot. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professional_id", nullable = false)
     private User professional;
 
-    /** Data e ora di inizio della fascia oraria. */
     @Column(nullable = false)
     private LocalDateTime startTime;
 
-    /** Data e ora di fine della fascia oraria (startTime + 30 minuti). */
     @Column(nullable = false)
     private LocalDateTime endTime;
 
-    /** Indica se lo slot è già stato prenotato da un cliente ({@code true} = occupato). */
     private boolean isBooked;
 
     /**

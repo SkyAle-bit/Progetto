@@ -29,7 +29,6 @@ class ChatWebSocketControllerTest {
 
     @InjectMocks private ChatWebSocketController controller;
 
-    // ── joinRoom ────────────────────────────────────────────────
 
     @Test @DisplayName("joinRoom — sessione e roomId validi → registra ingresso")
     void joinRoom_success() {
@@ -65,7 +64,6 @@ class ChatWebSocketControllerTest {
         verify(eventListener, never()).joinRoom(any(), any());
     }
 
-    // ── leaveRoom ───────────────────────────────────────────────
 
     @Test @DisplayName("leaveRoom — sessione e roomId validi → registra uscita")
     void leaveRoom_success() {
@@ -100,7 +98,6 @@ class ChatWebSocketControllerTest {
         verify(eventListener, never()).leaveRoom(any(), any());
     }
 
-    // ── sendMessage ─────────────────────────────────────────────
 
     @Test @DisplayName("sendMessage — tutti i campi validi → inoltra e salva")
     void sendMessage_success() {
@@ -196,7 +193,6 @@ class ChatWebSocketControllerTest {
         verify(messagingTemplate).convertAndSend(eq("/topic/room/room-1-2"), any(Object.class));
     }
 
-    // ── markAsRead ──────────────────────────────────────────────
 
     @Test @DisplayName("markAsRead — userId e otherUserId validi → segna e aggiorna")
     void markAsRead_success() {
@@ -233,7 +229,6 @@ class ChatWebSocketControllerTest {
         verify(chatService, never()).markAsRead(anyLong(), anyLong());
     }
 
-    // ── saveMessageAsync ────────────────────────────────────────
 
     @Test @DisplayName("saveMessageAsync — successo")
     void saveMessageAsync_success() {
@@ -247,7 +242,6 @@ class ChatWebSocketControllerTest {
         controller.saveMessageAsync(1L, 2L, "Test"); // non lancia eccezione
     }
 
-    // ── markAsReadAsync ─────────────────────────────────────────
 
     @Test @DisplayName("markAsReadAsync — successo")
     void markAsReadAsync_success() {
@@ -261,7 +255,6 @@ class ChatWebSocketControllerTest {
         controller.markAsReadAsync(1L, 2L); // non lancia eccezione
     }
 
-    // ── sendUnreadUpdate (indiretto via markAsRead) ─────────────
 
     @Test @DisplayName("sendUnreadUpdate — eccezione getTotalUnreadCount non propagata")
     void sendUnreadUpdate_exception() {
@@ -275,7 +268,6 @@ class ChatWebSocketControllerTest {
         controller.markAsRead(payload);
     }
 
-    // ── toLong — copre tutti i rami ─────────────────────────────
 
     @Test @DisplayName("sendMessage — senderId tipo non supportato (Boolean) → null → esce")
     void sendMessage_unsupportedType() {

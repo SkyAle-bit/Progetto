@@ -282,7 +282,6 @@ public class EmailServiceImpl implements EmailService {
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  METODO HELPER: invio email semplice via SMTP
     // ══════════════════════════════════════════════════════════════
 
     private void sendSimpleEmail(String to, String subject, String html) {

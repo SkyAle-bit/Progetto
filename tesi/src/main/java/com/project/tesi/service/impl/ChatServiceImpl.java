@@ -169,7 +169,6 @@ public class ChatServiceImpl implements ChatService {
         return chatMessageRepository.countAllUnreadMessages(userId);
     }
 
-    // ── Validazione permessi chat ──────────────────────────────────────────────
 
     private void validateChatPermission(User userA, User userB) {
         // Admin può comunicare con chiunque

@@ -40,26 +40,21 @@ import java.time.LocalTime;
 @Builder
 public class WeeklySchedule {
 
-    /** Identificativo univoco della regola oraria. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Professionista a cui appartiene questa fascia oraria ricorrente. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professional_id", nullable = false)
     private User professional;
 
-    /** Giorno della settimana (es. MONDAY, TUESDAY, ..., SUNDAY). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DayOfWeek dayOfWeek;
 
-    /** Ora di inizio della disponibilità (es. 09:00). */
     @Column(nullable = false)
     private LocalTime startTime;
 
-    /** Ora di fine della disponibilità (es. 13:00). */
     @Column(nullable = false)
     private LocalTime endTime;
 }

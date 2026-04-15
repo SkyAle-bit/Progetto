@@ -52,7 +52,6 @@ public class UserFacade {
     private final ProfessionalStatsService professionalStatsService;
     private final SlotService slotService;
 
-    // ── DASHBOARD & PROFILO ─────────────────────────────────────
 
     /** Restituisce la dashboard completa del cliente (profilo, professionisti, abbonamento, prenotazioni). */
     public ClientDashboardResponse getClientDashboard(Long userId) {
@@ -74,7 +73,6 @@ public class UserFacade {
         return userService.getSupportOperator();
     }
 
-    // ── PRENOTAZIONI ────────────────────────────────────────────
 
     public BookingResponse createBooking(BookingRequest request) {
         return bookingService.createBooking(request);
@@ -85,7 +83,6 @@ public class UserFacade {
         bookingService.cancelBooking(bookingId, userId);
     }
 
-    // ── RECENSIONI ──────────────────────────────────────────────
 
     /** Il cliente lascia una recensione a un professionista. */
     public ReviewResponse addReview(ReviewRequest request) {
@@ -107,7 +104,6 @@ public class UserFacade {
         return reviewService.hasClientReviewed(clientId, professionalId);
     }
 
-    // ── ABBONAMENTI ─────────────────────────────────────────────
 
     /** Attiva un nuovo abbonamento per il cliente. */
     public SubscriptionResponse activateSubscription(com.project.tesi.dto.request.PlanRequest request) {
@@ -119,7 +115,6 @@ public class UserFacade {
         return subscriptionService.getSubscriptionStatus(userId);
     }
 
-    // ── PROFESSIONISTI ──────────────────────────────────────────
 
     /** Restituisce la lista dei professionisti disponibili per un dato ruolo. */
     public List<ProfessionalSummaryDTO> findAvailableProfessionals(Role role) {
@@ -146,7 +141,6 @@ public class UserFacade {
         return professionalStatsService.getProfessionalStats(professionalId);
     }
 
-    // ── ACTIVITY FEED ───────────────────────────────────────────
 
     /** Restituisce il feed delle attività recenti di un utente. */
     public List<Map<String, Object>> getActivityFeed(Long userId, int days, int limit) {

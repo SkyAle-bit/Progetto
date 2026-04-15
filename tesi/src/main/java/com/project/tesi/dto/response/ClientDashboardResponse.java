@@ -13,15 +13,11 @@ import java.util.List;
 @Builder
 public class ClientDashboardResponse {
 
-    /** Profilo completo dell'utente. */
     private UserResponse profile;
 
-    /** Lista dei professionisti assegnati al cliente (PT e/o Nutrizionista). */
     private List<ProfessionalSummaryDTO> followingProfessionals;
 
-    /** Stato dell'abbonamento attivo (crediti residui, scadenza, ecc.). */
     private SubscriptionResponse subscription;
 
-    /** Lista dei prossimi appuntamenti ordinati cronologicamente. */
     private List<BookingResponse> upcomingBookings;
 }

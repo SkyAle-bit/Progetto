@@ -53,7 +53,6 @@ public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
             throw new IllegalArgumentException("L'utente con ID " + professionalId + " non è un professionista.");
         }
 
-        // ── 1. Appuntamenti di oggi ──
         LocalDate today = LocalDate.now();
         LocalDateTime dayStart = today.atStartOfDay();
         LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
@@ -71,7 +70,6 @@ public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
             return map;
         }).collect(Collectors.toList());
 
-        // ── 2. Clienti che necessitano attenzione ──
         List<User> clients;
         DocumentType relevantDocType;
         if (professional.getRole() == Role.PERSONAL_TRAINER) {
@@ -100,12 +98,10 @@ public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
             }
         }
 
-        // ── 3. Documenti caricati questa settimana ──
         LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDateTime weekStart = startOfWeek.atStartOfDay();
         int docsUploadedThisWeek = documentRepository.countByUploaderSince(professional, weekStart);
 
-        // ── Risposta ──
         Map<String, Object> stats = new HashMap<>();
         stats.put("todayBookings", todayBookingsList);
         stats.put("todayBookingsCount", todayBookingsList.size());

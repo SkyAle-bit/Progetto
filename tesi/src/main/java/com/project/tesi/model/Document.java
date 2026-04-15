@@ -39,38 +39,29 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Document {
 
-    /** Identificativo univoco del documento. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Nome originale del file caricato (es. "scheda_allenamento.pdf"). */
     private String fileName;
 
-    /** Percorso assoluto del file su disco (generato con UUID per evitare conflitti). */
     private String filePath;
 
-    /** Tipo MIME del file (es. "application/pdf", "image/png"). */
     private String contentType;
 
-    /** Tipologia del documento nel dominio applicativo. */
     @Enumerated(EnumType.STRING)
     private DocumentType type;
 
-    /** Cliente proprietario del documento (a chi è destinato). */
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    /** Utente che ha fisicamente caricato il documento (PT, Nutrizionista o Admin). */
     @ManyToOne
     @JoinColumn(name = "uploaded_by_id")
     private User uploadedBy;
 
-    /** Data e ora di caricamento del documento. */
     private LocalDateTime uploadDate;
 
-    /** Note testuali aggiuntive del professionista relative al documento. */
     @Column(columnDefinition = "TEXT")
     private String notes;
 }

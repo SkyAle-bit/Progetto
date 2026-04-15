@@ -14,10 +14,8 @@ import java.util.Optional;
  */
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
-    /** Trova un token tramite il suo valore UUID. */
     Optional<PasswordResetToken> findByToken(String token);
 
-    /** Elimina tutti i token associati a un utente (pulizia prima di generarne uno nuovo). */
     @Modifying
     @Query("DELETE FROM PasswordResetToken t WHERE t.user = :user")
     void deleteByUser(@Param("user") User user);

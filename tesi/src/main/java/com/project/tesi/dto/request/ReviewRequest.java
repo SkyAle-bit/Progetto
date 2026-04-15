@@ -17,18 +17,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ReviewRequest {
 
-    /** ID del cliente autore della recensione. */
     @NotNull
     private Long userId;
 
-    /** ID del professionista recensito. */
     @NotNull
     private Long professionalId;
 
-    /** Voto numerico da 1 (pessimo) a 5 (eccellente). */
     @Min(1) @Max(5)
     private int rating;
 
-    /** Commento testuale opzionale. */
     private String comment;
 }

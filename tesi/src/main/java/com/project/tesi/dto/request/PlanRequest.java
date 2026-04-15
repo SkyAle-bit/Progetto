@@ -15,15 +15,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PlanRequest {
 
-    /** ID del cliente che attiva l'abbonamento. */
     @NotNull
     private Long userId;
 
-    /** ID del piano commerciale scelto. */
     @NotNull
     private Long planId;
 
-    /** Modalità di pagamento: UNICA_SOLUZIONE o RATE_MENSILI. */
     @NotNull
     private PaymentFrequency paymentFrequency;
 }

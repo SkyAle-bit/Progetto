@@ -38,30 +38,24 @@ import java.time.LocalDateTime;
 @Builder
 public class Review {
 
-    /** Identificativo univoco della recensione. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Cliente autore della recensione. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private User client;
 
-    /** Professionista recensito. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professional_id", nullable = false)
     private User professional;
 
-    /** Voto numerico da 1 (pessimo) a 5 (eccellente). */
     @Column(nullable = false)
     private int rating;
 
-    /** Commento testuale opzionale (massimo 1000 caratteri). */
     @Column(length = 1000)
     private String comment;
 
-    /** Data e ora di creazione della recensione (impostata automaticamente). */
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

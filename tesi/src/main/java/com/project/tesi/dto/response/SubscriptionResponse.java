@@ -18,24 +18,17 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class SubscriptionResponse {
 
-    /** ID dell'abbonamento. */
     private Long id;
 
-    /** Nome del piano sottoscritto (es. "Gold Annuale", "Silver Semestrale"). */
     private String planName;
 
-    /** Data di inizio dell'abbonamento. */
     private LocalDate startDate;
 
-    /** Data di scadenza dell'abbonamento. */
     private LocalDate endDate;
 
-    /** Indica se l'abbonamento è attualmente attivo. */
     private boolean isActive;
 
-    /** Crediti residui per prenotazioni con il Personal Trainer (reset mensile). */
     private int remainingPtCredits;
 
-    /** Crediti residui per prenotazioni con il Nutrizionista (reset mensile). */
     private int remainingNutritionistCredits;
 }

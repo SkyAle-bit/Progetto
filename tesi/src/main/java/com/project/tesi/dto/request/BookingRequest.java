@@ -14,11 +14,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BookingRequest {
 
-    /** ID del cliente che effettua la prenotazione. */
     @NotNull
     private Long userId;
 
-    /** ID dello slot temporale da prenotare. */
     @NotNull
     private Long slotId;
 }

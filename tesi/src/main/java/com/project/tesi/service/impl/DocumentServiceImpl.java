@@ -51,7 +51,6 @@ public class DocumentServiceImpl implements DocumentService {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    // ── METODI PRINCIPALI (usati dal controller via facade) ─────
 
     @Override
     @Transactional
@@ -189,7 +188,6 @@ public class DocumentServiceImpl implements DocumentService {
         return documentRepository.save(document);
     }
 
-    // ── DTO MAPPING ─────────────────────────────────────────────
 
     @Override
     public Map<String, Object> toDto(Document doc) {

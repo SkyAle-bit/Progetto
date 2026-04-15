@@ -25,7 +25,6 @@ class WebSocketEventListenerTest {
         listener = new WebSocketEventListener();
     }
 
-    // ── joinRoom / leaveRoom ────────────────────────────────────
 
     @Test @DisplayName("joinRoom — sessione non registrata → non lancia eccezione")
     void joinRoom_unknownSession() {
@@ -38,14 +37,12 @@ class WebSocketEventListenerTest {
         listener.leaveRoom("unknown-session", "room-1-2");
     }
 
-    // ── isUserInRoom ────────────────────────────────────────────
 
     @Test @DisplayName("isUserInRoom — utente non connesso → false")
     void isUserInRoom_noUser() {
         assertThat(listener.isUserInRoom(999L, "room-1-2")).isFalse();
     }
 
-    // ── Flusso completo simulato tramite ReflectionTestUtils ────
 
     @SuppressWarnings("unchecked")
     @Test @DisplayName("flusso completo: simulazione connect → joinRoom → isUserInRoom → leaveRoom → disconnect")
