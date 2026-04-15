@@ -67,7 +67,7 @@ public class ChatWebSocketController {
         Long receiverId = toLong(payload.get("receiverId"));
         String content = (String) payload.get("content");
         String roomId = (String) payload.get("roomId");
-        if (senderId == null || receiverId == null || content == null || roomId == null)
+        if (senderId == null || receiverId == null || content == null || roomId == null || senderId.equals(receiverId))
             return;
 
         LocalDateTime now = LocalDateTime.now();

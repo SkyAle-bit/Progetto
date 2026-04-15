@@ -71,6 +71,9 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional
     public void sendMessageDirect(Long senderId, Long receiverId, String content) {
+        if (senderId.equals(receiverId)) {
+            return; // Ignore self-messages
+        }
         User sender = userRepository.findById(senderId).orElse(null);
         User receiver = userRepository.findById(receiverId).orElse(null);
         if (sender == null || receiver == null)
@@ -128,6 +131,13 @@ public class ChatServiceImpl implements ChatService {
         return partners.stream()
                 // Escludi le chat che l'utente stesso ha terminato (visibili solo agli operatori)
                 .filter(partner -> isOperator || !terminatedIds.contains(partner.getId()))
+                // Se l'utente è ADMIN, mostra solo le chat con MODERATOR o INSURANCE_MANAGER (Fix #2)
+                .filter(partner -> {
+                    if (user.getRole() == Role.ADMIN) {
+                        return partner.getRole() == Role.MODERATOR || partner.getRole() == Role.INSURANCE_MANAGER;
+                    }
+                    return true;
+                })
                 .map(partner -> {
                     List<ChatMessage> lastMsgs = chatMessageRepository.findLastMessages(userId, partner.getId(),
                             PageRequest.of(0, 1));
