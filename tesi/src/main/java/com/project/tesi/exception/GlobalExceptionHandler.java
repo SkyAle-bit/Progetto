@@ -10,10 +10,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -25,46 +23,13 @@ import java.util.Map;
  * Gestore globale delle eccezioni REST.
  * Intercetta tutte le eccezioni lanciate dai controller e restituisce
  * risposte JSON uniformi tramite {@link ErrorResponse}.
- *
- * Organizzazione dei gestori:
- * <ol>
- *   <li>Eccezioni custom ({@link BaseException} e figlie) — codice HTTP variabile</li>
- *   <li>Autenticazione fallita (Spring Security) — 401</li>
- *   <li>Accesso negato (Spring Security @PreAuthorize) — 403</li>
- *   <li>Errori di validazione @Valid nei DTO — 400</li>
- *   <li>Parametri mancanti o con tipo errato — 400</li>
- *   <li>Argomenti/stati illegali — 400/409</li>
- *   <li>File upload oltre la dimensione massima — 413</li>
- *   <li>Risorsa statica non trovata — 404</li>
- *   <li>Fallback globale per errori imprevisti — 500</li>
- * </ol>
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  1. ECCEZIONI CUSTOM (BaseException e figlie)
-    //     Gestisce automaticamente TUTTE le eccezioni che estendono BaseException:
-    //     - ResourceNotFoundException       → 404
-    //     - ResourceAlreadyExistsException   → 409
-    //     - UnauthorizedAccessException      → 403
-    //     - BusinessLogicException           → 422
-    //     - SlotAlreadyBookedException       → 409
-    //     - InsufficientCreditsException     → 422
-    //     - NoActiveSubscriptionException    → 422
-    //     - ProfessionalNotAssignedException → 403
-    //     - ProfessionalSoldOutException     → 422
-    //     - ChatNotAllowedException          → 403
-    //     - DocumentNotFoundException        → 404
-    //     - DocumentStorageException         → 500
-    //     - InvalidFileException             → 400
-    //     - InvalidCredentialsException      → 401
-    //     - SubscriptionNotFoundException    → 404
-    //     - ReviewNotAllowedException        → 422
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce tutte le eccezioni custom che estendono {@link BaseException}, con codice HTTP dinamico. */
+    // Gestione eccezioni custom
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex, HttpServletRequest request) {
         HttpStatus status = ex.getStatus();
@@ -76,30 +41,21 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), status, request);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  2. AUTENTICAZIONE — Login fallito (Spring Security)
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce i tentativi di login con credenziali errate (Spring Security) → 401. */
+    // Gestione login fallito
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleBadCredentials(HttpServletRequest request) {
         log.warn("Tentativo di login fallito — Path: {}", request.getRequestURI());
-        return buildErrorResponse("Email o password non validi.", HttpStatus.UNAUTHORIZED, request);
+        return buildErrorResponse("Email o password non validi", HttpStatus.UNAUTHORIZED, request);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  3. AUTORIZZAZIONE — Accesso negato (Spring Security @PreAuthorize)
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce gli accessi negati da Spring Security (@PreAuthorize) → 403. */
+    // Gestione accesso negato
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleAccessDenied(HttpServletRequest request) {
         log.warn("Accesso negato — Path: {}", request.getRequestURI());
-        return buildErrorResponse("Non hai i permessi per accedere a questa risorsa.", HttpStatus.FORBIDDEN, request);
+        return buildErrorResponse("Non hai i permessi per accedere a questa risorsa", HttpStatus.FORBIDDEN, request);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  4. VALIDAZIONE — Errori @Valid nei DTO (@NotBlank, @Email, ecc.)
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce gli errori di validazione @Valid nei DTO → 400 con mappa degli errori per campo. */
+    // Gestione errori di validazione
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();
@@ -113,7 +69,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message("Errore di validazione dei dati inviati.")
+                .message("Errore di validazione")
                 .path(request.getRequestURI())
                 .validationErrors(errors)
                 .build();
@@ -121,84 +77,46 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  5. PARAMETRI MANCANTI O ERRATI
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce parametri query obbligatori mancanti → 400. */
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponse> handleMissingParams(MissingServletRequestParameterException ex, HttpServletRequest request) {
-        String message = "Parametro obbligatorio mancante: '" + ex.getParameterName() + "'.";
-        return buildErrorResponse(message, HttpStatus.BAD_REQUEST, request);
-    }
-
-    /** Gestisce errori di conversione tipo nei parametri (es. stringa dove si aspetta un Long) → 400. */
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        String message = "Valore non valido per il parametro '" + ex.getName() + "'. Tipo atteso: "
-                + (ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "sconosciuto") + ".";
-        return buildErrorResponse(message, HttpStatus.BAD_REQUEST, request);
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    //  6. ARGOMENTI ILLEGALI / STATO ILLEGALE
-    // ══════════════════════════════════════════════════════════════════════
+    // Gestione argomento non valido
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
         log.warn("Argomento non valido: {} — Path: {}", ex.getMessage(), request.getRequestURI());
         return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, request);
     }
 
+    // Gestione stato non valido
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
         log.warn("Stato non valido: {} — Path: {}", ex.getMessage(), request.getRequestURI());
         return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT, request);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  7. FILE UPLOAD — Dimensione massima superata
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce il superamento della dimensione massima di upload file → 413. */
+    // Gestione limite dimensione
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(413);
-        return buildErrorResponse("Il file caricato supera la dimensione massima consentita.", status, request);
+        return buildErrorResponse("File troppo grande", status, request);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  8. RISORSA STATICA NON TROVATA (Spring 6+)
-    // ══════════════════════════════════════════════════════════════════════
-    /** Gestisce endpoint non trovati (Spring 6+) → 404. */
+    // Gestione risorsa non trovata
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(HttpServletRequest request) {
         return buildErrorResponse("Endpoint non trovato: " + request.getRequestURI(), HttpStatus.NOT_FOUND, request);
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  9. FALLBACK GLOBALE — Tutti gli altri errori non previsti
-    //     Non espone mai la stack trace al client.
-    // ══════════════════════════════════════════════════════════════════════
-    /** Fallback globale: intercetta qualsiasi eccezione non gestita → 500 (senza esporre la stack trace). */
+    // Fallback globale
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, HttpServletRequest request) {
+        // TODO: valutare l'aggiunta del log dello stack trace a fini di debug
         log.error("Errore imprevisto — Path: {} — Tipo: {}", request.getRequestURI(), ex.getClass().getSimpleName(), ex);
         return buildErrorResponse(
-                "Si è verificato un errore interno. Riprova più tardi o contatta l'assistenza.",
+                "Errore interno",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 request
         );
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  UTILITY — Costruzione risposta di errore uniforme
-    // ══════════════════════════════════════════════════════════════════════
-    /**
-     * Metodo di utilità per costruire una risposta di errore JSON uniforme.
-     *
-     * @param message messaggio leggibile
-     * @param status  codice HTTP
-     * @param request richiesta HTTP originale (per estrarre il path)
-     * @return ResponseEntity con {@link ErrorResponse}
-     */
+    // Utility di risposta
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

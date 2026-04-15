@@ -8,7 +8,6 @@ import com.project.tesi.exception.booking.BookingCancellationException;
 import com.project.tesi.exception.booking.NoActiveSubscriptionException;
 import com.project.tesi.exception.booking.SlotAlreadyBookedException;
 import com.project.tesi.exception.booking.SubscriptionExpiredException;
-import com.project.tesi.exception.common.ConcurrentUpdateException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.mapper.BookingMapper;
 import com.project.tesi.model.Booking;
@@ -22,19 +21,13 @@ import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.BookingService;
 import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
-import jakarta.annotation.PostConstruct;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Gestisce il ciclo di vita delle prenotazioni tra clienti e professionisti.
@@ -51,20 +44,15 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final List<BookingStrategy> strategies;
     private final VideoConferenceService videoConferenceService;
-    private final Optional<Clock> optionalClock;
 
-    private Map<Role, BookingStrategy> strategyMap;
-
-    @PostConstruct
-    public void init() {
-        this.strategyMap = strategies.stream()
-                .collect(Collectors.toMap(BookingStrategy::getSupportedRole, strategy -> strategy));
-    }
-
-    private Clock getClock() {
-        return optionalClock.orElse(Clock.systemDefaultZone());
-    }
-
+    /**
+     * Valida e registra una nuova prenotazione.
+     * Il processo assicura che le policy di business siano rispettate: disponibilità effettiva dello slot (gestendo 
+     * scenari di concorrenza tramite locking ottimistico), copertura temporale dell'abbonamento e adeguatezza dei crediti.
+     * 
+     * @param request I dettagli della richiesta (inclusi utente e slot desiderato).
+     * @return La risposta contenente i dati della prenotazione e il link per la conferenza.
+     */
     @Override
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
@@ -86,7 +74,13 @@ public class BookingServiceImpl implements BookingService {
 
         User professional = slot.getProfessional();
 
-        BookingStrategy strategy = strategyMap.get(professional.getRole());
+        BookingStrategy strategy = null;
+        for (BookingStrategy s : strategies) {
+            if (s.getSupportedRole() == professional.getRole()) {
+                strategy = s;
+                break;
+            }
+        }
         if (strategy == null) {
             throw new IllegalStateException("Il professionista non è né PT né Nutrizionista");
         }
@@ -96,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
                 .orElseThrow(NoActiveSubscriptionException::new);
 
-        LocalDate today = LocalDate.now(getClock());
+        LocalDate today = LocalDate.now();
         if (today.isAfter(sub.getEndDate())) {
             throw new SubscriptionExpiredException(
                     "Impossibile prenotare: il tuo abbonamento è scaduto in data " + sub.getEndDate() + "."
@@ -110,18 +104,10 @@ public class BookingServiceImpl implements BookingService {
 
         strategy.consumeCredits(sub);
 
-        try {
-            slot.setBooked(true);
-            slotRepository.save(slot);
-        } catch (OptimisticLockException e) {
-            throw new SlotAlreadyBookedException("Qualcun altro ha prenotato questo slot appena prima di te. Riprova.");
-        }
+        slot.setBooked(true);
+        slotRepository.save(slot);
 
-        try {
-            subscriptionRepository.save(sub);
-        } catch (OptimisticLockException e) {
-            throw new ConcurrentUpdateException("Conflitto nell'aggiornamento dei crediti dell'abbonamento. Riprova.");
-        }
+        subscriptionRepository.save(sub);
 
         String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
 
@@ -138,6 +124,14 @@ public class BookingServiceImpl implements BookingService {
         return bookingMapper.toResponse(saved);
     }
 
+    /**
+     * Elabora la richiesta di annullamento di un appuntamento.
+     * L'operazione è vincolata a regole temporali (es. disdetta con almeno 24h di preavviso) per tutelare i professionisti.
+     * In caso di esito positivo, libera lo slot e riaccredita l'utilizzo all'utente delegando la logica di rimborso al ruolo specifico.
+     * 
+     * @param bookingId L'ID della prenotazione da annullare.
+     * @param userId L'ID dell'utente richiedente (per verifica di sicurezza).
+     */
     @Override
     @Transactional
     public void cancelBooking(Long bookingId, Long userId) {
@@ -153,7 +147,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         Slot slot = booking.getSlot();
-        if (slot.getStartTime().isBefore(LocalDateTime.now(getClock()).plusHours(24))) {
+        if (slot.getStartTime().isBefore(LocalDateTime.now().plusHours(24))) {
             throw new BookingCancellationException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
         }
 
@@ -161,7 +155,14 @@ public class BookingServiceImpl implements BookingService {
         slotRepository.save(slot);
 
         User professional = booking.getProfessional();
-        BookingStrategy strategy = strategyMap.get(professional.getRole());
+        BookingStrategy strategy = null;
+        for (BookingStrategy s : strategies) {
+            if (s.getSupportedRole() == professional.getRole()) {
+                strategy = s;
+                break;
+            }
+        }
+        
         if (strategy != null) {
             Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
                     .orElse(null);

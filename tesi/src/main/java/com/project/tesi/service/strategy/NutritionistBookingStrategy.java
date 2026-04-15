@@ -16,7 +16,6 @@ import com.project.tesi.model.User;
 @Component
 public class NutritionistBookingStrategy implements BookingStrategy {
 
-    /** {@inheritDoc} */
     @Override
     public Role getSupportedRole() {
         return Role.NUTRITIONIST;
@@ -48,7 +47,6 @@ public class NutritionistBookingStrategy implements BookingStrategy {
         subscription.setCurrentCreditsNutri(subscription.getCurrentCreditsNutri() - 1);
     }
 
-    /** {@inheritDoc} */
     @Override
     public void refundCredits(Subscription subscription) {
         subscription.setCurrentCreditsNutri(subscription.getCurrentCreditsNutri() + 1);

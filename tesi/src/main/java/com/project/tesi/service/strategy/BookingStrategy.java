@@ -5,17 +5,10 @@ import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
 
 /**
- * Interfaccia Strategy per la gestione delle prenotazioni (Design Pattern Strategy).
- *
- * Ogni implementazione gestisce le regole di business specifiche di un tipo
- * di professionista (PT o Nutrizionista):
- * <ul>
- *   <li>Verifica che il cliente sia effettivamente assegnato al professionista</li>
- *   <li>Verifica e deduce i crediti dall'abbonamento del cliente</li>
- * </ul>
- *
- * @see PersonalTrainerBookingStrategy
- * @see NutritionistBookingStrategy
+ * Interfaccia per la gestione delle prenotazioni.
+ * Gestisce le regole specifiche di un tipo di professionista (PT o Nutrizionista):
+ * - Verifica l'assegnazione del cliente
+ * - Deduce o rimborsa i crediti dall'abbonamento
  */
 public interface BookingStrategy {
 
