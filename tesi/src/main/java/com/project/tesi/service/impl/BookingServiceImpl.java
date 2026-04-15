@@ -4,8 +4,11 @@ import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.Role;
+import com.project.tesi.exception.booking.BookingCancellationException;
 import com.project.tesi.exception.booking.NoActiveSubscriptionException;
 import com.project.tesi.exception.booking.SlotAlreadyBookedException;
+import com.project.tesi.exception.booking.SubscriptionExpiredException;
+import com.project.tesi.exception.common.ConcurrentUpdateException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.mapper.BookingMapper;
 import com.project.tesi.model.Booking;
@@ -17,34 +20,28 @@ import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.BookingService;
+import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.OptimisticLockException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implementazione del servizio per la gestione delle prenotazioni.
- *
- * Flusso di creazione prenotazione:
- * <ol>
- *   <li>Verifica disponibilità dello slot (Optimistic Locking)</li>
- *   <li>Applica lo Strategy Pattern per verificare assegnazione e crediti</li>
- *   <li>Occupa lo slot e scala i crediti dall'abbonamento</li>
- *   <li>Genera il link Jitsi per la videochiamata</li>
- *   <li>Salva la prenotazione con stato CONFIRMED</li>
- * </ol>
- *
- * Usa il Design Pattern Strategy ({@link BookingStrategy}) per gestire
- * le regole specifiche di PT e Nutrizionista.
+ * Gestisce il ciclo di vita delle prenotazioni tra clienti e professionisti.
+ * Assicura la validità delle richieste controllando abbonamenti, crediti e conflitti di concorrenza.
  */
 @Service
+@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -52,26 +49,20 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final BookingMapper bookingMapper;
+    private final List<BookingStrategy> strategies;
+    private final VideoConferenceService videoConferenceService;
+    private final Optional<Clock> optionalClock;
 
-    private final Map<Role, BookingStrategy> strategyMap;
-    private final java.time.Clock clock;
+    private Map<Role, BookingStrategy> strategyMap;
 
-    public BookingServiceImpl(
-            BookingRepository bookingRepository,
-            SlotRepository slotRepository,
-            UserRepository userRepository,
-            SubscriptionRepository subscriptionRepository,
-            BookingMapper bookingMapper,
-            List<BookingStrategy> strategies,
-            @org.springframework.beans.factory.annotation.Autowired(required = false) java.time.Clock clock) {
-        this.bookingRepository = bookingRepository;
-        this.slotRepository = slotRepository;
-        this.userRepository = userRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.bookingMapper = bookingMapper;
-        this.clock = clock != null ? clock : java.time.Clock.systemDefaultZone();
+    @PostConstruct
+    public void init() {
         this.strategyMap = strategies.stream()
                 .collect(Collectors.toMap(BookingStrategy::getSupportedRole, strategy -> strategy));
+    }
+
+    private Clock getClock() {
+        return optionalClock.orElse(Clock.systemDefaultZone());
     }
 
     @Override
@@ -83,18 +74,14 @@ public class BookingServiceImpl implements BookingService {
         Slot slot = slotRepository.findById(request.getSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Slot", request.getSlotId()));
 
-        // 1. Controllo disponibilità slot
         if (slot.isBooked()) {
             throw new SlotAlreadyBookedException("Slot non più disponibile");
         }
 
-        // 1b. Controllo business-level: verifica che non esista già un booking CONFIRMED per questo slot
         if (bookingRepository.existsBySlotAndStatus(slot, BookingStatus.CONFIRMED)) {
             throw new SlotAlreadyBookedException("Esiste già una prenotazione confermata per questo slot.");
         }
 
-        // Elimina eventuali prenotazioni preesistenti per lo stesso slot (es. annullate)
-        // per evitare doppie visualizzazioni (una cancellata, una attiva) nello stesso blocco orario.
         bookingRepository.deleteBySlot(slot);
 
         User professional = slot.getProfessional();
@@ -107,15 +94,15 @@ public class BookingServiceImpl implements BookingService {
         strategy.verifyAssignment(user, professional);
 
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(() -> new NoActiveSubscriptionException());
+                .orElseThrow(NoActiveSubscriptionException::new);
 
-        LocalDate today = clock != null ? java.time.LocalDate.now(clock) : java.time.LocalDate.now();
+        LocalDate today = LocalDate.now(getClock());
         if (today.isAfter(sub.getEndDate())) {
-            throw new com.project.tesi.exception.booking.SubscriptionExpiredException(
-                    "Impossibile prenotare: il tuo abbonamento è già scaduto in data " + sub.getEndDate() + "."
+            throw new SubscriptionExpiredException(
+                    "Impossibile prenotare: il tuo abbonamento è scaduto in data " + sub.getEndDate() + "."
             );
         } else if (slot.getStartTime().toLocalDate().isAfter(sub.getEndDate())) {
-            throw new com.project.tesi.exception.booking.SubscriptionExpiredException(
+            throw new SubscriptionExpiredException(
                     "Operazione rifiutata: l'abbonamento scadrà il " + sub.getEndDate() +
                     ", prima della data prevista per questo slot (" + slot.getStartTime().toLocalDate() + ")."
             );
@@ -133,12 +120,10 @@ public class BookingServiceImpl implements BookingService {
         try {
             subscriptionRepository.save(sub);
         } catch (OptimisticLockException e) {
-            throw new com.project.tesi.exception.common.ConcurrentUpdateException("Conflitto nell'aggiornamento dei crediti dell'abbonamento. Riprova.");
+            throw new ConcurrentUpdateException("Conflitto nell'aggiornamento dei crediti dell'abbonamento. Riprova.");
         }
 
-        // 5. Generazione link Jitsi
-        String meetLink = "https://meet.jit.si/SkyAle_Consulto_" + user.getId() + "_" + professional.getId() + "_"
-                + UUID.randomUUID().toString().substring(0, 8);
+        String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -160,23 +145,21 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Prenotazione", bookingId));
 
         if (!booking.getUser().getId().equals(userId)) {
-            throw new com.project.tesi.exception.booking.BookingCancellationException("Non puoi annullare una prenotazione che non ti appartiene.");
+            throw new BookingCancellationException("Non puoi annullare una prenotazione che non ti appartiene.");
         }
 
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new com.project.tesi.exception.booking.BookingCancellationException("Questa prenotazione non può essere annullata (stato: " + booking.getStatus() + ").");
+            throw new BookingCancellationException("Questa prenotazione non può essere annullata (stato: " + booking.getStatus() + ").");
         }
 
         Slot slot = booking.getSlot();
-        if (slot.getStartTime().isBefore(java.time.LocalDateTime.now(clock).plusHours(24))) {
-            throw new com.project.tesi.exception.booking.BookingCancellationException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
+        if (slot.getStartTime().isBefore(LocalDateTime.now(getClock()).plusHours(24))) {
+            throw new BookingCancellationException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
         }
 
-        // 1. Libera lo slot
         slot.setBooked(false);
         slotRepository.save(slot);
 
-        // 2. Riaccredita il credito all'abbonamento
         User professional = booking.getProfessional();
         BookingStrategy strategy = strategyMap.get(professional.getRole());
         if (strategy != null) {
@@ -188,7 +171,6 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        // 3. Aggiorna lo stato della prenotazione
         booking.setStatus(BookingStatus.CANCELED);
         bookingRepository.save(booking);
     }
