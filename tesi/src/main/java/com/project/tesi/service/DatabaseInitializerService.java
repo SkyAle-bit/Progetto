@@ -38,9 +38,11 @@ public class DatabaseInitializerService {
         private final SubscriptionRepository subscriptionRepository;
         private final BookingRepository bookingRepository;
         private final ReviewRepository reviewRepository;
-        private final ChatMessageRepository chatMessageRepository;
+        private final MessageRepository messageRepository;
+        private final ChatRepository chatRepository;
         private final ChatTerminationRepository chatTerminationRepository;
         private final DocumentRepository documentRepository;
+        private final PasswordResetTokenRepository passwordResetTokenRepository;
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
         private final JdbcTemplate jdbcTemplate;
@@ -50,15 +52,23 @@ public class DatabaseInitializerService {
                 dropLegacySlotIdUniqueConstraint();
                 ensureUsersRoleCheckSupportsModerator();
 
+                // Rimuovi tabella legacy "chat_messages" se presente per evitare violazioni di FK
+                try {
+                        jdbcTemplate.execute("DROP TABLE IF EXISTS chat_messages CASCADE");
+                } catch (Exception ignored) {
+                }
+
                 // Svuota tutte le tabelle nell'ordine corretto (rispetta le FK)
                 chatTerminationRepository.deleteAllInBatch();
-                chatMessageRepository.deleteAllInBatch();
+                messageRepository.deleteAllInBatch();
+                chatRepository.deleteAllInBatch();
                 bookingRepository.deleteAllInBatch();
                 slotRepository.deleteAllInBatch();
                 weeklyScheduleRepository.deleteAllInBatch();
                 reviewRepository.deleteAllInBatch();
                 subscriptionRepository.deleteAllInBatch();
                 documentRepository.deleteAllInBatch();
+                passwordResetTokenRepository.deleteAllInBatch();
                 userRepository.deleteAllInBatch();
                 planRepository.deleteAllInBatch();
                 entityManager.flush();

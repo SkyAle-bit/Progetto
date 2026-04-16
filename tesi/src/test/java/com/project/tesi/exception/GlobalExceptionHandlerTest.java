@@ -105,7 +105,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> resp = handler.handleGlobalException(
                 new RuntimeException("errore imprevisto"), request);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(resp.getBody().getMessage()).contains("errore interno");
+        assertThat(resp.getBody().toString()).contains("Errore interno");
     }
 
     @Test

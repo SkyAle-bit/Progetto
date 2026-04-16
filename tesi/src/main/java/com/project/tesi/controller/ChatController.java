@@ -34,6 +34,13 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    /** Crea una nuova chat tra due utenti o recupera quella esistente. */
+    @Operation(summary = "Crea o recupera la chat tra due utenti")
+    @PostMapping("/create/{senderId}/{receiverId}")
+    public ResponseEntity<Long> createChat(@PathVariable Long senderId, @PathVariable Long receiverId) {
+        return ResponseEntity.ok(chatService.createChat(senderId, receiverId));
+    }
+
     /** Invia un nuovo messaggio da un utente a un altro. */
     @Operation(summary = "Invia un messaggio")
     @PostMapping("/send")
@@ -41,15 +48,15 @@ public class ChatController {
         return ResponseEntity.ok(chatService.sendMessage(request));
     }
 
-    /** Recupera la cronologia dei messaggi tra due utenti (paginata). */
-    @Operation(summary = "Recupera la cronologia messaggi tra due utenti")
-    @GetMapping("/conversation/{userId1}/{userId2}")
+    /** Recupera la cronologia dei messaggi di una chat tra due utenti (paginata). */
+    @Operation(summary = "Recupera la cronologia messaggi di una chat")
+    @GetMapping("/conversation/{chatId}/{userId}")
     public ResponseEntity<List<ChatMessageResponse>> getConversation(
-            @PathVariable Long userId1,
-            @PathVariable Long userId2,
+            @PathVariable Long chatId,
+            @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(chatService.getConversation(userId1, userId2, page, size));
+        return ResponseEntity.ok(chatService.getConversation(chatId, userId, page, size));
     }
 
     /** Recupera la lista di tutte le conversazioni di un utente con anteprima ultimo messaggio. */
@@ -59,11 +66,11 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getUserConversations(userId));
     }
 
-    /** Segna come letti tutti i messaggi ricevuti da un certo mittente. */
-    @Operation(summary = "Segna come letti tutti i messaggi ricevuti da un utente")
-    @PutMapping("/read/{receiverId}/{senderId}")
-    public ResponseEntity<Void> markAsRead(@PathVariable Long receiverId, @PathVariable Long senderId) {
-        chatService.markAsRead(receiverId, senderId);
+    /** Segna come letti tutti i messaggi ricevuti in una chat. */
+    @Operation(summary = "Segna come letti tutti i messaggi ricevuti in una chat")
+    @PutMapping("/read/{chatId}/{userId}")
+    public ResponseEntity<Void> markAsRead(@PathVariable Long chatId, @PathVariable Long userId) {
+        chatService.markAsRead(chatId, userId);
         return ResponseEntity.ok().build();
     }
 
@@ -76,9 +83,9 @@ public class ChatController {
 
     /** Termina una chat per un utente, nascondendola dalla sua vista. */
     @Operation(summary = "Termina una conversazione")
-    @PostMapping("/terminate/{userId}/{otherUserId}")
-    public ResponseEntity<Void> terminateChat(@PathVariable Long userId, @PathVariable Long otherUserId) {
-        chatService.terminateChat(userId, otherUserId);
+    @PostMapping("/terminate/{chatId}/{userId}")
+    public ResponseEntity<Void> terminateChat(@PathVariable Long chatId, @PathVariable Long userId) {
+        chatService.terminateChat(chatId, userId);
         return ResponseEntity.ok().build();
     }
 }

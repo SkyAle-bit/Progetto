@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ConversationPreviewResponse {
 
+    private Long chatId;
+
     private Long otherUserId;
 
     private String otherUserName;

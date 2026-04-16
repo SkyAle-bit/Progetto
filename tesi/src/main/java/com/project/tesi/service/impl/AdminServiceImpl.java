@@ -10,8 +10,9 @@ import com.project.tesi.exception.user.AdminSelfDeletionNotAllowedException;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
+import com.project.tesi.model.Chat;
 import com.project.tesi.repository.BookingRepository;
-import com.project.tesi.repository.ChatMessageRepository;
+import com.project.tesi.repository.ChatRepository;
 import com.project.tesi.repository.DocumentRepository;
 import com.project.tesi.repository.PlanRepository;
 import com.project.tesi.repository.ReviewRepository;
@@ -55,7 +56,7 @@ public class AdminServiceImpl implements AdminService {
     private final SubscriptionRepository subscriptionRepository;
     private final DocumentRepository documentRepository;
     private final BookingRepository bookingRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    private final ChatRepository chatRepository;
     private final ReviewRepository reviewRepository;
     private final SlotRepository slotRepository;
     private final WeeklyScheduleRepository weeklyScheduleRepository;
@@ -348,8 +349,9 @@ public class AdminServiceImpl implements AdminService {
         if (bookingRepository != null) {
             bookingRepository.deleteByUserId(userId);
         }
-        if (chatMessageRepository != null) {
-            chatMessageRepository.deleteByUserId(userId);
+        if (chatRepository != null) {
+            List<Chat> chats = chatRepository.findAllChatsByUserId(userId);
+            chatRepository.deleteAll(chats);
         }
         if (reviewRepository != null) {
             reviewRepository.deleteByUserId(userId);

@@ -18,8 +18,9 @@ import com.project.tesi.mapper.UserMapper;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
+import com.project.tesi.model.Chat;
 import com.project.tesi.repository.BookingRepository;
-import com.project.tesi.repository.ChatMessageRepository;
+import com.project.tesi.repository.ChatRepository;
 import com.project.tesi.repository.PlanRepository;
 import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.SubscriptionRepository;
@@ -53,7 +54,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    private final ChatRepository chatRepository;
     private final ReviewRepository reviewRepository;
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
@@ -226,13 +227,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public ClientBasicInfoResponse getSupportOperator() {
         List<User> moderators = userRepository.findByRole(Role.MODERATOR);
-        List<User> admins = userRepository.findByRole(Role.ADMIN);
 
-        List<User> operators = new ArrayList<>();
-        operators.addAll(moderators);
-        operators.addAll(admins);
-
-        if (!operators.isEmpty()) {
+        if (!moderators.isEmpty()) {
             Optional<User> currentUser = findAuthenticatedUser();
             if (currentUser.isPresent()) {
                 User actor = currentUser.get();
@@ -241,22 +237,18 @@ public class UserServiceImpl implements UserService {
                     return toBasicInfo(actor);
                 }
 
-                Optional<User> existing = findExistingOperatorConversation(actor.getId(), operators);
+                Optional<User> existing = findExistingOperatorConversation(actor.getId(), moderators);
                 User selected = existing.orElseGet(() -> {
-                    if (!moderators.isEmpty()) {
-                        int index = ThreadLocalRandom.current().nextInt(moderators.size());
-                        return moderators.get(index);
-                    } else {
-                        return admins.get(0);
-                    }
+                    int index = ThreadLocalRandom.current().nextInt(moderators.size());
+                    return moderators.get(index);
                 });
                 return toBasicInfo(selected);
             }
 
-            return toBasicInfo(moderators.isEmpty() ? admins.get(0) : moderators.get(0));
+            return toBasicInfo(moderators.get(0));
         }
 
-        throw new ResourceNotFoundException("Operatore di supporto non trovato nel sistema.");
+        throw new ResourceNotFoundException("Nessun moderatore trovato nel sistema.");
     }
 
     @Override
@@ -323,10 +315,14 @@ public class UserServiceImpl implements UserService {
     }
 
     private Optional<User> findExistingOperatorConversation(Long userId, List<User> operators) {
-        List<User> partners = chatMessageRepository.findConversationPartners(userId);
-        if (partners == null || partners.isEmpty()) {
+        List<Chat> chats = chatRepository.findAllChatsByUserId(userId);
+        if (chats == null || chats.isEmpty()) {
             return Optional.empty();
         }
+
+        List<User> partners = chats.stream()
+                .map(c -> c.getUser1().getId().equals(userId) ? c.getUser2() : c.getUser1())
+                .collect(Collectors.toList());
 
         return partners.stream()
                 .filter(p -> p.getRole() == Role.MODERATOR || p.getRole() == Role.ADMIN)
@@ -334,5 +330,4 @@ public class UserServiceImpl implements UserService {
                 .findFirst();
     }
 }
-
 

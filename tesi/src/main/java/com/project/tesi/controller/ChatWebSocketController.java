@@ -16,18 +16,6 @@ import java.util.Map;
 
 /**
  * Controller WebSocket (STOMP) per la chat in tempo reale.
- *
- * Gestisce tre operazioni tramite messaggi STOMP:
- * <ul>
- *   <li>{@code /app/chat.join} — l'utente entra in una stanza chat</li>
- *   <li>{@code /app/chat.leave} — l'utente esce da una stanza chat</li>
- *   <li>{@code /app/chat.send} — l'utente invia un messaggio</li>
- *   <li>{@code /app/chat.read} — l'utente segna i messaggi come letti</li>
- * </ul>
- *
- * L'invio dei messaggi segue un pattern "fire-and-persist":
- * il messaggio viene inoltrato immediatamente via WebSocket alla stanza,
- * e poi salvato in modo asincrono nel database tramite {@link ChatService}.
  */
 @Controller
 @RequiredArgsConstructor
@@ -37,16 +25,14 @@ public class ChatWebSocketController {
     private final WebSocketEventListener eventListener;
     private final ChatService chatService;
 
-    /** Registra l'ingresso dell'utente in una stanza chat (per tracciare la presenza). */
     @MessageMapping("/chat.join")
     public void joinRoom(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor ha) {
         String sid = ha.getSessionId();
-        String rid = (String) payload.get("roomId");
+        String rid = (String) payload.get("roomId"); // roomId is now chatId
         if (sid != null && rid != null)
             eventListener.joinRoom(sid, rid);
     }
 
-    /** Registra l'uscita dell'utente da una stanza chat. */
     @MessageMapping("/chat.leave")
     public void leaveRoom(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor ha) {
         String sid = ha.getSessionId();
@@ -55,70 +41,76 @@ public class ChatWebSocketController {
             eventListener.leaveRoom(sid, rid);
     }
 
-    /**
-     * Gestisce l'invio di un messaggio in tempo reale.
-     * 1) Inoltra immediatamente il messaggio alla stanza via WebSocket
-     * 2) Persiste il messaggio nel database in modo asincrono
-     * 3) Se il destinatario non è nella stanza, invia una notifica push
-     */
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload Map<String, Object> payload) {
         Long senderId = toLong(payload.get("senderId"));
-        Long receiverId = toLong(payload.get("receiverId"));
+        Long chatId = toLong(payload.get("chatId"));
         String content = (String) payload.get("content");
-        String roomId = (String) payload.get("roomId");
-        if (senderId == null || receiverId == null || content == null || roomId == null || senderId.equals(receiverId))
+
+        if (senderId == null || chatId == null || content == null)
             return;
+
+        String roomId = String.valueOf(chatId);
 
         LocalDateTime now = LocalDateTime.now();
         Map<String, Object> dto = new HashMap<>();
         dto.put("id", System.currentTimeMillis());
         dto.put("senderId", senderId);
         dto.put("senderName", chatService.getUserFullName(senderId));
-        dto.put("receiverId", receiverId);
-        dto.put("receiverName", chatService.getUserFullName(receiverId));
+        dto.put("chatId", chatId);
         dto.put("content", content);
         dto.put("status", "SENT");
         dto.put("createdAt", now.toString());
         dto.put("roomId", roomId);
 
-        messagingTemplate.convertAndSend("/topic/room/" + roomId, (Object) dto);
+        Long receiverId = null;
+        try {
+            com.project.tesi.model.Chat chat = chatService.getChatEntity(chatId);
+            if (chat != null) {
+                receiverId = chat.getUser1().getId().equals(senderId) ? chat.getUser2().getId() : chat.getUser1().getId();
+                dto.put("receiverId", receiverId);
+                dto.put("receiverName", chatService.getUserFullName(receiverId));
+            }
+        } catch (Exception e) { /* ignore */ }
 
-        saveMessageAsync(senderId, receiverId, content);
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, (Object) dto);
 
-        if (!eventListener.isUserInRoom(receiverId, roomId)) {
-            Map<String, Object> notif = new HashMap<>();
-            notif.put("type", "NEW_MESSAGE");
-            notif.put("message", dto);
-            messagingTemplate.convertAndSend("/user/" + receiverId + "/queue/notifications", (Object) notif);
+        saveMessageAsync(chatId, senderId, content);
+
+        if (receiverId != null) {
+            try {
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("type", "NEW_MESSAGE");
+                notification.put("message", dto);
+                messagingTemplate.convertAndSend("/user/" + receiverId + "/queue/notifications", (Object) notification);
+            } catch (Exception e) { /* ignore */ }
             sendUnreadUpdate(receiverId);
         }
     }
 
-    /** Segna come letti tutti i messaggi di una conversazione e aggiorna il badge non letti. */
     @MessageMapping("/chat.read")
     public void markAsRead(@Payload Map<String, Object> payload) {
         Long uid = toLong(payload.get("userId"));
-        Long oid = toLong(payload.get("otherUserId"));
-        if (uid != null && oid != null) {
-            markAsReadAsync(uid, oid);
+        Long chatId = toLong(payload.get("chatId"));
+        if (uid != null && chatId != null) {
+            markAsReadAsync(chatId, uid);
             sendUnreadUpdate(uid);
         }
     }
 
     @Async
-    public void saveMessageAsync(Long senderId, Long receiverId, String content) {
+    public void saveMessageAsync(Long chatId, Long senderId, String content) {
         try {
-            chatService.sendMessageDirect(senderId, receiverId, content);
+            chatService.sendMessageDirect(chatId, senderId, content);
         } catch (Exception e) {
             System.err.println("[WS] Save error: " + e.getMessage());
         }
     }
 
     @Async
-    public void markAsReadAsync(Long receiverId, Long senderId) {
+    public void markAsReadAsync(Long chatId, Long userId) {
         try {
-            chatService.markAsRead(receiverId, senderId);
+            chatService.markAsRead(chatId, userId);
         } catch (Exception e) {
             System.err.println("[WS] MarkAsRead error: " + e.getMessage());
         }

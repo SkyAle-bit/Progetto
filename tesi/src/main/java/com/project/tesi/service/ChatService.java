@@ -13,6 +13,9 @@ import java.util.List;
  */
 public interface ChatService {
 
+    /** Crea o recupera una chat tra due utenti. */
+    Long createChat(Long senderId, Long receiverId);
+
     /** Invia un messaggio tramite endpoint REST (con validazione permessi). */
     ChatMessageResponse sendMessage(SendMessageRequest request);
 
@@ -20,20 +23,20 @@ public interface ChatService {
      * Salva direttamente un messaggio (usato dal WebSocket controller).
      * Gestisce la transazione correttamente tramite il proxy Spring.
      *
+     * @param chatId     ID della chat
      * @param senderId   ID del mittente
-     * @param receiverId ID del destinatario
      * @param content    contenuto del messaggio
      */
-    void sendMessageDirect(Long senderId, Long receiverId, String content);
+    void sendMessageDirect(Long chatId, Long senderId, String content);
 
-    /** Recupera la cronologia dei messaggi tra due utenti (paginata). */
-    List<ChatMessageResponse> getConversation(Long userId1, Long userId2, int page, int size);
+    /** Recupera la cronologia dei messaggi di una chat (paginata). */
+    List<ChatMessageResponse> getConversation(Long chatId, Long userId, int page, int size);
 
     /** Recupera la lista di tutte le conversazioni di un utente con anteprima. */
     List<ConversationPreviewResponse> getUserConversations(Long userId);
 
-    /** Segna come letti tutti i messaggi ricevuti da un certo mittente. */
-    void markAsRead(Long receiverId, Long senderId);
+    /** Segna come letti tutti i messaggi ricevuti in una chat. */
+    void markAsRead(Long chatId, Long userId);
 
     /** Restituisce il conteggio totale dei messaggi non letti per un utente. */
     int getTotalUnreadCount(Long userId);
@@ -52,8 +55,9 @@ public interface ChatService {
      * La chat scompare dalla lista dell'utente ma resta visibile per l'operatore
      * con un'indicazione che la conversazione è stata terminata.
      *
-     * @param userId      ID dell'utente che termina la chat
-     * @param otherUserId ID dell'operatore (admin/moderatore)
+     * @param chatId      ID della chat
      */
-    void terminateChat(Long userId, Long otherUserId);
+    void terminateChat(Long chatId, Long userId);
+
+    com.project.tesi.model.Chat getChatEntity(Long chatId);
 }

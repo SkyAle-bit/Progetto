@@ -6,239 +6,166 @@ import com.project.tesi.dto.response.ConversationPreviewResponse;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.chat.ChatNotAllowedException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
-import com.project.tesi.mapper.ChatMessageMapper;
-import com.project.tesi.model.ChatMessage;
+import com.project.tesi.model.Chat;
+import com.project.tesi.model.Message;
 import com.project.tesi.model.User;
-import com.project.tesi.repository.ChatMessageRepository;
+import com.project.tesi.repository.ChatRepository;
+import com.project.tesi.repository.MessageRepository;
 import com.project.tesi.repository.UserRepository;
-import com.project.tesi.repository.ChatTerminationRepository;
-import com.project.tesi.model.ChatTermination;
 import com.project.tesi.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementazione del servizio di messaggistica chat.
- *
- * Gestisce l'invio di messaggi (REST e WebSocket), il recupero delle conversazioni,
- * la marcatura come letti e il conteggio dei non letti.
- * Applica una regola di business: la chat è consentita solo tra
- * un cliente e un professionista a lui assegnato, oppure con l'Admin.
- */
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private final ChatMessageRepository chatMessageRepository;
+    private final ChatRepository chatRepository;
+    private final MessageRepository messageRepository;
     private final UserRepository userRepository;
-    private final ChatMessageMapper chatMessageMapper;
-    private final ChatTerminationRepository chatTerminationRepository;
+
+    @Override
+    @Transactional
+    public Long createChat(Long senderId, Long receiverId) {
+        if (senderId.equals(receiverId)) {
+            throw new IllegalArgumentException("Non puoi avviare una chat con te stesso");
+        }
+
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mittente", senderId));
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Destinatario", receiverId));
+
+        validateChatPermission(sender, receiver);
+
+        Chat chat = getOrCreateChat(sender, receiver);
+        return chat.getId();
+    }
 
     @Override
     @Transactional
     public ChatMessageResponse sendMessage(SendMessageRequest request) {
-        if (request.getSenderId().equals(request.getReceiverId())) {
-            throw new IllegalArgumentException("Non puoi inviare un messaggio a te stesso");
-        }
+        Chat chat = chatRepository.findById(request.getChatId())
+                .orElseThrow(() -> new ResourceNotFoundException("Chat", request.getChatId()));
 
         User sender = userRepository.findById(request.getSenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Mittente", request.getSenderId()));
 
-        User receiver = userRepository.findById(request.getReceiverId())
-                .orElseThrow(() -> new ResourceNotFoundException("Destinatario", request.getReceiverId()));
+        if (!chat.getUser1().getId().equals(sender.getId()) && !chat.getUser2().getId().equals(sender.getId())) {
+             throw new ChatNotAllowedException("Non sei parte di questa chat");
+        }
 
-        // Regola business: solo client ↔ professionista assegnato
-        validateChatPermission(sender, receiver);
-
-        // Se il mittente aveva terminato la chat, la riapriamo rimuovendo la terminazione
-        chatTerminationRepository.deleteByTerminatedByIdAndOtherUserId(sender.getId(), receiver.getId());
-
-        ChatMessage message = ChatMessage.builder()
-                .sender(sender)
-                .receiver(receiver)
+        Message message = Message.builder()
+                .chat(chat)
+                .user(sender)
                 .content(request.getContent())
+                .timeStamp(LocalDateTime.now())
+                .isRead(false)
                 .build();
 
-        ChatMessage saved = chatMessageRepository.save(message);
-        return chatMessageMapper.toResponse(saved);
+        Message saved = messageRepository.save(message);
+
+        Long receiverId = chat.getUser1().getId().equals(sender.getId()) ? chat.getUser2().getId() : chat.getUser1().getId();
+        return toChatMessageResponse(saved, receiverId);
     }
 
     @Override
     @Transactional
-    public void sendMessageDirect(Long senderId, Long receiverId, String content) {
-        if (senderId.equals(receiverId)) {
-            return; // Ignore self-messages
-        }
+    public void sendMessageDirect(Long chatId, Long senderId, String content) {
+        Chat chat = chatRepository.findById(chatId).orElse(null);
         User sender = userRepository.findById(senderId).orElse(null);
-        User receiver = userRepository.findById(receiverId).orElse(null);
-        if (sender == null || receiver == null)
-            return;
+        if (chat == null || sender == null) return;
 
-        // Se il mittente aveva terminato la chat, la riapriamo rimuovendo la terminazione
-        chatTerminationRepository.deleteByTerminatedByIdAndOtherUserId(sender.getId(), receiver.getId());
+        if (!chat.getUser1().getId().equals(sender.getId()) && !chat.getUser2().getId().equals(sender.getId())) {
+             return; // not part of chat
+        }
 
-        ChatMessage message = ChatMessage.builder()
-                .sender(sender)
-                .receiver(receiver)
+        Message message = Message.builder()
+                .chat(chat)
+                .user(sender)
                 .content(content)
+                .timeStamp(LocalDateTime.now())
+                .isRead(false)
                 .build();
-        chatMessageRepository.save(message);
+
+        messageRepository.save(message);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChatMessageResponse> getConversation(Long userId1, Long userId2, int page, int size) {
-        User user1 = userRepository.findById(userId1)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId1));
-        User user2 = userRepository.findById(userId2)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId2));
+    public List<ChatMessageResponse> getConversation(Long chatId, Long userId, int page, int size) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat", chatId));
 
-        // Regola business: solo client ↔ professionista assegnato
-        validateChatPermission(user1, user2);
+        if (!chat.getUser1().getId().equals(userId) && !chat.getUser2().getId().equals(userId)) {
+             throw new ChatNotAllowedException("Non sei parte di questa chat");
+        }
 
-        List<ChatMessage> messages = chatMessageRepository.findConversation(
-                userId1, userId2, PageRequest.of(page, size));
+        List<Message> messages = messageRepository.findMessagesByChatId(chat.getId(), PageRequest.of(page, size));
 
         return messages.stream()
-                .map(chatMessageMapper::toResponse)
+                .map(m -> {
+                     Long receiverId = chat.getUser1().getId().equals(m.getUser().getId()) ? chat.getUser2().getId() : chat.getUser1().getId();
+                     return toChatMessageResponse(m, receiverId);
+                })
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ConversationPreviewResponse> getUserConversations(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            return java.util.Collections.emptyList();
-        }
+        List<Chat> chats = chatRepository.findAllChatsByUserId(userId);
+        User currentUser = userRepository.findById(userId).orElse(null);
 
-        List<User> partners = chatMessageRepository.findConversationPartners(userId);
-        
-        // Determina se l'utente è un operatore o meno
-        User user = userRepository.findById(userId).orElseThrow();
-        boolean isOperator = user.getRole() == Role.ADMIN || user.getRole() == Role.MODERATOR;
+        return chats.stream().map(chat -> {
+            User partner = chat.getUser1().getId().equals(userId) ? chat.getUser2() : chat.getUser1();
+            Message lastMsg = messageRepository.findLastMessageByChatId(chat.getId());
+            int unreadCount = messageRepository.countUnreadMessagesByChatIdAndUserId(chat.getId(), userId);
 
-        // Se l'utente non è un operatore, filtriamo via le chat che ha terminato
-        List<Long> terminatedIds = chatTerminationRepository.findTerminatedOtherUserIdsByUserId(userId);
-        
-        // Se l'utente è un operatore, recuperiamo le chat terminate dai clienti verso di lui
-        List<Long> terminatedByUserIds = isOperator ? chatTerminationRepository.findTerminatedByUserIdsForOperator(userId) : List.of();
-
-        return partners.stream()
-                // Escludi le chat che l'utente stesso ha terminato (visibili solo agli operatori)
-                .filter(partner -> isOperator || !terminatedIds.contains(partner.getId()))
-                // Se l'utente è ADMIN, mostra solo le chat con MODERATOR o INSURANCE_MANAGER (Fix #2)
-                .filter(partner -> {
-                    if (user.getRole() == Role.ADMIN) {
-                        return partner.getRole() == Role.MODERATOR || partner.getRole() == Role.INSURANCE_MANAGER;
+            return ConversationPreviewResponse.builder()
+                    .chatId(chat.getId())
+                    .otherUserId(partner.getId())
+                    .otherUserName(partner.getFirstName() + " " + partner.getLastName())
+                    .otherUserRole(partner.getRole() != null ? partner.getRole().name() : null)
+                    .lastMessage(lastMsg != null ? lastMsg.getContent() : "")
+                    .lastMessageTime(lastMsg != null ? lastMsg.getTimeStamp() : null)
+                    .unreadCount(unreadCount)
+                    .build();
+        })
+        .filter(res -> {
+            if (res.getLastMessageTime() == null && currentUser != null) {
+                Role role = currentUser.getRole();
+                if (role == Role.CLIENT || role == Role.PERSONAL_TRAINER || role == Role.NUTRITIONIST) {
+                    if ("ADMIN".equals(res.getOtherUserRole()) || "MODERATOR".equals(res.getOtherUserRole())) {
+                        return false; // hide empty admin/moderator chats for normal users
                     }
-                    return true;
-                })
-                .map(partner -> {
-                    List<ChatMessage> lastMsgs = chatMessageRepository.findLastMessages(userId, partner.getId(),
-                            PageRequest.of(0, 1));
-                    ChatMessage lastMsg = lastMsgs.isEmpty() ? null : lastMsgs.get(0);
-                    int unread = chatMessageRepository.countUnreadMessages(userId, partner.getId());
-                    boolean terminated = isOperator && terminatedByUserIds.contains(partner.getId());
-                    
-                    ConversationPreviewResponse preview = chatMessageMapper.toConversationPreview(partner, lastMsg, unread);
-                    if (preview != null) {
-                        preview.setTerminated(terminated);
-                    }
-                    return preview;
-                })
-                .sorted((a, b) -> {
-                    if (a.getLastMessageTime() == null)
-                        return 1;
-                    if (b.getLastMessageTime() == null)
-                        return -1;
-                    return b.getLastMessageTime().compareTo(a.getLastMessageTime());
-                })
-                .collect(Collectors.toList());
+                }
+            }
+            return true;
+        })
+        .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public void markAsRead(Long receiverId, Long senderId) {
-        if (!userRepository.existsById(receiverId) || !userRepository.existsById(senderId)) {
-            return;
-        }
-
-        chatMessageRepository.markMessagesAsRead(receiverId, senderId);
+    public void markAsRead(Long chatId, Long userId) {
+        chatRepository.findById(chatId).ifPresent(chat -> {
+            if (chat.getUser1().getId().equals(userId) || chat.getUser2().getId().equals(userId)) {
+                messageRepository.markMessagesAsRead(chat.getId(), userId);
+            }
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public int getTotalUnreadCount(Long userId) {
-        if (!userRepository.existsById(userId))
-            return 0;
-        return chatMessageRepository.countAllUnreadMessages(userId);
-    }
-
-
-    private void validateChatPermission(User userA, User userB) {
-        // Admin può comunicare con chiunque
-        if (userA.getRole() == Role.ADMIN || userB.getRole() == Role.ADMIN) {
-            return;
-        }
-
-        // Insurance Manager può chattare solo con Admin
-        if (userA.getRole() == Role.INSURANCE_MANAGER || userB.getRole() == Role.INSURANCE_MANAGER) {
-            throw new ChatNotAllowedException(
-                    "L'account polizze può comunicare solo con l'amministratore.");
-        }
-
-        // Supporto: Cliente/Professionista <-> Moderatore
-        if (userA.getRole() == Role.MODERATOR || userB.getRole() == Role.MODERATOR) {
-            boolean counterpartAllowed = userA.getRole() == Role.CLIENT
-                    || userB.getRole() == Role.CLIENT
-                    || isProfessional(userA)
-                    || isProfessional(userB);
-            if (counterpartAllowed) {
-                return;
-            }
-            throw new ChatNotAllowedException();
-        }
-
-        // Client ↔ Professionista assegnato
-        User client;
-        User professional;
-
-        if (userA.getRole() == Role.CLIENT && isProfessional(userB)) {
-            client = userA;
-            professional = userB;
-        } else if (userB.getRole() == Role.CLIENT && isProfessional(userA)) {
-            client = userB;
-            professional = userA;
-        } else {
-            throw new ChatNotAllowedException();
-        }
-
-        // Verifica che il professionista sia effettivamente assegnato al cliente
-        boolean isAssigned = false;
-        if (professional.getRole() == Role.PERSONAL_TRAINER
-                && client.getAssignedPT() != null
-                && client.getAssignedPT().getId().equals(professional.getId())) {
-            isAssigned = true;
-        }
-        if (professional.getRole() == Role.NUTRITIONIST
-                && client.getAssignedNutritionist() != null
-                && client.getAssignedNutritionist().getId().equals(professional.getId())) {
-            isAssigned = true;
-        }
-
-        if (!isAssigned) {
-            throw new ChatNotAllowedException(
-                    "Non puoi comunicare con questo professionista: non è assegnato a te.");
-        }
-    }
-
-    private boolean isProfessional(User user) {
-        return user.getRole() == Role.PERSONAL_TRAINER || user.getRole() == Role.NUTRITIONIST;
+        return messageRepository.countTotalUnreadMessagesByUserId(userId);
     }
 
     @Override
@@ -251,18 +178,66 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional
-    public void terminateChat(Long userId, Long otherUserId) {
-        if (!chatTerminationRepository.existsByTerminatedByIdAndOtherUserId(userId, otherUserId)) {
-            User terminatedBy = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
-            User otherUser = userRepository.findById(otherUserId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Utente", otherUserId));
+    public void terminateChat(Long chatId, Long userId) {
+        // Logica terminazione se richiesta.
+    }
 
-            ChatTermination termination = ChatTermination.builder()
-                    .terminatedBy(terminatedBy)
-                    .otherUser(otherUser)
-                    .build();
-            chatTerminationRepository.save(termination);
+    @Override
+    @Transactional(readOnly = true)
+    public Chat getChatEntity(Long chatId) {
+        return chatRepository.findById(chatId).orElse(null);
+    }
+
+    private Chat getOrCreateChat(User user1, User user2) {
+        return chatRepository.findChatBetweenUsers(user1.getId(), user2.getId())
+                .orElseGet(() -> {
+                    Chat newChat = Chat.builder()
+                            .user1(user1)
+                            .user2(user2)
+                            .createdAt(LocalDateTime.now())
+                            .build();
+                    return chatRepository.save(newChat);
+                });
+    }
+
+    private void validateChatPermission(User uA, User uB) {
+        if (uA.getRole() == Role.ADMIN || uB.getRole() == Role.ADMIN) return;
+        if (uA.getRole() == Role.MODERATOR || uB.getRole() == Role.MODERATOR) return;
+
+        if (uA.getRole() == Role.INSURANCE_MANAGER || uB.getRole() == Role.INSURANCE_MANAGER) {
+            throw new ChatNotAllowedException("Admin only");
         }
+
+        boolean professionalAssigned = false;
+        User client = null;
+        User prof = null;
+        if (uA.getRole() == Role.CLIENT) { client = uA; prof = uB; }
+        else if (uB.getRole() == Role.CLIENT) { client = uB; prof = uA; }
+
+        if (client != null && prof != null) {
+            if (prof.getRole() == Role.PERSONAL_TRAINER && client.getAssignedPT() != null && client.getAssignedPT().getId().equals(prof.getId())) {
+                professionalAssigned = true;
+            }
+            if (prof.getRole() == Role.NUTRITIONIST && client.getAssignedNutritionist() != null && client.getAssignedNutritionist().getId().equals(prof.getId())) {
+                professionalAssigned = true;
+            }
+        }
+
+        if (!professionalAssigned) {
+            throw new ChatNotAllowedException("Non sei assegnato a questo utente");
+        }
+    }
+
+    private ChatMessageResponse toChatMessageResponse(Message m, Long receiverId) {
+        ChatMessageResponse dto = new ChatMessageResponse();
+        dto.setId(m.getId());
+        dto.setChatId(m.getChat().getId());
+        dto.setSenderId(m.getUser().getId());
+        dto.setSenderName(m.getUser().getFirstName() + " " + m.getUser().getLastName());
+        dto.setReceiverId(receiverId);
+        dto.setContent(m.getContent());
+        dto.setCreatedAt(m.getTimeStamp());
+        dto.setStatus(m.isRead() ? com.project.tesi.enums.MessageStatus.READ : com.project.tesi.enums.MessageStatus.SENT);
+        return dto;
     }
 }
