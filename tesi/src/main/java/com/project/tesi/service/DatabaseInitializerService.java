@@ -40,7 +40,6 @@ public class DatabaseInitializerService {
         private final ReviewRepository reviewRepository;
         private final MessageRepository messageRepository;
         private final ChatRepository chatRepository;
-        private final ChatTerminationRepository chatTerminationRepository;
         private final DocumentRepository documentRepository;
         private final PasswordResetTokenRepository passwordResetTokenRepository;
         private final PasswordEncoder passwordEncoder;
@@ -59,7 +58,6 @@ public class DatabaseInitializerService {
                 }
 
                 // Svuota tutte le tabelle nell'ordine corretto (rispetta le FK)
-                chatTerminationRepository.deleteAllInBatch();
                 messageRepository.deleteAllInBatch();
                 chatRepository.deleteAllInBatch();
                 bookingRepository.deleteAllInBatch();

@@ -30,7 +30,4 @@ public class ConversationPreviewResponse {
     private LocalDateTime lastMessageTime;
 
     private int unreadCount;
-
-    @Builder.Default
-    private boolean terminated = false;
 }

@@ -50,14 +50,6 @@ public interface ChatService {
      */
     String getUserFullName(Long userId);
 
-    /**
-     * Termina una chat di supporto per un utente.
-     * La chat scompare dalla lista dell'utente ma resta visibile per l'operatore
-     * con un'indicazione che la conversazione è stata terminata.
-     *
-     * @param chatId      ID della chat
-     */
-    void terminateChat(Long chatId, Long userId);
 
     com.project.tesi.model.Chat getChatEntity(Long chatId);
 }

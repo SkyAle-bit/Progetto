@@ -176,11 +176,6 @@ public class ChatServiceImpl implements ChatService {
                 .orElse("Utente");
     }
 
-    @Override
-    @Transactional
-    public void terminateChat(Long chatId, Long userId) {
-        // Logica terminazione se richiesta.
-    }
 
     @Override
     @Transactional(readOnly = true)

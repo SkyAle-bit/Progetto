@@ -325,7 +325,6 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
 
         return partners.stream()
-                .filter(p -> p.getRole() == Role.MODERATOR || p.getRole() == Role.ADMIN)
                 .filter(p -> operators.stream().anyMatch(o -> o.getId().equals(p.getId())))
                 .findFirst();
     }

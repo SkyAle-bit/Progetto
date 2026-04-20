@@ -68,7 +68,7 @@ public class UserFacade {
         return userService.getClientsForProfessional(professionalId);
     }
 
-    /** Restituisce i dati dell'account Admin (per avviare chat di supporto). */
+    /** Restituisce i dati dell'account Supporto o Admin (per avviare chat). */
     public ClientBasicInfoResponse getAdmin() {
         return userService.getSupportOperator();
     }
