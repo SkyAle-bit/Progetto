@@ -84,13 +84,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void forgotPassword(String email) {
-        User user = userRepository.findByEmail(email).orElse(null);
-
-        // Per sicurezza, non riveliamo se l'email esiste o meno
-        if (user == null) {
-            log.warn("Richiesta reset password per email non registrata: {}", email);
-            return;
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", "email", email));
 
         // Elimina eventuali token precedenti per questo utente
         passwordResetTokenRepository.deleteByUser(user);

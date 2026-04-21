@@ -46,7 +46,7 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
-        return ResponseEntity.ok(Map.of("message", "Se l'email è registrata, riceverai un link per reimpostare la password."));
+        return ResponseEntity.ok(Map.of("message", "Link di reset inviato. Controlla la tua casella di posta."));
     }
 
     /** Reimposta la password usando il token ricevuto via email. */
