@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponse register(RegisterRequest request) {
@@ -126,9 +128,9 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Il link di reset è scaduto. Richiedi un nuovo reset.");
         }
 
-        // Aggiorna la password (NoOp encoder — password in chiaro)
+        // Aggiorna la password
         User user = resetToken.getUser();
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         // Marca il token come usato
