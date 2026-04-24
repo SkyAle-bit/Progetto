@@ -10,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -32,7 +31,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Plan {
 
     @Id
@@ -60,4 +58,9 @@ public class Plan {
 
 
     private String insuranceCoverageDetails;
+
+    public static com.project.tesi.builder.PlanBuilder builder() {
+        return new com.project.tesi.builder.impl.PlanBuilderImpl();
+    }
+
 }

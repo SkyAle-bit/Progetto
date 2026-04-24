@@ -14,7 +14,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,7 +34,6 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Booking {
 
     @Id
@@ -63,6 +61,10 @@ public class Booking {
     @Column(nullable = false)
     private String meetingLink;
 
-    @Builder.Default
     private boolean reminderSent = false;
+
+    public static com.project.tesi.builder.BookingBuilder builder() {
+        return new com.project.tesi.builder.impl.BookingBuilderImpl();
+    }
+
 }

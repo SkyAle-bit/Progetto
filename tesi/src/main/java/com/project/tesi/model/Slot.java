@@ -12,7 +12,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
@@ -42,7 +41,6 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Slot {
 
     @Id
@@ -69,4 +67,9 @@ public class Slot {
      */
     @Version
     private Integer version;
+
+    public static com.project.tesi.builder.SlotBuilder builder() {
+        return new com.project.tesi.builder.impl.SlotBuilderImpl();
+    }
+
 }

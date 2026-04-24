@@ -9,7 +9,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -23,7 +22,6 @@ import jakarta.persistence.CascadeType;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Chat {
 
     @Id
@@ -39,9 +37,13 @@ public class Chat {
     private User user2;
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
-    @Builder.Default
     private List<Message> messages = new ArrayList<>();
 
     private LocalDateTime createdAt;
+
+    public static com.project.tesi.builder.ChatBuilder builder() {
+        return new com.project.tesi.builder.impl.ChatBuilderImpl();
+    }
+
 }
 

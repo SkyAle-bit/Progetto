@@ -14,7 +14,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
@@ -40,7 +39,6 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Subscription {
 
     @Id
@@ -79,4 +77,9 @@ public class Subscription {
     private int currentCreditsNutri;
 
     private LocalDate lastRenewalDate;
+
+    public static com.project.tesi.builder.SubscriptionBuilder builder() {
+        return new com.project.tesi.builder.impl.SubscriptionBuilderImpl();
+    }
+
 }

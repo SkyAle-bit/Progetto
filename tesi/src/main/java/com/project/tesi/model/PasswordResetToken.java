@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -25,7 +24,6 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class PasswordResetToken {
 
     @Id
@@ -42,10 +40,14 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private LocalDateTime expiryDate;
 
-    @Builder.Default
     private boolean used = false;
 
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiryDate);
     }
+
+    public static com.project.tesi.builder.PasswordResetTokenBuilder builder() {
+        return new com.project.tesi.builder.impl.PasswordResetTokenBuilderImpl();
+    }
+
 }

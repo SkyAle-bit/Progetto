@@ -11,7 +11,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,7 +34,6 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Review {
 
     @Id
@@ -58,4 +56,9 @@ public class Review {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    public static com.project.tesi.builder.ReviewBuilder builder() {
+        return new com.project.tesi.builder.impl.ReviewBuilderImpl();
+    }
+
 }

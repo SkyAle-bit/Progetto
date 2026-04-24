@@ -12,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.DayOfWeek;
@@ -37,7 +36,6 @@ import java.time.LocalTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class WeeklySchedule {
 
     @Id
@@ -57,4 +55,9 @@ public class WeeklySchedule {
 
     @Column(nullable = false)
     private LocalTime endTime;
+
+    public static com.project.tesi.builder.WeeklyScheduleBuilder builder() {
+        return new com.project.tesi.builder.impl.WeeklyScheduleBuilderImpl();
+    }
+
 }

@@ -12,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
@@ -34,7 +33,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "documents")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Document {
@@ -64,4 +62,9 @@ public class Document {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    public static com.project.tesi.builder.DocumentBuilder builder() {
+        return new com.project.tesi.builder.impl.DocumentBuilderImpl();
+    }
+
 }
