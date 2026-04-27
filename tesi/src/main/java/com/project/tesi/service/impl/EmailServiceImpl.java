@@ -242,6 +242,33 @@ public class EmailServiceImpl implements EmailService {
     }
 
     // ══════════════════════════════════════════════════════════════
+    //  EMAIL DI CONFERMA PRENOTAZIONE
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    @Async
+    public void sendBookingConfirmationEmail(String toEmail, String recipientName, String otherPartyName,
+                                          LocalDateTime startTime, String meetingLink) {
+        try {
+            validateRecipient(toEmail);
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy 'alle' HH:mm");
+            String formattedTime = startTime.format(fmt);
+            String subject = "✅ Conferma Prenotazione — " + formattedTime;
+            
+            // Per semplicità usiamo un template basilare o riadattiamo quello del promemoria
+            String html = buildReminderHtml(recipientName, otherPartyName, formattedTime, meetingLink, true)
+                .replace("Promemoria Appuntamento", "Conferma Prenotazione")
+                .replace("Il tuo appuntamento è tra 30 minuti", "Il tuo appuntamento è stato confermato con successo")
+                .replace("Ti ricordiamo che hai un appuntamento programmato", "Ti confermiamo l'appuntamento programmato");
+                
+            sendSimpleEmail(toEmail, subject, html);
+            log.info("Email conferma prenotazione inviata a {} per appuntamento delle {}", toEmail, formattedTime);
+        } catch (Exception e) {
+            log.error("Errore nell'invio dell'email di conferma prenotazione a {}", toEmail, e);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
     //  EMAIL DI RESET PASSWORD
     // ══════════════════════════════════════════════════════════════
 

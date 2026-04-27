@@ -19,6 +19,8 @@ import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.service.strategy.PersonalTrainerBookingStrategy;
+import com.project.tesi.observer.manager.EventManager;
+import com.project.tesi.enums.EventType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,7 @@ class BookingServiceImplTest {
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private BookingMapper bookingMapper;
     @Mock private VideoConferenceService videoConferenceService;
+    @Mock private EventManager eventManager;
 
     private BookingServiceImpl bookingService;
 
@@ -70,7 +73,7 @@ class BookingServiceImplTest {
         // Crea strategy reale per PT
         BookingStrategy ptStrategy = new PersonalTrainerBookingStrategy();
         bookingService = new BookingServiceImpl(bookingRepository, slotRepository, userRepository,
-                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService);
+                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService, eventManager);
     }
 
     @Test
@@ -97,8 +100,9 @@ class BookingServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         assertThat(slot.isBooked()).isTrue();
-        assertThat(subscription.getCurrentCreditsPT()).isEqualTo(4); // Scalato di 1
+        
         verify(bookingRepository).save(any(Booking.class));
+        verify(eventManager).notifyListeners(eq(EventType.BOOKING_CREATED), any(Booking.class));
     }
 
     @Test

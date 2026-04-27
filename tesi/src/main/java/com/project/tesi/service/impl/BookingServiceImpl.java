@@ -21,6 +21,8 @@ import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.BookingService;
 import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
+import com.project.tesi.enums.EventType;
+import com.project.tesi.observer.manager.EventManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final List<BookingStrategy> strategies;
     private final VideoConferenceService videoConferenceService;
+    private final EventManager eventManager;
 
     /**
      * Valida e registra una nuova prenotazione.
@@ -102,12 +105,8 @@ public class BookingServiceImpl implements BookingService {
             );
         }
 
-        strategy.consumeCredits(sub);
-
         slot.setBooked(true);
         slotRepository.save(slot);
-
-        subscriptionRepository.save(sub);
 
         String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
 
@@ -120,6 +119,8 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+
+        eventManager.notifyListeners(EventType.BOOKING_CREATED, saved);
 
         return bookingMapper.toResponse(saved);
     }

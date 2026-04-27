@@ -38,4 +38,16 @@ public interface EmailService {
      * @param resetToken il token UUID da includere nel link
      */
     void sendPasswordResetEmail(String toEmail, String firstName, String resetToken);
+
+    /**
+     * Invia l'email di conferma per una prenotazione appena creata.
+     *
+     * @param toEmail           email del destinatario
+     * @param recipientName     nome del destinatario
+     * @param otherPartyName    nome dell'altra parte (cliente o professionista)
+     * @param startTime         data/ora dell'appuntamento
+     * @param meetingLink       link Jitsi per la videochiamata
+     */
+    void sendBookingConfirmationEmail(String toEmail, String recipientName, String otherPartyName,
+                                   java.time.LocalDateTime startTime, String meetingLink);
 }
