@@ -9,26 +9,35 @@ import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.service.strategy.BookingStrategy;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * Listener responsabile della scalatura dei crediti dall'abbonamento dell'utente.
- * Reagisce all'evento BOOKING_CREATED.
- */
 @Component
-@RequiredArgsConstructor
 public class CreditDeductionListener implements EventListener<Booking> {
 
     private final EventManager eventManager;
     private final SubscriptionRepository subscriptionRepository;
     private final List<BookingStrategy> strategies;
 
+    // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
+    public CreditDeductionListener(EventManager eventManager,
+                                   SubscriptionRepository subscriptionRepository,
+                                   List<BookingStrategy> strategies) {
+        this.eventManager = eventManager;
+        this.subscriptionRepository = subscriptionRepository;
+        this.strategies = strategies;
+    }
+
     @PostConstruct
     public void init() {
         eventManager.subscribe(EventType.BOOKING_CREATED, this);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
     }
 
     @Override
@@ -37,21 +46,16 @@ public class CreditDeductionListener implements EventListener<Booking> {
         User professional = booking.getProfessional();
 
         Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(() -> new IllegalStateException("Abbonamento non trovato per l'utente " + user.getId()));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Abbonamento non trovato per l'utente " + user.getId()));
 
-        BookingStrategy strategy = null;
-        for (BookingStrategy s : strategies) {
-            if (s.getSupportedRole() == professional.getRole()) {
-                strategy = s;
-                break;
-            }
-        }
-        
-        if (strategy == null) {
-            throw new IllegalStateException("Il professionista non è né PT né Nutrizionista");
-        }
+        // Stream più leggibile e idiomatico rispetto al loop manuale
+        BookingStrategy strategy = strategies.stream()
+                .filter(s -> s.getSupportedRole() == professional.getRole())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Nessuna strategy trovata per il ruolo: " + professional.getRole()));
 
-        // Scala il credito e salva
         strategy.consumeCredits(sub);
         subscriptionRepository.save(sub);
     }
