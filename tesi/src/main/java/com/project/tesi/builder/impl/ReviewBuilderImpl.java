@@ -2,6 +2,7 @@ package com.project.tesi.builder.impl;
 
 import com.project.tesi.builder.ReviewBuilder;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -46,6 +47,9 @@ public class ReviewBuilderImpl implements ReviewBuilder {
 
     @Override
     public Review build() {
+        Objects.requireNonNull(this.client, "client è obbligatorio");
+        Objects.requireNonNull(this.professional, "professional è obbligatorio");
+
         Review obj = new Review();
         obj.setId(this.id);
         obj.setClient(this.client);

@@ -3,6 +3,7 @@ package com.project.tesi.builder.impl;
 import com.project.tesi.builder.SubscriptionBuilder;
 import com.project.tesi.enums.PaymentFrequency;
 import java.time.LocalDate;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -89,6 +90,10 @@ public class SubscriptionBuilderImpl implements SubscriptionBuilder {
 
     @Override
     public Subscription build() {
+        Objects.requireNonNull(this.user, "user è obbligatorio");
+        Objects.requireNonNull(this.plan, "plan è obbligatorio");
+        Objects.requireNonNull(this.paymentFrequency, "paymentFrequency è obbligatorio");
+
         Subscription obj = new Subscription();
         obj.setId(this.id);
         obj.setUser(this.user);

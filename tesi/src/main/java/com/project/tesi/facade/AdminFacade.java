@@ -30,7 +30,7 @@ public class AdminFacade {
 
     public List<UserResponseDTO> getAllUsers() {
         return adminService.getAllUsers().stream()
-                .map(this::mapToUserResponse)
+                .map(FacadeMapper::mapToUserResponse)
                 .collect(Collectors.toList());
     }
 
@@ -44,7 +44,7 @@ public class AdminFacade {
         if (request.assignedPTId() != null) body.put("assignedPTId", request.assignedPTId());
         if (request.assignedNutritionistId() != null) body.put("assignedNutritionistId", request.assignedNutritionistId());
 
-        return mapToUserResponse(adminService.createUser(body));
+        return FacadeMapper.mapToUserResponse(adminService.createUser(body));
     }
 
     public void deleteUser(Long id) {
@@ -54,12 +54,12 @@ public class AdminFacade {
 
     public List<SubscriptionResponseDTO> getAllSubscriptions() {
         return adminService.getAllSubscriptions().stream()
-                .map(this::mapToSubscriptionResponse)
+                .map(FacadeMapper::mapToSubscriptionResponse)
                 .collect(Collectors.toList());
     }
 
     public SubscriptionResponseDTO updateSubscriptionCredits(Long id, int pt, int nutri) {
-        return mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
+        return FacadeMapper.mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
     }
 
 
@@ -72,7 +72,7 @@ public class AdminFacade {
         body.put("monthlyCreditsPT", request.monthlyCreditsPT());
         body.put("monthlyCreditsNutri", request.monthlyCreditsNutri());
 
-        return mapToPlanResponse(adminService.createPlan(body));
+        return FacadeMapper.mapToPlanResponse(adminService.createPlan(body));
     }
 
     public void deletePlan(Long id) {
@@ -84,45 +84,4 @@ public class AdminFacade {
         return adminStatsService.getAdminStats();
     }
 
-
-    private UserResponseDTO mapToUserResponse(Map<String, Object> map) {
-        return new UserResponseDTO(
-                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
-                (String) map.get("firstName"),
-                (String) map.get("lastName"),
-                (String) map.get("email"),
-                (String) map.get("role"),
-                (String) map.get("createdAt"),
-                (String) map.get("professionalBio"),
-                (String) map.get("assignedPTName"),
-                (String) map.get("assignedNutritionistName")
-        );
-    }
-
-    private SubscriptionResponseDTO mapToSubscriptionResponse(Map<String, Object> map) {
-        return new SubscriptionResponseDTO(
-                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
-                map.get("userId") != null ? Long.parseLong(map.get("userId").toString()) : null,
-                (String) map.get("userName"),
-                (String) map.get("planName"),
-                map.get("active") != null ? (Boolean) map.get("active") : false,
-                (String) map.get("startDate"),
-                (String) map.get("endDate"),
-                map.get("monthlyPrice") != null ? Double.parseDouble(map.get("monthlyPrice").toString()) : 0.0,
-                map.get("currentCreditsPT") != null ? Integer.parseInt(map.get("currentCreditsPT").toString()) : 0,
-                map.get("currentCreditsNutri") != null ? Integer.parseInt(map.get("currentCreditsNutri").toString()) : 0
-        );
-    }
-
-    private PlanResponseDTO mapToPlanResponse(Map<String, Object> map) {
-        return new PlanResponseDTO(
-                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
-                (String) map.get("name"),
-                (String) map.get("duration"),
-                map.get("fullPrice") != null ? Double.parseDouble(map.get("fullPrice").toString()) : null,
-                map.get("monthlyInstallmentPrice") != null ? Double.parseDouble(map.get("monthlyInstallmentPrice").toString()) : null,
-                map.get("monthlyCreditsPT") != null ? Integer.parseInt(map.get("monthlyCreditsPT").toString()) : 0,
-                map.get("monthlyCreditsNutri") != null ? Integer.parseInt(map.get("monthlyCreditsNutri").toString()) : 0
-        );
-    }
 }

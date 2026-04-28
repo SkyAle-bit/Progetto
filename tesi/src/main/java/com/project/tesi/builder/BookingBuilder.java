@@ -6,12 +6,10 @@ import com.project.tesi.model.*;
 
 
 public interface BookingBuilder {
-    BookingBuilder id(Long id);
     BookingBuilder user(User user);
     BookingBuilder professional(User professional);
     BookingBuilder slot(Slot slot);
     BookingBuilder status(BookingStatus status);
-    BookingBuilder bookedAt(LocalDateTime bookedAt);
     BookingBuilder meetingLink(String meetingLink);
     BookingBuilder reminderSent(boolean reminderSent);
     Booking build();

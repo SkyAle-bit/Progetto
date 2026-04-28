@@ -2,6 +2,7 @@ package com.project.tesi.builder.impl;
 
 import com.project.tesi.builder.SlotBuilder;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -46,6 +47,10 @@ public class SlotBuilderImpl implements SlotBuilder {
 
     @Override
     public Slot build() {
+        Objects.requireNonNull(this.professional, "professional è obbligatorio");
+        Objects.requireNonNull(this.startTime, "startTime è obbligatorio");
+        Objects.requireNonNull(this.endTime, "endTime è obbligatorio");
+
         Slot obj = new Slot();
         obj.setId(this.id);
         obj.setProfessional(this.professional);

@@ -2,6 +2,7 @@ package com.project.tesi.builder.impl;
 
 import com.project.tesi.builder.PasswordResetTokenBuilder;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -40,6 +41,10 @@ public class PasswordResetTokenBuilderImpl implements PasswordResetTokenBuilder 
 
     @Override
     public PasswordResetToken build() {
+        Objects.requireNonNull(this.token, "token è obbligatorio");
+        Objects.requireNonNull(this.user, "user è obbligatorio");
+        Objects.requireNonNull(this.expiryDate, "expiryDate è obbligatorio");
+
         PasswordResetToken obj = new PasswordResetToken();
         obj.setId(this.id);
         obj.setToken(this.token);

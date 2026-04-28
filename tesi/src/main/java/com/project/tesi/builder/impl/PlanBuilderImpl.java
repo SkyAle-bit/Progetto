@@ -2,6 +2,7 @@ package com.project.tesi.builder.impl;
 
 import com.project.tesi.builder.PlanBuilder;
 import com.project.tesi.enums.PlanDuration;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -58,6 +59,11 @@ public class PlanBuilderImpl implements PlanBuilder {
 
     @Override
     public Plan build() {
+        Objects.requireNonNull(this.name, "name è obbligatorio");
+        Objects.requireNonNull(this.duration, "duration è obbligatorio");
+        Objects.requireNonNull(this.fullPrice, "fullPrice è obbligatorio");
+        Objects.requireNonNull(this.monthlyInstallmentPrice, "monthlyInstallmentPrice è obbligatorio");
+
         Plan obj = new Plan();
         obj.setId(this.id);
         obj.setName(this.name);

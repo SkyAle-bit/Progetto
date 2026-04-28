@@ -2,7 +2,6 @@ package com.project.tesi.observer.listener.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
@@ -38,7 +37,6 @@ public class BookingEmailNotificationListener implements EventListener<Booking> 
         eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
     }
 
-    @Async
     @Override
     public void update(Booking booking) {
         try {

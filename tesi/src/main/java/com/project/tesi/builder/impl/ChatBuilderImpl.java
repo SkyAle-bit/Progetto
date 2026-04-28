@@ -4,6 +4,7 @@ import com.project.tesi.builder.ChatBuilder;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -42,6 +43,9 @@ public class ChatBuilderImpl implements ChatBuilder {
 
     @Override
     public Chat build() {
+        Objects.requireNonNull(this.user1, "user1 è obbligatorio");
+        Objects.requireNonNull(this.user2, "user2 è obbligatorio");
+
         Chat obj = new Chat();
         obj.setId(this.id);
         obj.setUser1(this.user1);

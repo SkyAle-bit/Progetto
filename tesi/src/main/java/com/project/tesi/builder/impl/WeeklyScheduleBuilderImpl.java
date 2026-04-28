@@ -3,6 +3,7 @@ package com.project.tesi.builder.impl;
 import com.project.tesi.builder.WeeklyScheduleBuilder;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -41,6 +42,11 @@ public class WeeklyScheduleBuilderImpl implements WeeklyScheduleBuilder {
 
     @Override
     public WeeklySchedule build() {
+        Objects.requireNonNull(this.professional, "professional è obbligatorio");
+        Objects.requireNonNull(this.dayOfWeek, "dayOfWeek è obbligatorio");
+        Objects.requireNonNull(this.startTime, "startTime è obbligatorio");
+        Objects.requireNonNull(this.endTime, "endTime è obbligatorio");
+
         WeeklySchedule obj = new WeeklySchedule();
         obj.setId(this.id);
         obj.setProfessional(this.professional);

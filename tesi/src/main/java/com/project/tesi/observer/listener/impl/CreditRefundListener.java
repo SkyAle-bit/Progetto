@@ -10,18 +10,23 @@ import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.service.strategy.BookingStrategy;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class CreditRefundListener implements EventListener<Booking> {
 
     private final EventManager eventManager;
     private final SubscriptionRepository subscriptionRepository;
     private final List<BookingStrategy> strategies;
+
+    // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
+    public CreditRefundListener(EventManager eventManager, SubscriptionRepository subscriptionRepository, List<BookingStrategy> strategies) {
+        this.eventManager = eventManager;
+        this.subscriptionRepository = subscriptionRepository;
+        this.strategies = strategies;
+    }
 
     @PostConstruct
     public void init() {
@@ -36,21 +41,16 @@ public class CreditRefundListener implements EventListener<Booking> {
     @Override
     public void update(Booking booking) {
         User professional = booking.getProfessional();
-        BookingStrategy strategy = null;
-        for (BookingStrategy s : strategies) {
-            if (s.getSupportedRole() == professional.getRole()) {
-                strategy = s;
-                break;
-            }
-        }
+        
+        BookingStrategy strategy = strategies.stream()
+                .filter(s -> s.getSupportedRole() == professional.getRole())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Nessuna strategy trovata per il ruolo: " + professional.getRole()));
 
-        if (strategy != null) {
-            Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
-                    .orElse(null);
-            if (sub != null) {
-                strategy.refundCredits(sub);
-                subscriptionRepository.save(sub);
-            }
-        }
+        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
+                .orElseThrow(() -> new IllegalStateException("Nessun abbonamento attivo trovato per l'utente"));
+
+        strategy.refundCredits(sub);
+        subscriptionRepository.save(sub);
     }
 }

@@ -2,6 +2,7 @@ package com.project.tesi.builder.impl;
 
 import com.project.tesi.builder.MessageBuilder;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -46,6 +47,9 @@ public class MessageBuilderImpl implements MessageBuilder {
 
     @Override
     public Message build() {
+        Objects.requireNonNull(this.user, "user è obbligatorio");
+        Objects.requireNonNull(this.chat, "chat è obbligatorio");
+
         Message obj = new Message();
         obj.setId(this.id);
         obj.setContent(this.content);

@@ -77,16 +77,10 @@ public class BookingServiceImpl implements BookingService {
 
         User professional = slot.getProfessional();
 
-        BookingStrategy strategy = null;
-        for (BookingStrategy s : strategies) {
-            if (s.getSupportedRole() == professional.getRole()) {
-                strategy = s;
-                break;
-            }
-        }
-        if (strategy == null) {
-            throw new IllegalStateException("Il professionista non è né PT né Nutrizionista");
-        }
+        BookingStrategy strategy = strategies.stream()
+                .filter(s -> s.getSupportedRole() == professional.getRole())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Il professionista non è né PT né Nutrizionista"));
 
         strategy.verifyAssignment(user, professional);
 

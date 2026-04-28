@@ -3,6 +3,7 @@ package com.project.tesi.builder.impl;
 import com.project.tesi.builder.UserBuilder;
 import com.project.tesi.enums.Role;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import com.project.tesi.model.*;
 
 
@@ -89,6 +90,10 @@ public class UserBuilderImpl implements UserBuilder {
 
     @Override
     public User build() {
+        Objects.requireNonNull(this.email, "email è obbligatorio");
+        Objects.requireNonNull(this.password, "password è obbligatorio");
+        Objects.requireNonNull(this.role, "role è obbligatorio");
+
         User obj = new User();
         obj.setId(this.id);
         obj.setEmail(this.email);
