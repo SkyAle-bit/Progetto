@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
+import jakarta.annotation.PostConstruct;
 
 /**
  * Utility per la gestione dei token JWT (JSON Web Token).
@@ -36,6 +37,16 @@ public class JwtUtil {
     /** Durata di validità del token in millisecondi (da application.properties). */
     @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+    @PostConstruct
+    public void validateSecret() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET non configurata. " +
+                "Imposta la variabile d'ambiente JWT_SECRET prima di avviare l'app."
+            );
+        }
+    }
 
     /**
      * Estrae l'email (subject) dal token JWT.

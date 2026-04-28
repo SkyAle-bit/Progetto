@@ -129,7 +129,7 @@ public class SlotServiceImpl implements SlotService {
         User professional = userRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
-        return slotRepository.findByProfessional(professional).stream()
+        return slotRepository.findByProfessionalAndIsBookedFalse(professional).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }

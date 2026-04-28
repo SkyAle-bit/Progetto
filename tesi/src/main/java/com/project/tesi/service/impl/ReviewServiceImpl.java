@@ -58,6 +58,16 @@ public class ReviewServiceImpl implements ReviewService {
                     "Puoi recensire un professionista solo dopo 1 mese dalla tua registrazione.");
         }
 
+        if (professional.getRole() == com.project.tesi.enums.Role.PERSONAL_TRAINER) {
+            if (user.getAssignedPT() == null || !user.getAssignedPT().getId().equals(professional.getId())) {
+                throw new ReviewNotAllowedException("Puoi recensire solo il tuo Personal Trainer assegnato.");
+            }
+        } else if (professional.getRole() == com.project.tesi.enums.Role.NUTRITIONIST) {
+            if (user.getAssignedNutritionist() == null || !user.getAssignedNutritionist().getId().equals(professional.getId())) {
+                throw new ReviewNotAllowedException("Puoi recensire solo il tuo Nutrizionista assegnato.");
+            }
+        }
+
         Review review = Review.builder()
                 .client(user)
                 .professional(professional)
