@@ -1,5 +1,7 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.response.SubscriptionResponseDTO;
+import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.facade.ModeratorFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,27 +28,27 @@ public class ModeratorController {
     private final ModeratorFacade moderatorFacade;
 
     @GetMapping("/users")
-    public ResponseEntity<List<Map<String, Object>>> getManageableUsers() {
+    public ResponseEntity<List<UserResponseDTO>> getManageableUsers() {
         return ResponseEntity.ok(moderatorFacade.getManageableUsers());
     }
 
     @GetMapping("/subscriptions")
-    public ResponseEntity<List<Map<String, Object>>> getAllSubscriptions() {
+    public ResponseEntity<List<SubscriptionResponseDTO>> getAllSubscriptions() {
         return ResponseEntity.ok(moderatorFacade.getAllSubscriptions());
     }
 
     @GetMapping("/chat-contacts")
-    public ResponseEntity<List<Map<String, Object>>> getChatContacts() {
+    public ResponseEntity<List<UserResponseDTO>> getChatContacts() {
         return ResponseEntity.ok(moderatorFacade.getChatContacts());
     }
 
     @PostMapping("/users")
-    public ResponseEntity<Map<String, Object>> createUser(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<UserResponseDTO> createUser(@RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(moderatorFacade.createUser(body));
     }
 
     @PutMapping("/users/{id}")
-    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long id,
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id,
                                                            @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(moderatorFacade.updateUser(id, body));
     }
@@ -58,7 +60,7 @@ public class ModeratorController {
     }
 
     @PutMapping("/subscriptions/{id}/credits")
-    public ResponseEntity<Map<String, Object>> updateSubscriptionCredits(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+    public ResponseEntity<SubscriptionResponseDTO> updateSubscriptionCredits(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         return ResponseEntity.ok(moderatorFacade.updateSubscriptionCredits(
                 id,
                 body.getOrDefault("creditsPT", 0),
@@ -66,4 +68,3 @@ public class ModeratorController {
         ));
     }
 }
-

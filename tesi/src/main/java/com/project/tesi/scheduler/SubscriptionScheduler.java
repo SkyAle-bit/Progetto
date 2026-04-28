@@ -1,8 +1,11 @@
 package com.project.tesi.scheduler;
 
+import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SubscriptionScheduler {
 
+    private static final Logger log = LoggerFactory.getLogger(SubscriptionScheduler.class);
     private final SubscriptionRepository subscriptionRepository;
 
     /**
@@ -37,6 +41,19 @@ public class SubscriptionScheduler {
         for (Subscription sub : activeSubs) {
             // Reset crediti il primo giorno di ogni mese
             if (today.getDayOfMonth() == 1) {
+                if (sub.getPaymentFrequency() == PaymentFrequency.RATE_MENSILI) {
+                    if (sub.getNextPaymentDate() != null 
+                            && !today.isBefore(sub.getNextPaymentDate()) 
+                            && sub.getInstallmentsPaid() < sub.getTotalInstallments()) {
+                        
+                        sub.setInstallmentsPaid(sub.getInstallmentsPaid() + 1);
+                        sub.setNextPaymentDate(sub.getNextPaymentDate().plusMonths(1));
+                    } else {
+                        log.warn("Pagamento rateale non dovuto per l'abbonamento ID {}: salto il reset dei crediti", sub.getId());
+                        continue;
+                    }
+                }
+
                 sub.setCurrentCreditsPT(sub.getPlan().getMonthlyCreditsPT());
                 sub.setCurrentCreditsNutri(sub.getPlan().getMonthlyCreditsNutri());
                 sub.setLastRenewalDate(today);

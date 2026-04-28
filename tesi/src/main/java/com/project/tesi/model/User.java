@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
  *
  * I campi {@code assignedPT} e {@code assignedNutritionist} sono valorizzati
  * solo per gli utenti con ruolo CLIENT e indicano i professionisti a cui
- * il cliente è attualmente assegnato (massimo 10 clienti per professionista).
+ * il cliente è attualmente assegnato (massimo 50 clienti per professionista).
  */
 @Entity
 @Table(name = "users")

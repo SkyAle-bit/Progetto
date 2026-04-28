@@ -39,7 +39,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Conta quanti clienti sono attualmente assegnati a un Personal Trainer.
-     * Usato per verificare il limite massimo di 10 clienti per professionista.
+     * Usato per verificare il limite massimo di 50 clienti per professionista.
      *
      * @param pt il Personal Trainer di cui contare i clienti
      * @return numero di clienti assegnati
@@ -48,7 +48,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Conta quanti clienti sono attualmente assegnati a un Nutrizionista.
-     * Usato per verificare il limite massimo di 10 clienti per professionista.
+     * Usato per verificare il limite massimo di 50 clienti per professionista.
      *
      * @param nutritionist il Nutrizionista di cui contare i clienti
      * @return numero di clienti assegnati

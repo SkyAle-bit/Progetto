@@ -42,8 +42,6 @@ public class SecurityConfig {
                             .requestMatchers("/api/plans/**").permitAll()
                             .requestMatchers("/api/professionals/**").permitAll()
                             .requestMatchers("/api/reviews/professional/**").permitAll()
-                            .requestMatchers("/api/bookings/migrate-meet").permitAll()
-                            .requestMatchers("/api/bookings/reset-database").permitAll()
                             .requestMatchers("/api/job-applications/**").permitAll()
                             .requestMatchers(
                                     "/swagger-ui.html",
@@ -58,7 +56,9 @@ public class SecurityConfig {
                             .requestMatchers(
                                     "/api/admin/plans", "/api/admin/plans/**",
                                     "/api/admin/subscriptions", "/api/admin/subscriptions/**",
-                                    "/api/admin/stats", "/api/admin/stats/**")
+                                    "/api/admin/stats", "/api/admin/stats/**",
+                                    "/api/bookings/migrate-meet", 
+                                    "/api/bookings/reset-database")
                             .hasAuthority("ADMIN")
                             .anyRequest().authenticated())
                     .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+    private static final int MAX_CLIENTS_PER_PROFESSIONAL = 50;
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
@@ -134,7 +135,7 @@ public class UserServiceImpl implements UserService {
                             .role(pro.getRole())
                             .averageRating(avg != null ? avg : 0.0)
                             .currentActiveClients((int) activeClients)
-                            .isSoldOut(activeClients >= 10)
+                            .isSoldOut(activeClients >= MAX_CLIENTS_PER_PROFESSIONAL)
                             .build();
                 })
                 .sorted((p1, p2) -> Double.compare(p2.getAverageRating(), p1.getAverageRating()))
@@ -282,7 +283,7 @@ public class UserServiceImpl implements UserService {
         long activeClients = expectedRole == Role.PERSONAL_TRAINER
                 ? userRepository.countByAssignedPT(professional)
                 : userRepository.countByAssignedNutritionist(professional);
-        if (activeClients >= 10) {
+        if (activeClients >= MAX_CLIENTS_PER_PROFESSIONAL) {
             throw new ProfessionalSoldOutException(professional.getFirstName());
         }
 

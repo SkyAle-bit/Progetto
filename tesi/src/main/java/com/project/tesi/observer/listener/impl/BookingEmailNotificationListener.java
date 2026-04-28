@@ -1,5 +1,9 @@
 package com.project.tesi.observer.listener.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
+
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
@@ -12,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class BookingEmailNotificationListener implements EventListener<Booking> {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingEmailNotificationListener.class);
 
     private final EventManager eventManager;
     private final EmailService emailService;
@@ -32,25 +38,30 @@ public class BookingEmailNotificationListener implements EventListener<Booking> 
         eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
     }
 
+    @Async
     @Override
     public void update(Booking booking) {
-        User client = booking.getUser();
-        User professional = booking.getProfessional();
+        try {
+            User client = booking.getUser();
+            User professional = booking.getProfessional();
 
-        emailService.sendBookingConfirmationEmail(
-                client.getEmail(),
-                client.getFirstName(),
-                professional.getFirstName() + " " + professional.getLastName(),
-                booking.getSlot().getStartTime(),
-                booking.getMeetingLink()
-        );
+            emailService.sendBookingConfirmationEmail(
+                    client.getEmail(),
+                    client.getFirstName(),
+                    professional.getFirstName() + " " + professional.getLastName(),
+                    booking.getSlot().getStartTime(),
+                    booking.getMeetingLink()
+            );
 
-        emailService.sendBookingConfirmationEmail(
-                professional.getEmail(),
-                professional.getFirstName(),
-                client.getFirstName() + " " + client.getLastName(),
-                booking.getSlot().getStartTime(),
-                booking.getMeetingLink()
-        );
+            emailService.sendBookingConfirmationEmail(
+                    professional.getEmail(),
+                    professional.getFirstName(),
+                    client.getFirstName() + " " + client.getLastName(),
+                    booking.getSlot().getStartTime(),
+                    booking.getMeetingLink()
+            );
+        } catch (Exception e) {
+            log.error("Invio email fallito per booking #{}: {}", booking.getId(), e.getMessage());
+        }
     }
 }

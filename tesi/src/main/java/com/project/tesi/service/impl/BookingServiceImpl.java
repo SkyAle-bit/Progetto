@@ -155,25 +155,9 @@ public class BookingServiceImpl implements BookingService {
         slot.setBooked(false);
         slotRepository.save(slot);
 
-        User professional = booking.getProfessional();
-        BookingStrategy strategy = null;
-        for (BookingStrategy s : strategies) {
-            if (s.getSupportedRole() == professional.getRole()) {
-                strategy = s;
-                break;
-            }
-        }
-        
-        if (strategy != null) {
-            Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
-                    .orElse(null);
-            if (sub != null) {
-                strategy.refundCredits(sub);
-                subscriptionRepository.save(sub);
-            }
-        }
-
         booking.setStatus(BookingStatus.CANCELED);
-        bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        eventManager.notifyListeners(EventType.BOOKING_CANCELLED, saved);
     }
 }
