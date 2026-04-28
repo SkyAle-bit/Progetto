@@ -23,20 +23,21 @@ import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.enums.EventType;
 import com.project.tesi.observer.manager.EventManager;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Gestisce il ciclo di vita delle prenotazioni tra clienti e professionisti.
  * Assicura la validità delle richieste controllando abbonamenti, crediti e conflitti di concorrenza.
  */
 @Service
-@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -49,6 +50,28 @@ public class BookingServiceImpl implements BookingService {
     private final EventManager eventManager;
 
     /**
+     * Risorsa condivisa per implementare il multithreading esplicito.
+     * Mappa gli ID degli slot a un ReentrantLock per proteggere la sezione critica 
+     * di prenotazione e prevenire overbooking concorrenziale.
+     */
+    private final Map<Long, ReentrantLock> slotLocks = new ConcurrentHashMap<>();
+
+    // Costruttore esplicito — pattern Strategy (e Facade accessibile)
+    public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository, 
+                              UserRepository userRepository, SubscriptionRepository subscriptionRepository, 
+                              BookingMapper bookingMapper, List<BookingStrategy> strategies, 
+                              VideoConferenceService videoConferenceService, EventManager eventManager) {
+        this.bookingRepository = bookingRepository;
+        this.slotRepository = slotRepository;
+        this.userRepository = userRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.bookingMapper = bookingMapper;
+        this.strategies = strategies;
+        this.videoConferenceService = videoConferenceService;
+        this.eventManager = eventManager;
+    }
+
+    /**
      * Valida e registra una nuova prenotazione.
      * Il processo assicura che le policy di business siano rispettate: disponibilità effettiva dello slot (gestendo 
      * scenari di concorrenza tramite locking ottimistico), copertura temporale dell'abbonamento e adeguatezza dei crediti.
@@ -59,64 +82,74 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
+        Long slotId = request.getSlotId();
+        ReentrantLock lock = slotLocks.computeIfAbsent(slotId, k -> new ReentrantLock());
+        lock.lock();
+        try {
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
 
-        Slot slot = slotRepository.findById(request.getSlotId())
-                .orElseThrow(() -> new ResourceNotFoundException("Slot", request.getSlotId()));
+            Slot slot = slotRepository.findById(request.getSlotId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Slot", request.getSlotId()));
 
-        if (slot.isBooked()) {
-            throw new SlotAlreadyBookedException("Slot non più disponibile");
+            if (slot.isBooked()) {
+                throw new SlotAlreadyBookedException("Slot non più disponibile");
+            }
+
+            if (bookingRepository.existsBySlotAndStatus(slot, BookingStatus.CONFIRMED)) {
+                throw new SlotAlreadyBookedException("Esiste già una prenotazione confermata per questo slot.");
+            }
+
+            bookingRepository.deleteBySlot(slot);
+
+            User professional = slot.getProfessional();
+
+            BookingStrategy strategy = strategies.stream()
+                    .filter(s -> s.getSupportedRole() == professional.getRole())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Il professionista non è né PT né Nutrizionista"));
+
+            strategy.verifyAssignment(user, professional);
+
+            Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
+                    .orElseThrow(NoActiveSubscriptionException::new);
+
+            LocalDate today = LocalDate.now();
+            if (today.isAfter(sub.getEndDate())) {
+                throw new SubscriptionExpiredException(
+                        "Impossibile prenotare: il tuo abbonamento è scaduto in data " + sub.getEndDate() + "."
+                );
+            } else if (slot.getStartTime().toLocalDate().isAfter(sub.getEndDate())) {
+                throw new SubscriptionExpiredException(
+                        "Operazione rifiutata: l'abbonamento scadrà il " + sub.getEndDate() +
+                        ", prima della data prevista per questo slot (" + slot.getStartTime().toLocalDate() + ")."
+                );
+            }
+
+            slot.setBooked(true);
+            slotRepository.save(slot);
+
+            String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
+
+            Booking booking = Booking.builder()
+                    .user(user)
+                    .professional(professional)
+                    .slot(slot)
+                    .meetingLink(meetLink)
+                    .status(BookingStatus.CONFIRMED)
+                    .build();
+
+            Booking saved = bookingRepository.save(booking);
+
+            eventManager.notifyListeners(EventType.BOOKING_CREATED, saved);
+
+            return bookingMapper.toResponse(saved);
+        } finally {
+            lock.unlock();
+            // Nota: i lock non vengono rimossi dalla mappa perché il numero di slot
+            // è limitato e bounded dal DB. Una rimozione concorrente introdurrebbe
+            // una race condition più pericolosa del leak di memoria stesso.
         }
-
-        if (bookingRepository.existsBySlotAndStatus(slot, BookingStatus.CONFIRMED)) {
-            throw new SlotAlreadyBookedException("Esiste già una prenotazione confermata per questo slot.");
-        }
-
-        bookingRepository.deleteBySlot(slot);
-
-        User professional = slot.getProfessional();
-
-        BookingStrategy strategy = strategies.stream()
-                .filter(s -> s.getSupportedRole() == professional.getRole())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Il professionista non è né PT né Nutrizionista"));
-
-        strategy.verifyAssignment(user, professional);
-
-        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(NoActiveSubscriptionException::new);
-
-        LocalDate today = LocalDate.now();
-        if (today.isAfter(sub.getEndDate())) {
-            throw new SubscriptionExpiredException(
-                    "Impossibile prenotare: il tuo abbonamento è scaduto in data " + sub.getEndDate() + "."
-            );
-        } else if (slot.getStartTime().toLocalDate().isAfter(sub.getEndDate())) {
-            throw new SubscriptionExpiredException(
-                    "Operazione rifiutata: l'abbonamento scadrà il " + sub.getEndDate() +
-                    ", prima della data prevista per questo slot (" + slot.getStartTime().toLocalDate() + ")."
-            );
-        }
-
-        slot.setBooked(true);
-        slotRepository.save(slot);
-
-        String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
-
-        Booking booking = Booking.builder()
-                .user(user)
-                .professional(professional)
-                .slot(slot)
-                .meetingLink(meetLink)
-                .status(BookingStatus.CONFIRMED)
-                .build();
-
-        Booking saved = bookingRepository.save(booking);
-
-        eventManager.notifyListeners(EventType.BOOKING_CREATED, saved);
-
-        return bookingMapper.toResponse(saved);
     }
 
     /**

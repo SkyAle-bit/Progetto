@@ -43,7 +43,7 @@ public class ModeratorController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<UserResponseDTO> createUser(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<UserResponseDTO> createUser(@RequestBody com.project.tesi.dto.request.UserCreateRequestDTO body) {
         return ResponseEntity.ok(moderatorFacade.createUser(body));
     }
 

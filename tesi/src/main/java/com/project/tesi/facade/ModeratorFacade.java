@@ -3,7 +3,6 @@ package com.project.tesi.facade;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,10 +16,14 @@ import java.util.stream.Collectors;
  * (clienti, personal trainer e nutrizionisti).
  */
 @Component
-@RequiredArgsConstructor
 public class ModeratorFacade {
 
     private final AdminService adminService;
+
+    // Costruttore esplicito — pattern Facade
+    public ModeratorFacade(AdminService adminService) {
+        this.adminService = adminService;
+    }
 
     public List<UserResponseDTO> getManageableUsers() {
         return adminService.getModeratorManageableUsers().stream()
@@ -40,8 +43,8 @@ public class ModeratorFacade {
                 .collect(Collectors.toList());
     }
 
-    public UserResponseDTO createUser(Map<String, Object> body) {
-        return FacadeMapper.mapToUserResponse(adminService.createUserAsModerator(body));
+    public UserResponseDTO createUser(com.project.tesi.dto.request.UserCreateRequestDTO request) {
+        return FacadeMapper.mapToUserResponse(adminService.createUserAsModerator(request));
     }
 
     public UserResponseDTO updateUser(Long id, Map<String, Object> body) {

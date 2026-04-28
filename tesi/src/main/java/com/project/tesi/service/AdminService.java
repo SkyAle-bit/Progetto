@@ -1,5 +1,11 @@
 package com.project.tesi.service;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.model.Plan;
+import com.project.tesi.model.Subscription;
+import com.project.tesi.model.User;
+
 import java.util.List;
 import java.util.Map;
 
@@ -10,22 +16,22 @@ import java.util.Map;
 public interface AdminService {
 
     /** Restituisce la lista di tutti gli utenti registrati. */
-    List<Map<String, Object>> getAllUsers();
+    List<User> getAllUsers();
 
     /** Restituisce gli utenti gestibili dal moderatore. */
-    List<Map<String, Object>> getModeratorManageableUsers();
+    List<User> getModeratorManageableUsers();
 
     /** Restituisce i contatti chat per il moderatore (Admin e Insurance Manager). */
-    List<Map<String, Object>> getModeratorChatContacts();
+    List<User> getModeratorChatContacts();
 
     /** Crea un nuovo utente con i dati specificati. */
-    Map<String, Object> createUser(Map<String, Object> body);
+    User createUser(UserCreateRequestDTO request);
 
     /** Crea un nuovo utente come moderatore (solo ruoli consentiti). */
-    Map<String, Object> createUserAsModerator(Map<String, Object> body);
+    User createUserAsModerator(UserCreateRequestDTO request);
 
     /** Aggiorna un utente come moderatore (solo ruoli consentiti). */
-    Map<String, Object> updateUserAsModerator(Long id, Map<String, Object> body);
+    User updateUserAsModerator(Long id, Map<String, Object> body);
 
     /** Elimina un utente e le sue entità collegate. */
     void deleteUser(Long id);
@@ -34,13 +40,13 @@ public interface AdminService {
     void deleteUserAsModerator(Long id);
 
     /** Restituisce la lista di tutti gli abbonamenti. */
-    List<Map<String, Object>> getAllSubscriptions();
+    List<Subscription> getAllSubscriptions();
 
     /** Aggiorna i crediti PT e Nutrizionista di un abbonamento. */
-    Map<String, Object> updateSubscriptionCredits(Long subscriptionId, int creditsPT, int creditsNutri);
+    Subscription updateSubscriptionCredits(Long subscriptionId, int creditsPT, int creditsNutri);
 
     /** Crea un nuovo piano commerciale. */
-    Map<String, Object> createPlan(Map<String, Object> body);
+    Plan createPlan(PlanCreateRequestDTO request);
 
     /** Elimina un piano commerciale. */
     void deletePlan(Long id);

@@ -4,55 +4,68 @@ import com.project.tesi.dto.response.PlanResponseDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 
-import java.util.Map;
+import com.project.tesi.model.Plan;
+import com.project.tesi.model.Subscription;
+import com.project.tesi.model.User;
 
 /**
- * Mapper condiviso per convertire le Map (dal service) in DTO tipizzati
+ * Mapper condiviso per convertire le entity in DTO tipizzati
  * da restituire tramite i controller amministrativi/moderatori.
  */
 public class FacadeMapper {
 
-    public static UserResponseDTO mapToUserResponse(Map<String, Object> map) {
-        if (map == null) return null;
+    public static UserResponseDTO mapToUserResponse(User user) {
+        if (user == null) return null;
+        
+        String assignedPTName = null;
+        if (user.getAssignedPT() != null) {
+            assignedPTName = user.getAssignedPT().getFirstName() + " " + user.getAssignedPT().getLastName();
+        }
+        
+        String assignedNutriName = null;
+        if (user.getAssignedNutritionist() != null) {
+            assignedNutriName = user.getAssignedNutritionist().getFirstName() + " " + user.getAssignedNutritionist().getLastName();
+        }
+        
         return new UserResponseDTO(
-                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
-                (String) map.get("firstName"),
-                (String) map.get("lastName"),
-                (String) map.get("email"),
-                (String) map.get("role"),
-                (String) map.get("createdAt"),
-                (String) map.get("professionalBio"),
-                (String) map.get("assignedPTName"),
-                (String) map.get("assignedNutritionistName")
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRole() != null ? user.getRole().name() : null,
+                user.getCreatedAt() != null ? user.getCreatedAt().toString() : null,
+                user.getProfessionalBio(),
+                assignedPTName,
+                assignedNutriName
         );
     }
 
-    public static SubscriptionResponseDTO mapToSubscriptionResponse(Map<String, Object> map) {
-        if (map == null) return null;
+    public static SubscriptionResponseDTO mapToSubscriptionResponse(Subscription s) {
+        if (s == null) return null;
         return new SubscriptionResponseDTO(
-                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
-                map.get("userId") != null ? Long.parseLong(map.get("userId").toString()) : null,
-                (String) map.get("userName"),
-                (String) map.get("planName"),
-                map.get("active") != null ? (Boolean) map.get("active") : false,
-                (String) map.get("startDate"),
-                (String) map.get("endDate"),
-                map.get("monthlyPrice") != null ? Double.parseDouble(map.get("monthlyPrice").toString()) : 0.0,
-                map.get("currentCreditsPT") != null ? Integer.parseInt(map.get("currentCreditsPT").toString()) : 0,
-                map.get("currentCreditsNutri") != null ? Integer.parseInt(map.get("currentCreditsNutri").toString()) : 0
+                s.getId(),
+                s.getUser() != null ? s.getUser().getId() : null,
+                s.getUser() != null ? s.getUser().getFirstName() + " " + s.getUser().getLastName() : null,
+                s.getPlan() != null ? s.getPlan().getName() : "N/A",
+                s.isActive(),
+                s.getStartDate() != null ? s.getStartDate().toString() : null,
+                s.getEndDate() != null ? s.getEndDate().toString() : null,
+                s.getPlan() != null ? s.getPlan().getMonthlyInstallmentPrice() : 0.0,
+                s.getCurrentCreditsPT(),
+                s.getCurrentCreditsNutri()
         );
     }
 
-    public static PlanResponseDTO mapToPlanResponse(Map<String, Object> map) {
-        if (map == null) return null;
+    public static PlanResponseDTO mapToPlanResponse(Plan p) {
+        if (p == null) return null;
         return new PlanResponseDTO(
-                map.get("id") != null ? Long.parseLong(map.get("id").toString()) : null,
-                (String) map.get("name"),
-                (String) map.get("duration"),
-                map.get("fullPrice") != null ? Double.parseDouble(map.get("fullPrice").toString()) : null,
-                map.get("monthlyInstallmentPrice") != null ? Double.parseDouble(map.get("monthlyInstallmentPrice").toString()) : null,
-                map.get("monthlyCreditsPT") != null ? Integer.parseInt(map.get("monthlyCreditsPT").toString()) : 0,
-                map.get("monthlyCreditsNutri") != null ? Integer.parseInt(map.get("monthlyCreditsNutri").toString()) : 0
+                p.getId(),
+                p.getName(),
+                p.getDuration() != null ? p.getDuration().name() : null,
+                p.getFullPrice(),
+                p.getMonthlyInstallmentPrice(),
+                p.getMonthlyCreditsPT(),
+                p.getMonthlyCreditsNutri()
         );
     }
 }

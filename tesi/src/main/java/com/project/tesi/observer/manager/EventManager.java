@@ -9,8 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class EventManager {
+
+    private static final Logger log = LoggerFactory.getLogger(EventManager.class);
 
     private final Map<EventType, List<EventListener<?>>> listeners;
 
@@ -34,7 +39,11 @@ public class EventManager {
     public <T> void notifyListeners(EventType eventType, T data) {
         List<EventListener<?>> users = listeners.get(eventType);
         for (EventListener<?> listener : users) {
-            ((EventListener<T>) listener).update(data);
+            try {
+                ((EventListener<T>) listener).update(data);
+            } catch (ClassCastException e) {
+                log.error("Errore di Type-Casting durante l'update del listener per l'evento {}: {}", eventType, e.getMessage());
+            }
         }
     }
 }

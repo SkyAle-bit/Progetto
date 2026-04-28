@@ -7,7 +7,6 @@ import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -21,11 +20,16 @@ import java.util.stream.Collectors;
  * Fornisce un punto d'accesso unificato a tutte le operazioni admin.
  */
 @Component
-@RequiredArgsConstructor
 public class AdminFacade {
 
     private final AdminService adminService;
     private final AdminStatsService adminStatsService;
+
+    // Costruttore esplicito — pattern Facade
+    public AdminFacade(AdminService adminService, AdminStatsService adminStatsService) {
+        this.adminService = adminService;
+        this.adminStatsService = adminStatsService;
+    }
 
 
     public List<UserResponseDTO> getAllUsers() {
@@ -35,16 +39,7 @@ public class AdminFacade {
     }
 
     public UserResponseDTO createUser(UserCreateRequestDTO request) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", request.email());
-        body.put("firstName", request.firstName());
-        body.put("lastName", request.lastName());
-        body.put("password", request.password());
-        body.put("role", request.role());
-        if (request.assignedPTId() != null) body.put("assignedPTId", request.assignedPTId());
-        if (request.assignedNutritionistId() != null) body.put("assignedNutritionistId", request.assignedNutritionistId());
-
-        return FacadeMapper.mapToUserResponse(adminService.createUser(body));
+        return FacadeMapper.mapToUserResponse(adminService.createUser(request));
     }
 
     public void deleteUser(Long id) {
@@ -64,15 +59,7 @@ public class AdminFacade {
 
 
     public PlanResponseDTO createPlan(PlanCreateRequestDTO request) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", request.name());
-        body.put("duration", request.duration());
-        body.put("fullPrice", request.fullPrice());
-        body.put("monthlyInstallmentPrice", request.monthlyInstallmentPrice());
-        body.put("monthlyCreditsPT", request.monthlyCreditsPT());
-        body.put("monthlyCreditsNutri", request.monthlyCreditsNutri());
-
-        return FacadeMapper.mapToPlanResponse(adminService.createPlan(body));
+        return FacadeMapper.mapToPlanResponse(adminService.createPlan(request));
     }
 
     public void deletePlan(Long id) {
