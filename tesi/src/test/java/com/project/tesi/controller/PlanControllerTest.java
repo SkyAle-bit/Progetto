@@ -30,7 +30,7 @@ class PlanControllerTest {
     @Test
     @DisplayName("getAllPlans — restituisce 200 con lista piani")
     void getAllPlans() {
-        Plan p = Plan.builder().id(1L).name("Premium").duration(PlanDuration.ANNUALE).build();
+        Plan p = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).name("Premium").duration(PlanDuration.ANNUALE).build();
         when(planService.getAllPlans()).thenReturn(List.of(p));
 
         ResponseEntity<List<Plan>> response = planController.getAllPlans();

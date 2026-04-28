@@ -31,7 +31,7 @@ class CustomUserDetailsServiceTest {
     @Test
     @DisplayName("loadUserByUsername — utente trovato restituisce UserDetails corretto")
     void loadUserByUsername_success() {
-        User user = User.builder().id(1L).email("mario@test.com")
+        User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("mario@test.com")
                 .password("hashed").role(Role.CLIENT).build();
         when(userRepository.findByEmail("mario@test.com")).thenReturn(Optional.of(user));
 
@@ -46,7 +46,7 @@ class CustomUserDetailsServiceTest {
     @Test
     @DisplayName("loadUserByUsername — utente PT restituisce ROLE_PERSONAL_TRAINER")
     void loadUserByUsername_pt() {
-        User user = User.builder().id(2L).email("pt@test.com")
+        User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("pt@test.com")
                 .password("hashed").role(Role.PERSONAL_TRAINER).build();
         when(userRepository.findByEmail("pt@test.com")).thenReturn(Optional.of(user));
 

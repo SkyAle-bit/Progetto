@@ -53,14 +53,14 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
-        nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").role(Role.NUTRITIONIST).build();
+        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).build();
+        nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").email("nutri@test.com").password("pass").role(Role.NUTRITIONIST).build();
         client = User.builder().id(1L).firstName("Mario").lastName("Rossi").role(Role.CLIENT)
-                .email("mario@test.com").assignedPT(pt).assignedNutritionist(nutri)
+                .email("mario@test.com").password("pass").assignedPT(pt).assignedNutritionist(nutri)
                 .createdAt(LocalDateTime.now().minusMonths(2)).build();
-        admin = User.builder().id(99L).firstName("Admin").lastName("Admin").role(Role.ADMIN).email("admin@test.com").build();
+        admin = User.builder().id(99L).firstName("Admin").lastName("Admin").role(Role.ADMIN).password("pass").email("admin@test.com").build();
         plan = Plan.builder().id(1L).name("Premium").duration(PlanDuration.ANNUALE)
-                .monthlyCreditsPT(8).monthlyCreditsNutri(4).build();
+                .monthlyCreditsPT(8).monthlyCreditsNutri(4).fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
     }
 
     @Test @DisplayName("updateProfile — aggiorna tutti i campi")
@@ -102,7 +102,7 @@ class UserServiceImplTest {
         req.setSelectedPlanId(1L); req.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        User newUser = User.builder().email("new@test.com").role(Role.CLIENT).build();
+        User newUser = User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build();
         when(userMapper.toUser(req)).thenReturn(newUser);
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(5L);
@@ -111,7 +111,7 @@ class UserServiceImplTest {
         when(userRepository.save(newUser)).thenReturn(newUser);
         when(planRepository.findById(1L)).thenReturn(Optional.of(plan));
         when(subscriptionMapper.toSubscription(eq(req), eq(newUser), eq(plan)))
-                .thenReturn(Subscription.builder().build());
+                .thenReturn(Subscription.builder().user(newUser).plan(plan).paymentFrequency(PaymentFrequency.UNICA_SOLUZIONE).build());
         when(userMapper.toUserResponse(newUser)).thenReturn(UserResponse.builder().email("new@test.com").build());
 
         UserResponse result = userService.registerUser(req);
@@ -131,9 +131,9 @@ class UserServiceImplTest {
         RegisterRequest req = new RegisterRequest();
         req.setEmail("new@test.com"); req.setSelectedPtId(2L); req.setSelectedNutritionistId(3L);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
-        when(userRepository.countByAssignedPT(pt)).thenReturn(10L); // SOLD OUT!
+        when(userRepository.countByAssignedPT(pt)).thenReturn(50L); // SOLD OUT!
 
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(ProfessionalSoldOutException.class);
     }
@@ -143,7 +143,7 @@ class UserServiceImplTest {
         RegisterRequest req = new RegisterRequest();
         req.setEmail("new@test.com"); req.setSelectedPtId(null); req.setSelectedNutritionistId(3L);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
 
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(IllegalArgumentException.class);
     }
@@ -164,7 +164,7 @@ class UserServiceImplTest {
     void findAvailableProfessionals_nullRating() {
         when(userRepository.findByRole(Role.NUTRITIONIST)).thenReturn(List.of(nutri));
         when(reviewRepository.getAverageRating(3L)).thenReturn(null);
-        when(userRepository.countByAssignedNutritionist(nutri)).thenReturn(10L);
+        when(userRepository.countByAssignedNutritionist(nutri)).thenReturn(50L);
 
         List<ProfessionalSummaryDTO> result = userService.findAvailableProfessionals(Role.NUTRITIONIST);
         assertThat(result.get(0).getAverageRating()).isEqualTo(0.0);
@@ -174,7 +174,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientDashboard — cliente con abbonamento e prenotazioni")
     void getClientDashboard_client() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
-        Subscription sub = Subscription.builder().id(1L).plan(plan).active(true)
+        Subscription sub = Subscription.builder().id(1L).user(client).plan(plan).paymentFrequency(PaymentFrequency.UNICA_SOLUZIONE).active(true)
                 .startDate(java.time.LocalDate.now()).endDate(java.time.LocalDate.now().plusYears(1))
                 .currentCreditsPT(8).currentCreditsNutri(4).build();
         when(subscriptionRepository.findByUserAndActiveTrue(client)).thenReturn(Optional.of(sub));
@@ -263,7 +263,7 @@ class UserServiceImplTest {
         req.setSelectedPlanId(null); req.setPaymentFrequency(null); // senza piano
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        User newUser = User.builder().email("new@test.com").role(Role.CLIENT).build();
+        User newUser = User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build();
         when(userMapper.toUser(req)).thenReturn(newUser);
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(5L);
@@ -281,7 +281,7 @@ class UserServiceImplTest {
         RegisterRequest req = new RegisterRequest();
         req.setEmail("new@test.com"); req.setSelectedPtId(3L); req.setSelectedNutritionistId(2L);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
         when(userRepository.findById(3L)).thenReturn(Optional.of(nutri)); // nutri al posto di PT!
 
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(IllegalArgumentException.class);
@@ -292,11 +292,11 @@ class UserServiceImplTest {
         RegisterRequest req = new RegisterRequest();
         req.setEmail("new@test.com"); req.setSelectedPtId(2L); req.setSelectedNutritionistId(3L);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(5L);
         when(userRepository.findById(3L)).thenReturn(Optional.of(nutri));
-        when(userRepository.countByAssignedNutritionist(nutri)).thenReturn(10L); // SOLD OUT
+        when(userRepository.countByAssignedNutritionist(nutri)).thenReturn(50L); // SOLD OUT
 
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(ProfessionalSoldOutException.class);
     }
@@ -315,6 +315,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientDashboard — cliente senza PT assegnato")
     void getClientDashboard_noPT() {
         User clientNoPT = User.builder().id(10L).firstName("Anna").lastName("Neri")
+                .email("anna@test.com").password("pass")
                 .role(Role.CLIENT).assignedPT(null).assignedNutritionist(nutri)
                 .createdAt(LocalDateTime.now()).build();
         when(userRepository.findById(10L)).thenReturn(Optional.of(clientNoPT));
@@ -329,6 +330,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientDashboard — cliente senza professionisti assegnati")
     void getClientDashboard_noProfessionals() {
         User clientNone = User.builder().id(11L).firstName("Bob").lastName("Test")
+                .email("bob@test.com").password("pass")
                 .role(Role.CLIENT).assignedPT(null).assignedNutritionist(null)
                 .createdAt(LocalDateTime.now()).build();
         when(userRepository.findById(11L)).thenReturn(Optional.of(clientNone));
@@ -343,7 +345,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientsForProfessional — client con profilePicture non null")
     void getClientsForProfessional_withProfilePicture() {
         User clientWithPic = User.builder().id(5L).firstName("Anna").lastName("Neri")
-                .email("anna@test.com").role(Role.CLIENT).profilePicture("pic.jpg").build();
+                .email("anna@test.com").password("pass").role(Role.CLIENT).profilePicture("pic.jpg").build();
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.findByAssignedPT(pt)).thenReturn(List.of(clientWithPic));
 

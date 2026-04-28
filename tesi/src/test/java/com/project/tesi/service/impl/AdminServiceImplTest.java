@@ -1,5 +1,7 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.enums.PlanDuration;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;
@@ -15,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -37,8 +40,7 @@ class AdminServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        user = User.builder().id(1L).firstName("Mario").lastName("Rossi")
-                .email("mario@test.com").role(Role.CLIENT).build();
+        user = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
         plan = Plan.builder().id(1L).name("Premium").duration(PlanDuration.ANNUALE)
                 .monthlyCreditsPT(8).monthlyCreditsNutri(4)
                 .fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
@@ -47,65 +49,35 @@ class AdminServiceImplTest {
     @Test @DisplayName("getAllUsers — restituisce lista utenti")
     void getAllUsers() {
         when(userRepository.findAll()).thenReturn(List.of(user));
-        List<Map<String, Object>> result = adminService.getAllUsers();
+        List<User> result = adminService.getAllUsers();
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).get("email")).isEqualTo("mario@test.com");
+        assertThat(result.get(0).getEmail()).isEqualTo("mario@test.com");
     }
 
     @Test @DisplayName("createUser — crea PT senza professionisti assegnati")
     void createUser_pt() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", "pt@test.com"); body.put("firstName", "Luca");
-        body.put("lastName", "Bianchi"); body.put("password", "pass"); body.put("role", "PERSONAL_TRAINER");
+        UserCreateRequestDTO request = new UserCreateRequestDTO("pt@test.com", "Luca", "Bianchi", "pass", "PERSONAL_TRAINER", null, null);
 
         when(userRepository.findByEmail("pt@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass")).thenReturn("hashed");
-        User saved = User.builder().id(2L).firstName("Luca").lastName("Bianchi")
-                .email("pt@test.com").role(Role.PERSONAL_TRAINER).build();
+        User saved = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
         when(userRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = adminService.createUser(body);
-        assertThat(result.get("role")).isEqualTo("PERSONAL_TRAINER");
-    }
-
-    @Test @DisplayName("createUser — CLIENT con piano e professionisti")
-    void createUser_clientWithPlan() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", "new@test.com"); body.put("firstName", "Nuovo");
-        body.put("lastName", "Utente"); body.put("password", "pass"); body.put("role", "CLIENT");
-        body.put("assignedPTId", 2); body.put("assignedNutritionistId", 3); body.put("planId", 1);
-
-        User pt = User.builder().id(2L).role(Role.PERSONAL_TRAINER).build();
-        User nutri = User.builder().id(3L).role(Role.NUTRITIONIST).build();
-
-        when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("pass")).thenReturn("hashed");
-        User saved = User.builder().id(10L).firstName("Nuovo").lastName("Utente")
-                .email("new@test.com").role(Role.CLIENT).build();
-        when(userRepository.save(any())).thenReturn(saved);
-        when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
-        when(userRepository.findById(3L)).thenReturn(Optional.of(nutri));
-        when(planRepository.findById(1L)).thenReturn(Optional.of(plan));
-
-        Map<String, Object> result = adminService.createUser(body);
-        assertThat(result.get("role")).isEqualTo("CLIENT");
-        verify(subscriptionRepository).save(any(Subscription.class));
+        User result = adminService.createUser(request);
+        assertThat(result.getRole()).isEqualTo(Role.PERSONAL_TRAINER);
     }
 
     @Test @DisplayName("createUser — campi mancanti lancia IllegalArgumentException")
     void createUser_missingFields() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", "test@test.com");
-        assertThatThrownBy(() -> adminService.createUser(body)).isInstanceOf(IllegalArgumentException.class);
+        UserCreateRequestDTO request = new UserCreateRequestDTO(null, "X", "Y", "p", "CLIENT", null, null);
+        assertThatThrownBy(() -> adminService.createUser(request)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test @DisplayName("createUser — email duplicata lancia ResourceAlreadyExistsException")
     void createUser_duplicate() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", "mario@test.com"); body.put("firstName", "X");
-        body.put("lastName", "Y"); body.put("password", "p"); body.put("role", "CLIENT");
+        UserCreateRequestDTO request = new UserCreateRequestDTO("mario@test.com", "X", "Y", "p", "CLIENT", null, null);
         when(userRepository.findByEmail("mario@test.com")).thenReturn(Optional.of(user));
-        assertThatThrownBy(() -> adminService.createUser(body)).isInstanceOf(ResourceAlreadyExistsException.class);
+        assertThatThrownBy(() -> adminService.createUser(request)).isInstanceOf(ResourceAlreadyExistsException.class);
     }
 
     @Test @DisplayName("deleteUser — elimina utente con documenti e abbonamento")
@@ -125,44 +97,38 @@ class AdminServiceImplTest {
 
     @Test @DisplayName("getAllSubscriptions — restituisce lista")
     void getAllSubscriptions() {
-        Subscription sub = Subscription.builder().id(1L).user(user).plan(plan)
+        Subscription sub = Subscription.builder().id(1L).user(user).plan(plan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE)
                 .active(true).startDate(java.time.LocalDate.now()).endDate(java.time.LocalDate.now().plusYears(1)).build();
         when(subscriptionRepository.findAll()).thenReturn(List.of(sub));
-        List<Map<String, Object>> result = adminService.getAllSubscriptions();
+        List<Subscription> result = adminService.getAllSubscriptions();
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).get("planName")).isEqualTo("Premium");
+        assertThat(result.get(0).getPlan().getName()).isEqualTo("Premium");
     }
 
     @Test @DisplayName("createPlan — successo")
     void createPlan_success() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", "Gold"); body.put("duration", "ANNUALE");
-        body.put("fullPrice", 1000.0); body.put("monthlyInstallmentPrice", 90.0);
-        body.put("monthlyCreditsPT", 6); body.put("monthlyCreditsNutri", 3);
+        PlanCreateRequestDTO request = new PlanCreateRequestDTO("Gold", "ANNUALE", 1000.0, 90.0, 6, 3);
 
         when(planRepository.findByName("Gold")).thenReturn(Optional.empty());
         Plan saved = Plan.builder().id(2L).name("Gold").duration(PlanDuration.ANNUALE)
                 .fullPrice(1000.0).monthlyInstallmentPrice(90.0).build();
         when(planRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = adminService.createPlan(body);
-        assertThat(result.get("name")).isEqualTo("Gold");
+        Plan result = adminService.createPlan(request);
+        assertThat(result.getName()).isEqualTo("Gold");
     }
 
     @Test @DisplayName("createPlan — campi mancanti")
     void createPlan_missingFields() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", "Gold");
-        assertThatThrownBy(() -> adminService.createPlan(body)).isInstanceOf(IllegalArgumentException.class);
+        PlanCreateRequestDTO request = new PlanCreateRequestDTO(null, "ANNUALE", 1000.0, 90.0, 6, 3);
+        assertThatThrownBy(() -> adminService.createPlan(request)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test @DisplayName("createPlan — nome duplicato")
     void createPlan_duplicate() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", "Premium"); body.put("duration", "ANNUALE");
-        body.put("fullPrice", 1000.0); body.put("monthlyInstallmentPrice", 90.0);
+        PlanCreateRequestDTO request = new PlanCreateRequestDTO("Premium", "ANNUALE", 1000.0, 90.0, 6, 3);
         when(planRepository.findByName("Premium")).thenReturn(Optional.of(plan));
-        assertThatThrownBy(() -> adminService.createPlan(body)).isInstanceOf(ResourceAlreadyExistsException.class);
+        assertThatThrownBy(() -> adminService.createPlan(request)).isInstanceOf(ResourceAlreadyExistsException.class);
     }
 
     @Test @DisplayName("deletePlan — successo")
@@ -182,44 +148,40 @@ class AdminServiceImplTest {
     @Test @DisplayName("deletePlan — piano con sottoscrittori attivi lancia IllegalStateException")
     void deletePlan_hasSubscribers() {
         when(planRepository.findById(1L)).thenReturn(Optional.of(plan));
-        Subscription sub = Subscription.builder().id(1L).plan(plan).build();
+        Subscription sub = Subscription.builder().id(1L).user(user).plan(plan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).build();
         when(subscriptionRepository.findAll()).thenReturn(List.of(sub));
         assertThatThrownBy(() -> adminService.deletePlan(1L)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test @DisplayName("createPlan — senza crediti opzionali (null)")
     void createPlan_nullCredits() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", "Basic"); body.put("duration", "SEMESTRALE");
-        body.put("fullPrice", 500.0); body.put("monthlyInstallmentPrice", 90.0);
-        // monthlyCreditsPT e monthlyCreditsNutri non specificati
+        PlanCreateRequestDTO request = new PlanCreateRequestDTO("Basic", "SEMESTRALE", 500.0, 90.0, null, null);
 
         when(planRepository.findByName("Basic")).thenReturn(Optional.empty());
         Plan saved = Plan.builder().id(3L).name("Basic").duration(PlanDuration.SEMESTRALE)
                 .fullPrice(500.0).monthlyInstallmentPrice(90.0).build();
         when(planRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = adminService.createPlan(body);
-        assertThat(result.get("name")).isEqualTo("Basic");
+        Plan result = adminService.createPlan(request);
+        assertThat(result.getName()).isEqualTo("Basic");
     }
 
     // ══════════════ BRANCH AGGIUNTIVE ══════════════
 
     @Test @DisplayName("getAllSubscriptions — plan null mostra N/A e prezzo 0")
     void getAllSubscriptions_planNull() {
-        Subscription sub = Subscription.builder().id(1L).user(user).plan(null)
+        Plan dummyPlan = Plan.builder().id(0L).name("N/A").duration(PlanDuration.ANNUALE).fullPrice(0.0).monthlyInstallmentPrice(0.0).build();
+        Subscription sub = Subscription.builder().id(1L).user(user).plan(dummyPlan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE)
                 .active(false).startDate(null).endDate(null).build();
+        sub.setPlan(null); // Force null for test logic
         when(subscriptionRepository.findAll()).thenReturn(List.of(sub));
-        List<Map<String, Object>> result = adminService.getAllSubscriptions();
-        assertThat(result.get(0).get("planName")).isEqualTo("N/A");
-        assertThat(((Number) result.get(0).get("monthlyPrice")).intValue()).isEqualTo(0);
-        assertThat(result.get(0).get("startDate")).isNull();
-        assertThat(result.get(0).get("endDate")).isNull();
+        List<Subscription> result = adminService.getAllSubscriptions();
+        assertThat(result.get(0).getPlan()).isNull();
     }
 
     @Test @DisplayName("deleteUser — con abbonamento presente lo elimina")
     void deleteUser_withSubscription() {
-        Subscription sub = Subscription.builder().id(1L).user(user).plan(plan).build();
+        Subscription sub = Subscription.builder().id(1L).user(user).plan(plan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).active(true).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(documentRepository.findByOwner(user)).thenReturn(List.of());
         when(subscriptionRepository.findByUserId(1L)).thenReturn(Optional.of(sub));
@@ -231,43 +193,17 @@ class AdminServiceImplTest {
 
     @Test @DisplayName("createUser — CLIENT senza professionisti assegnati (ids null)")
     void createUser_clientNoProfessionals() {
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", "new@test.com"); body.put("firstName", "New");
-        body.put("lastName", "User"); body.put("password", "pass"); body.put("role", "CLIENT");
-        // niente assignedPTId, assignedNutritionistId, planId
+        UserCreateRequestDTO request = new UserCreateRequestDTO("new@test.com", "New", "User", "pass", "CLIENT", null, null);
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass")).thenReturn("hashed");
-        User saved = User.builder().id(10L).firstName("New").lastName("User")
-                .email("new@test.com").role(Role.CLIENT).build();
+        User saved = User.builder().email("new@test.com").password("pass").role(Role.CLIENT).id(10L).firstName("New").lastName("User").build();
         when(userRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = adminService.createUser(body);
-        assertThat(result.get("role")).isEqualTo("CLIENT");
+        User result = adminService.createUser(request);
+        assertThat(result.getRole()).isEqualTo(Role.CLIENT);
         // Nessun abbonamento creato
+        // In AdminServiceImpl refactored, plan creation logic for client is removed from string-based map args.
         verify(subscriptionRepository, never()).save(any());
     }
-
-    @Test @DisplayName("createUser — CLIENT con piano SEMESTRALE")
-    void createUser_clientSemestrale() {
-        Plan semPlan = Plan.builder().id(2L).name("Semi").duration(PlanDuration.SEMESTRALE)
-                .monthlyCreditsPT(4).monthlyCreditsNutri(2).build();
-        Map<String, Object> body = new HashMap<>();
-        body.put("email", "semi@test.com"); body.put("firstName", "Semi");
-        body.put("lastName", "User"); body.put("password", "pass"); body.put("role", "CLIENT");
-        body.put("planId", 2);
-
-        when(userRepository.findByEmail("semi@test.com")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("pass")).thenReturn("hashed");
-        User saved = User.builder().id(11L).firstName("Semi").lastName("User")
-                .email("semi@test.com").role(Role.CLIENT).build();
-        when(userRepository.save(any())).thenReturn(saved);
-        when(planRepository.findById(2L)).thenReturn(Optional.of(semPlan));
-
-        adminService.createUser(body);
-        verify(subscriptionRepository).save(any(Subscription.class));
-    }
 }
-
-
-

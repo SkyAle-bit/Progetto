@@ -64,9 +64,9 @@ class BookingReminderSchedulerTest {
     }
 
     private Booking buildBooking(Long id) {
-        User client = User.builder().firstName("Mario").lastName("Rossi").email("mario@test.com").build();
-        User professional = User.builder().firstName("Luca").lastName("Bianchi").email("luca@test.com").build();
-        Slot slot = Slot.builder().startTime(LocalDateTime.now().plusMinutes(30)).build();
+        User client = User.builder().email("mario@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).firstName("Mario").lastName("Rossi").build();
+        User professional = User.builder().email("luca@test.com").password("pass").role(com.project.tesi.enums.Role.PERSONAL_TRAINER).firstName("Luca").lastName("Bianchi").build();
+        Slot slot = Slot.builder().professional(professional).startTime(LocalDateTime.now().plusMinutes(30)).endTime(LocalDateTime.now().plusMinutes(90)).build();
 
         return Booking.builder()
                 .id(id)

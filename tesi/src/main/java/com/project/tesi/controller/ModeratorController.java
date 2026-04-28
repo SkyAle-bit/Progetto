@@ -1,5 +1,6 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.facade.ModeratorFacade;
@@ -43,13 +44,13 @@ public class ModeratorController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<UserResponseDTO> createUser(@RequestBody com.project.tesi.dto.request.UserCreateRequestDTO body) {
+    public ResponseEntity<UserResponseDTO> createUser(@RequestBody UserCreateRequestDTO body) {
         return ResponseEntity.ok(moderatorFacade.createUser(body));
     }
 
     @PutMapping("/users/{id}")
     public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id,
-                                                           @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(moderatorFacade.updateUser(id, body));
     }
 
@@ -60,11 +61,11 @@ public class ModeratorController {
     }
 
     @PutMapping("/subscriptions/{id}/credits")
-    public ResponseEntity<SubscriptionResponseDTO> updateSubscriptionCredits(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+    public ResponseEntity<SubscriptionResponseDTO> updateSubscriptionCredits(@PathVariable Long id,
+            @RequestBody Map<String, Integer> body) {
         return ResponseEntity.ok(moderatorFacade.updateSubscriptionCredits(
                 id,
                 body.getOrDefault("creditsPT", 0),
-                body.getOrDefault("creditsNutri", 0)
-        ));
+                body.getOrDefault("creditsNutri", 0)));
     }
 }

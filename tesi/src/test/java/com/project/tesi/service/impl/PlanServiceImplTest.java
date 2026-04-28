@@ -29,8 +29,8 @@ class PlanServiceImplTest {
     @Test
     @DisplayName("getAllPlans — restituisce tutti i piani")
     void getAllPlans() {
-        Plan p1 = Plan.builder().id(1L).name("Base").duration(PlanDuration.SEMESTRALE).build();
-        Plan p2 = Plan.builder().id(2L).name("Premium").duration(PlanDuration.ANNUALE).build();
+        Plan p1 = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).name("Base").duration(PlanDuration.SEMESTRALE).build();
+        Plan p2 = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(2L).name("Premium").duration(PlanDuration.ANNUALE).build();
         when(planRepository.findAll()).thenReturn(List.of(p1, p2));
 
         List<Plan> result = planService.getAllPlans();

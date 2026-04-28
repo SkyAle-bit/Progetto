@@ -38,16 +38,16 @@ class ProfessionalStatsServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
-        nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").role(Role.NUTRITIONIST).build();
-        client = User.builder().id(1L).firstName("Mario").lastName("Rossi").role(Role.CLIENT).build();
+        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        nutri = User.builder().email("nutri@test.com").password("pass").role(Role.NUTRITIONIST).id(3L).firstName("Sara").lastName("Verdi").build();
+        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
     }
 
     @Test @DisplayName("getProfessionalStats — PT con booking e clienti")
     void getProfessionalStats_pt() {
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
 
-        Slot slot = Slot.builder()
+        Slot slot = Slot.builder().professional(pt)
                 .startTime(LocalDateTime.now().withHour(10).withMinute(0))
                 .endTime(LocalDateTime.now().withHour(10).withMinute(30)).build();
         Booking booking = Booking.builder().id(1L).user(client).professional(pt).slot(slot)

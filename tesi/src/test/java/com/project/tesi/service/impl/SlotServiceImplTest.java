@@ -41,7 +41,7 @@ class SlotServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
+        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
     }
 
     @Test @DisplayName("createSlots — crea e salva slot")
@@ -72,7 +72,7 @@ class SlotServiceImplTest {
         Slot s = Slot.builder().id(1L).professional(pt)
                 .startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30))
                 .isBooked(false).build();
-        when(slotRepository.findByProfessional(pt)).thenReturn(List.of(s));
+        when(slotRepository.findByProfessionalAndIsBookedFalse(pt)).thenReturn(List.of(s));
 
         List<SlotDTO> result = slotService.getAvailableSlots(2L);
         assertThat(result).hasSize(1);

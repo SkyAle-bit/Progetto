@@ -1,5 +1,6 @@
 package com.project.tesi.facade;
 
+import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
@@ -43,7 +44,7 @@ public class ModeratorFacade {
                 .collect(Collectors.toList());
     }
 
-    public UserResponseDTO createUser(com.project.tesi.dto.request.UserCreateRequestDTO request) {
+    public UserResponseDTO createUser(UserCreateRequestDTO request) {
         return FacadeMapper.mapToUserResponse(adminService.createUserAsModerator(request));
     }
 
@@ -58,5 +59,4 @@ public class ModeratorFacade {
     public SubscriptionResponseDTO updateSubscriptionCredits(Long id, int pt, int nutri) {
         return FacadeMapper.mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
     }
-
 }

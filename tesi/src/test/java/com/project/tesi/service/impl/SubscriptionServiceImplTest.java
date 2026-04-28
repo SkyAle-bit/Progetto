@@ -46,14 +46,14 @@ class SubscriptionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        user = User.builder().id(1L).firstName("Mario").lastName("Rossi").build();
+        user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("x@x.com").password("x").role(com.project.tesi.enums.Role.CLIENT).firstName("Mario").lastName("Rossi").build();
 
-        annualPlan = Plan.builder().id(1L).name("Premium Annuale")
+        annualPlan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).name("Premium Annuale")
                 .duration(PlanDuration.ANNUALE)
                 .monthlyCreditsPT(8).monthlyCreditsNutri(4)
                 .fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
 
-        semestralPlan = Plan.builder().id(2L).name("Base Semestrale")
+        semestralPlan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(2L).name("Base Semestrale")
                 .duration(PlanDuration.SEMESTRALE)
                 .monthlyCreditsPT(4).monthlyCreditsNutri(2)
                 .fullPrice(500.0).monthlyInstallmentPrice(90.0).build();
@@ -116,7 +116,7 @@ class SubscriptionServiceImplTest {
         request.setPlanId(1L);
         request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
 
-        Subscription existingSub = Subscription.builder().id(50L).user(user).active(true).build();
+        Subscription existingSub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(50L).user(user).plan(annualPlan).paymentFrequency(PaymentFrequency.UNICA_SOLUZIONE).active(true).build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(planRepository.findById(1L)).thenReturn(Optional.of(annualPlan));
@@ -165,7 +165,8 @@ class SubscriptionServiceImplTest {
     @Test
     @DisplayName("getSubscriptionStatus — restituisce lo stato dell'abbonamento attivo")
     void getSubscriptionStatus_success() {
-        Subscription sub = Subscription.builder().id(100L).user(user).plan(annualPlan)
+        Subscription sub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(100L).user(user).plan(annualPlan)
+                .paymentFrequency(PaymentFrequency.UNICA_SOLUZIONE)
                 .active(true).startDate(LocalDate.now()).endDate(LocalDate.now().plusYears(1))
                 .currentCreditsPT(8).currentCreditsNutri(4).build();
 

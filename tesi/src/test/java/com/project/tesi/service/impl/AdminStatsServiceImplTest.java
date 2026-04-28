@@ -35,15 +35,15 @@ class AdminStatsServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi")
+        pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").lastName("Bianchi")
                 .role(Role.PERSONAL_TRAINER).createdAt(LocalDateTime.now().minusDays(30)).build();
-        client = User.builder().id(1L).firstName("Mario").lastName("Rossi")
+        client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
                 .role(Role.CLIENT).assignedPT(pt)
                 .createdAt(LocalDateTime.now().minusDays(10)).build();
-        plan = Plan.builder().id(1L).name("Premium").duration(PlanDuration.ANNUALE)
+        plan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).name("Premium").duration(PlanDuration.ANNUALE)
                 .monthlyCreditsPT(8).monthlyCreditsNutri(4)
                 .fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
-        sub = Subscription.builder().id(1L).user(client).plan(plan).active(true)
+        sub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(1L).user(client).plan(plan).active(true)
                 .currentCreditsPT(5).currentCreditsNutri(2).build();
     }
 
@@ -101,9 +101,9 @@ class AdminStatsServiceImplTest {
 
     @Test @DisplayName("getAdminStats — nutrizionista nel carico professionisti")
     void getAdminStats_nutriWorkload() {
-        User nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi")
+        User nutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").lastName("Verdi")
                 .role(Role.NUTRITIONIST).createdAt(LocalDateTime.now()).build();
-        User clientNutri = User.builder().id(4L).firstName("Anna").lastName("Neri")
+        User clientNutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(4L).firstName("Anna").lastName("Neri")
                 .role(Role.CLIENT).assignedNutritionist(nutri).createdAt(LocalDateTime.now()).build();
 
         when(userRepository.findAll()).thenReturn(List.of(nutri, clientNutri));

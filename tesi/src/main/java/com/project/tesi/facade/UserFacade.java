@@ -18,6 +18,7 @@ import com.project.tesi.service.ReviewService;
 import com.project.tesi.service.SlotService;
 import com.project.tesi.service.SubscriptionService;
 import com.project.tesi.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,17 +30,19 @@ import java.util.Map;
  * Fornisce un punto d'accesso unificato a tutte le operazioni lato utente,
  * coordinando 7 servizi specializzati:
  * <ul>
- *   <li>{@link UserService} — profilo, dashboard, gestione clienti</li>
- *   <li>{@link BookingService} — prenotazioni appuntamenti</li>
- *   <li>{@link ReviewService} — recensioni ai professionisti</li>
- *   <li>{@link SubscriptionService} — attivazione e stato abbonamento</li>
- *   <li>{@link ActivityFeedService} — feed attività recenti</li>
- *   <li>{@link ProfessionalStatsService} — statistiche dashboard professionista</li>
- *   <li>{@link SlotService} — gestione slot del calendario</li>
+ * <li>{@link UserService} — profilo, dashboard, gestione clienti</li>
+ * <li>{@link BookingService} — prenotazioni appuntamenti</li>
+ * <li>{@link ReviewService} — recensioni ai professionisti</li>
+ * <li>{@link SubscriptionService} — attivazione e stato abbonamento</li>
+ * <li>{@link ActivityFeedService} — feed attività recenti</li>
+ * <li>{@link ProfessionalStatsService} — statistiche dashboard
+ * professionista</li>
+ * <li>{@link SlotService} — gestione slot del calendario</li>
  * </ul>
  * I controller comunicano esclusivamente con questa facade.
  */
 @Component
+@RequiredArgsConstructor
 public class UserFacade {
 
     private final UserService userService;
@@ -50,19 +53,10 @@ public class UserFacade {
     private final ProfessionalStatsService professionalStatsService;
     private final SlotService slotService;
 
-    // Costruttore esplicito — pattern Facade
-    public UserFacade(UserService userService, BookingService bookingService, ReviewService reviewService, SubscriptionService subscriptionService, ActivityFeedService activityFeedService, ProfessionalStatsService professionalStatsService, SlotService slotService) {
-        this.userService = userService;
-        this.bookingService = bookingService;
-        this.reviewService = reviewService;
-        this.subscriptionService = subscriptionService;
-        this.activityFeedService = activityFeedService;
-        this.professionalStatsService = professionalStatsService;
-        this.slotService = slotService;
-    }
-
-
-    /** Restituisce la dashboard completa del cliente (profilo, professionisti, abbonamento, prenotazioni). */
+    /**
+     * Restituisce la dashboard completa del cliente (profilo, professionisti,
+     * abbonamento, prenotazioni).
+     */
     public ClientDashboardResponse getClientDashboard(Long userId) {
         return userService.getClientDashboard(userId);
     }
@@ -82,16 +76,17 @@ public class UserFacade {
         return userService.getSupportOperator();
     }
 
-
     public BookingResponse createBooking(BookingRequest request) {
         return bookingService.createBooking(request);
     }
 
-    /** Annulla una prenotazione esistente, liberando lo slot e riaccreditando il credito. */
+    /**
+     * Annulla una prenotazione esistente, liberando lo slot e riaccreditando il
+     * credito.
+     */
     public void cancelBooking(Long bookingId, Long userId) {
         bookingService.cancelBooking(bookingId, userId);
     }
-
 
     /** Il cliente lascia una recensione a un professionista. */
     public ReviewResponse addReview(ReviewRequest request) {
@@ -113,7 +108,6 @@ public class UserFacade {
         return reviewService.hasClientReviewed(clientId, professionalId);
     }
 
-
     /** Attiva un nuovo abbonamento per il cliente. */
     public SubscriptionResponse activateSubscription(com.project.tesi.dto.request.PlanRequest request) {
         return subscriptionService.activateSubscription(request);
@@ -123,7 +117,6 @@ public class UserFacade {
     public SubscriptionResponse getSubscriptionStatus(Long userId) {
         return subscriptionService.getSubscriptionStatus(userId);
     }
-
 
     /** Restituisce la lista dei professionisti disponibili per un dato ruolo. */
     public List<ProfessionalSummaryDTO> findAvailableProfessionals(Role role) {
@@ -149,7 +142,6 @@ public class UserFacade {
     public Map<String, Object> getProfessionalStats(Long professionalId) {
         return professionalStatsService.getProfessionalStats(professionalId);
     }
-
 
     /** Restituisce il feed delle attività recenti di un utente. */
     public List<Map<String, Object>> getActivityFeed(Long userId, int days, int limit) {

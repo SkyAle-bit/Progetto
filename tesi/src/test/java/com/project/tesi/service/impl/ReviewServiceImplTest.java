@@ -44,11 +44,10 @@ class ReviewServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        client = User.builder().id(1L).firstName("Mario").lastName("Rossi")
-                .role(Role.CLIENT).createdAt(LocalDateTime.now().minusMonths(2)).build();
+        professional = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
 
-        professional = User.builder().id(2L).firstName("Luca").lastName("Bianchi")
-                .role(Role.PERSONAL_TRAINER).build();
+        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
+                .assignedPT(professional).createdAt(LocalDateTime.now().minusMonths(2)).build();
 
         reviewRequest = new ReviewRequest();
         reviewRequest.setUserId(1L);
@@ -110,8 +109,8 @@ class ReviewServiceImplTest {
     @Test
     @DisplayName("addReview — registrazione troppo recente lancia ReviewNotAllowedException")
     void addReview_tooEarly() {
-        User recentClient = User.builder().id(1L).firstName("Mario")
-                .role(Role.CLIENT).createdAt(LocalDateTime.now().minusDays(10)).build();
+        User recentClient = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario")
+                .assignedPT(professional).createdAt(LocalDateTime.now().minusDays(10)).build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(recentClient));
         when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
@@ -124,8 +123,8 @@ class ReviewServiceImplTest {
     @Test
     @DisplayName("addReview — createdAt null lancia ReviewNotAllowedException")
     void addReview_createdAtNull() {
-        User nullCreatedClient = User.builder().id(1L).firstName("Mario")
-                .role(Role.CLIENT).createdAt(null).build();
+        User nullCreatedClient = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario")
+                .assignedPT(professional).createdAt(null).build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(nullCreatedClient));
         when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
@@ -179,7 +178,7 @@ class ReviewServiceImplTest {
     @Test
     @DisplayName("canClientReview — false quando registrazione < 1 mese")
     void canClientReview_tooRecent() {
-        User recent = User.builder().id(1L).createdAt(LocalDateTime.now().minusDays(5)).build();
+        User recent = User.builder().email("x@x.com").password("x").role(Role.CLIENT).id(1L).assignedPT(professional).createdAt(LocalDateTime.now().minusDays(5)).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(recent));
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
 
@@ -189,7 +188,7 @@ class ReviewServiceImplTest {
     @Test
     @DisplayName("canClientReview — false quando createdAt null")
     void canClientReview_createdAtNull() {
-        User nullDate = User.builder().id(1L).createdAt(null).build();
+        User nullDate = User.builder().email("x@x.com").password("x").role(Role.CLIENT).id(1L).assignedPT(professional).createdAt(null).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(nullDate));
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
 

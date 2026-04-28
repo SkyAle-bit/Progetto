@@ -12,6 +12,9 @@ import java.util.Map;
 /**
  * Interfaccia del servizio per le operazioni CRUD di amministrazione.
  * Gestisce utenti, abbonamenti e piani commerciali.
+ *
+ * I metodi restituiscono entità di dominio tipizzate (User, Subscription, Plan)
+ * anziché Map&lt;String, Object&gt; per garantire type-safety a compile-time.
  */
 public interface AdminService {
 

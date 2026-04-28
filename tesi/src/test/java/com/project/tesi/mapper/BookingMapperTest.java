@@ -23,12 +23,12 @@ class BookingMapperTest {
     @Test
     @DisplayName("toResponse — converte correttamente un Booking nel DTO")
     void toResponse_success() {
-        User client = User.builder().id(1L).firstName("Mario").lastName("Rossi").build();
-        User pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
+        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
+        User pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
 
         LocalDateTime start = LocalDateTime.of(2026, 3, 15, 10, 0);
         LocalDateTime end = LocalDateTime.of(2026, 3, 15, 11, 0);
-        Slot slot = Slot.builder().startTime(start).endTime(end).build();
+        Slot slot = Slot.builder().professional(pt).startTime(start).endTime(end).build();
 
         Booking booking = Booking.builder()
                 .id(1L).user(client).professional(pt).slot(slot)

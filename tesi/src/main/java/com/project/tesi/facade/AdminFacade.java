@@ -9,7 +9,6 @@ import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,7 +30,6 @@ public class AdminFacade {
         this.adminStatsService = adminStatsService;
     }
 
-
     public List<UserResponseDTO> getAllUsers() {
         return adminService.getAllUsers().stream()
                 .map(FacadeMapper::mapToUserResponse)
@@ -46,7 +44,6 @@ public class AdminFacade {
         adminService.deleteUser(id);
     }
 
-
     public List<SubscriptionResponseDTO> getAllSubscriptions() {
         return adminService.getAllSubscriptions().stream()
                 .map(FacadeMapper::mapToSubscriptionResponse)
@@ -57,7 +54,6 @@ public class AdminFacade {
         return FacadeMapper.mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
     }
 
-
     public PlanResponseDTO createPlan(PlanCreateRequestDTO request) {
         return FacadeMapper.mapToPlanResponse(adminService.createPlan(request));
     }
@@ -66,9 +62,7 @@ public class AdminFacade {
         adminService.deletePlan(id);
     }
 
-
     public Map<String, Object> getAdminStats() {
         return adminStatsService.getAdminStats();
     }
-
 }

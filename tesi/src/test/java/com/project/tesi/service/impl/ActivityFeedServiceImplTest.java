@@ -38,17 +38,17 @@ class ActivityFeedServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
-        client = User.builder().id(1L).firstName("Mario").lastName("Rossi").role(Role.CLIENT).build();
+        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
     }
 
     @Test @DisplayName("getActivityFeed — CLIENT con prenotazioni e documenti")
     void getActivityFeed_client() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
 
-        Slot slot = Slot.builder().startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
+        Slot slot = Slot.builder().professional(pt).startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
         Booking booking = Booking.builder().id(1L).user(client).professional(pt).slot(slot)
-                .status(BookingStatus.CONFIRMED).bookedAt(LocalDateTime.now().minusHours(2)).build();
+                .status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusHours(2)).build();
         when(bookingRepository.findRecentByUser(eq(client), any())).thenReturn(List.of(booking));
 
         Document doc = Document.builder().id(1L).fileName("scheda.pdf").type(DocumentType.WORKOUT_PLAN)
@@ -66,9 +66,9 @@ class ActivityFeedServiceImplTest {
     void getActivityFeed_professional() {
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
 
-        Slot slot = Slot.builder().startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
+        Slot slot = Slot.builder().professional(pt).startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
         Booking booking = Booking.builder().id(1L).user(client).professional(pt).slot(slot)
-                .bookedAt(LocalDateTime.now().minusMinutes(30)).build();
+                .status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusMinutes(30)).build();
         when(bookingRepository.findRecentByProfessional(eq(pt), any())).thenReturn(List.of(booking));
 
         Document doc = Document.builder().id(1L).fileName("dieta.pdf").type(DocumentType.DIET_PLAN)
@@ -100,9 +100,9 @@ class ActivityFeedServiceImplTest {
     void getActivityFeed_limit() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
 
-        Slot slot = Slot.builder().startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
-        Booking b1 = Booking.builder().id(1L).user(client).professional(pt).slot(slot).bookedAt(LocalDateTime.now().minusHours(1)).build();
-        Booking b2 = Booking.builder().id(2L).user(client).professional(pt).slot(slot).bookedAt(LocalDateTime.now().minusHours(2)).build();
+        Slot slot = Slot.builder().professional(pt).startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
+        Booking b1 = Booking.builder().id(1L).user(client).professional(pt).slot(slot).status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusHours(1)).build();
+        Booking b2 = Booking.builder().id(2L).user(client).professional(pt).slot(slot).status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusHours(2)).build();
         when(bookingRepository.findRecentByUser(eq(client), any())).thenReturn(List.of(b1, b2));
         when(documentRepository.findRecentByOwner(eq(client), any())).thenReturn(List.of());
 
@@ -141,7 +141,7 @@ class ActivityFeedServiceImplTest {
 
     @Test @DisplayName("getActivityFeed — ADMIN restituisce lista vuota (nessun feed)")
     void getActivityFeed_admin() {
-        User admin = User.builder().id(99L).role(Role.ADMIN).build();
+        User admin = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(99L).role(Role.ADMIN).build();
         when(userRepository.findById(99L)).thenReturn(Optional.of(admin));
 
         List<Map<String, Object>> result = activityFeedService.getActivityFeed(99L, 14, 15);

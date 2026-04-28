@@ -31,10 +31,10 @@ class SubscriptionSchedulerTest {
     @Test
     @DisplayName("renewCredits — il primo del mese resetta i crediti, altrimenti no")
     void renewCredits_branchCoverage() {
-        Plan plan = Plan.builder().monthlyCreditsPT(8).monthlyCreditsNutri(4)
+        Plan plan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).monthlyCreditsPT(8).monthlyCreditsNutri(4)
                 .duration(PlanDuration.ANNUALE).build();
 
-        Subscription sub = Subscription.builder().id(1L).active(true)
+        Subscription sub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(1L).active(true)
                 .currentCreditsPT(2).currentCreditsNutri(1).plan(plan).build();
 
         when(subscriptionRepository.findByActiveTrue()).thenReturn(List.of(sub));
@@ -66,12 +66,12 @@ class SubscriptionSchedulerTest {
     @Test
     @DisplayName("renewCredits — più abbonamenti attivi vengono processati")
     void renewCredits_multipleSubscriptions() {
-        Plan plan = Plan.builder().monthlyCreditsPT(10).monthlyCreditsNutri(5)
+        Plan plan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).monthlyCreditsPT(10).monthlyCreditsNutri(5)
                 .duration(PlanDuration.ANNUALE).build();
 
-        Subscription sub1 = Subscription.builder().id(1L).active(true)
+        Subscription sub1 = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(1L).active(true)
                 .currentCreditsPT(3).currentCreditsNutri(1).plan(plan).build();
-        Subscription sub2 = Subscription.builder().id(2L).active(true)
+        Subscription sub2 = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(2L).active(true)
                 .currentCreditsPT(0).currentCreditsNutri(0).plan(plan).build();
 
         when(subscriptionRepository.findByActiveTrue()).thenReturn(List.of(sub1, sub2));

@@ -31,9 +31,9 @@ class UserMapperTest {
     @Test
     @DisplayName("toUserResponse — utente CLIENT con professionisti assegnati")
     void toUserResponse_client() {
-        User pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").build();
-        User nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").build();
-        User client = User.builder().id(1L).firstName("Mario").lastName("Rossi")
+        User pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").lastName("Bianchi").build();
+        User nutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").lastName("Verdi").build();
+        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
                 .email("mario@test.com").role(Role.CLIENT).assignedPT(pt).assignedNutritionist(nutri).build();
 
         UserResponse resp = userMapper.toUserResponse(client);
@@ -50,7 +50,7 @@ class UserMapperTest {
     @Test
     @DisplayName("toUserResponse — professionista PT con rating e conteggio clienti")
     void toUserResponse_pt() {
-        User pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi")
+        User pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").lastName("Bianchi")
                 .email("luca@test.com").role(Role.PERSONAL_TRAINER).build();
 
         when(reviewRepository.getAverageRating(2L)).thenReturn(4.5);
@@ -66,7 +66,7 @@ class UserMapperTest {
     @Test
     @DisplayName("toUserResponse — nutrizionista con rating null → default 0.0")
     void toUserResponse_nutritionist_nullRating() {
-        User nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi")
+        User nutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").lastName("Verdi")
                 .email("sara@test.com").role(Role.NUTRITIONIST).build();
 
         when(reviewRepository.getAverageRating(3L)).thenReturn(null);
@@ -81,7 +81,7 @@ class UserMapperTest {
     @Test
     @DisplayName("toUserResponse — client senza professionisti assegnati")
     void toUserResponse_clientNoProfessionals() {
-        User client = User.builder().id(1L).firstName("Mario").lastName("Rossi")
+        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
                 .email("mario@test.com").role(Role.CLIENT).build();
 
         UserResponse resp = userMapper.toUserResponse(client);

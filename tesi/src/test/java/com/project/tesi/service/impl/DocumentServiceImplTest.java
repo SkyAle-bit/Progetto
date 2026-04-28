@@ -48,9 +48,9 @@ class DocumentServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(documentService, "uploadDir", tempDir.toString());
-        pt = User.builder().id(2L).firstName("Luca").role(Role.PERSONAL_TRAINER).build();
-        nutri = User.builder().id(3L).firstName("Sara").role(Role.NUTRITIONIST).build();
-        client = User.builder().id(1L).firstName("Mario").role(Role.CLIENT).build();
+        pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").role(Role.PERSONAL_TRAINER).build();
+        nutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").role(Role.NUTRITIONIST).build();
+        client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").role(Role.CLIENT).build();
     }
 
     @Test @DisplayName("uploadDocumentWithValidation — PT carica WORKOUT_PLAN OK")

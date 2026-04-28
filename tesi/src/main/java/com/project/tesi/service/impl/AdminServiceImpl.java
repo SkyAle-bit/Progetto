@@ -1,5 +1,7 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.request.PlanCreateRequestDTO;
+import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.enums.PlanDuration;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;
@@ -20,13 +22,12 @@ import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.repository.WeeklyScheduleRepository;
 import com.project.tesi.service.AdminService;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.util.EnumSet;
 import java.util.List;
@@ -34,21 +35,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import com.project.tesi.dto.request.PlanCreateRequestDTO;
-import com.project.tesi.dto.request.UserCreateRequestDTO;
 
 /**
  * Implementazione del servizio amministrativo.
  * Gestisce utenti, piani e abbonamenti con regole dedicate per admin e moderator.
+ *
+ * I metodi pubblici restituiscono entità di dominio tipizzate (User, Subscription, Plan)
+ * per garantire type-safety a compile-time. La conversione in DTO avviene nel layer Facade.
  */
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
 
     private static final Set<Role> MODERATOR_MANAGEABLE_ROLES = EnumSet.of(
             Role.CLIENT,
             Role.PERSONAL_TRAINER,
-            Role.NUTRITIONIST
-    );
+            Role.NUTRITIONIST);
 
     private final UserRepository userRepository;
     private final PlanRepository planRepository;
@@ -61,23 +63,7 @@ public class AdminServiceImpl implements AdminService {
     private final WeeklyScheduleRepository weeklyScheduleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Costruttore esplicito — Dependency Injection manuale
-    public AdminServiceImpl(UserRepository userRepository, PlanRepository planRepository,
-                            SubscriptionRepository subscriptionRepository, DocumentRepository documentRepository,
-                            BookingRepository bookingRepository, ChatRepository chatRepository,
-                            ReviewRepository reviewRepository, SlotRepository slotRepository,
-                            WeeklyScheduleRepository weeklyScheduleRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.planRepository = planRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.documentRepository = documentRepository;
-        this.bookingRepository = bookingRepository;
-        this.chatRepository = chatRepository;
-        this.reviewRepository = reviewRepository;
-        this.slotRepository = slotRepository;
-        this.weeklyScheduleRepository = weeklyScheduleRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+    // ────────────────────── Utenti ──────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -144,6 +130,8 @@ public class AdminServiceImpl implements AdminService {
         deleteUserInternal(id, actor);
     }
 
+    // ────────────────────── Abbonamenti ──────────────────────
+
     @Override
     @Transactional(readOnly = true)
     public List<Subscription> getAllSubscriptions() {
@@ -166,6 +154,8 @@ public class AdminServiceImpl implements AdminService {
         return subscriptionRepository.save(sub);
     }
 
+    // ────────────────────── Piani ──────────────────────
+
     @Override
     @Transactional
     public Plan createPlan(PlanCreateRequestDTO request) {
@@ -177,7 +167,8 @@ public class AdminServiceImpl implements AdminService {
         Integer monthlyCreditsNutri = request.monthlyCreditsNutri() != null ? request.monthlyCreditsNutri() : 0;
 
         if (name == null || durationRaw == null || fullPrice == null || monthlyInstallmentPrice == null) {
-            throw new IllegalArgumentException("Campi obbligatori mancanti (name, duration, fullPrice, monthlyInstallmentPrice).");
+            throw new IllegalArgumentException(
+                    "Campi obbligatori mancanti (name, duration, fullPrice, monthlyInstallmentPrice).");
         }
 
         planRepository.findByName(name).ifPresent(existing -> {
@@ -216,6 +207,10 @@ public class AdminServiceImpl implements AdminService {
         planRepository.delete(plan);
     }
 
+    // ════════════════════════════════════════════════════
+    //  Metodi interni
+    // ════════════════════════════════════════════════════
+
     private User createUserInternal(UserCreateRequestDTO request, User actor) {
         String email = request.email();
         String firstName = request.firstName();
@@ -224,7 +219,8 @@ public class AdminServiceImpl implements AdminService {
         String roleRaw = request.role();
 
         if (email == null || firstName == null || lastName == null || password == null || roleRaw == null) {
-            throw new IllegalArgumentException("Campi obbligatori mancanti (email, firstName, lastName, password, role).");
+            throw new IllegalArgumentException(
+                    "Campi obbligatori mancanti (email, firstName, lastName, password, role).");
         }
 
         if (userRepository.findByEmail(email).isPresent()) {
@@ -246,7 +242,6 @@ public class AdminServiceImpl implements AdminService {
             if (request.assignedPTId() != null) {
                 userRepository.findById(request.assignedPTId()).ifPresent(user::setAssignedPT);
             }
-
             if (request.assignedNutritionistId() != null) {
                 userRepository.findById(request.assignedNutritionistId()).ifPresent(user::setAssignedNutritionist);
             }
@@ -340,7 +335,7 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-
+    // ────────────────────── Validazione permessi ──────────────────────
 
     private void validateCreatePermissions(User actor, Role targetRole) {
         if (targetRole == Role.ADMIN) {
@@ -355,10 +350,12 @@ public class AdminServiceImpl implements AdminService {
 
     private void validateUpdatePermissions(User actor, User target, Map<String, Object> body) {
         if (target.getRole() == Role.ADMIN) {
-            throw new UnauthorizedAccessException("L'account amministratore non puo essere modificato da questa operazione.");
+            throw new UnauthorizedAccessException(
+                    "L'account amministratore non puo essere modificato da questa operazione.");
         }
 
-        if (actor != null && actor.getRole() == Role.MODERATOR && !MODERATOR_MANAGEABLE_ROLES.contains(target.getRole())) {
+        if (actor != null && actor.getRole() == Role.MODERATOR
+                && !MODERATOR_MANAGEABLE_ROLES.contains(target.getRole())) {
             throw new UnauthorizedAccessException(
                     "Il moderatore puo modificare solo clienti, personal trainer e nutrizionisti.");
         }
@@ -398,6 +395,8 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+    // ────────────────────── Utilità ──────────────────────
+
     private Role parseRole(String role) {
         try {
             return Role.valueOf(role);
@@ -405,8 +404,6 @@ public class AdminServiceImpl implements AdminService {
             throw new IllegalArgumentException("Ruolo non valido: " + role);
         }
     }
-
-
 
     private void ensureRole(User actor, Role role) {
         if (actor.getRole() != role) {
@@ -447,5 +444,4 @@ public class AdminServiceImpl implements AdminService {
         String str = value.toString().trim();
         return str.isEmpty() ? null : str;
     }
-
 }

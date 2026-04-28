@@ -5,6 +5,9 @@ import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.PlanResponseDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
+import com.project.tesi.model.Plan;
+import com.project.tesi.model.Subscription;
+import com.project.tesi.model.User;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,8 +36,10 @@ class AdminFacadeTest {
     @Test
     @DisplayName("getAllUsers")
     void getAllUsers() {
-        List<Map<String, Object>> users = List.of(Map.of("id", 1L, "firstName", "Test"));
-        when(adminService.getAllUsers()).thenReturn(users);
+        User user = new User();
+        user.setId(1L);
+        user.setFirstName("Test");
+        when(adminService.getAllUsers()).thenReturn(List.of(user));
 
         List<UserResponseDTO> response = adminFacade.getAllUsers();
         assertThat(response.get(0).id()).isEqualTo(1L);
@@ -43,8 +49,10 @@ class AdminFacadeTest {
     @DisplayName("createUser")
     void createUser() {
         UserCreateRequestDTO request = new UserCreateRequestDTO("test@test.com", "Test", "User", "pass", "CLIENT", null, null);
-        Map<String, Object> result = Map.of("id", 1L, "email", "test@test.com");
-        when(adminService.createUser(anyMap())).thenReturn(result);
+        User result = new User();
+        result.setId(1L);
+        result.setEmail("test@test.com");
+        when(adminService.createUser(any())).thenReturn(result);
 
         UserResponseDTO response = adminFacade.createUser(request);
         assertThat(response.id()).isEqualTo(1L);
@@ -60,8 +68,9 @@ class AdminFacadeTest {
     @Test
     @DisplayName("getAllSubscriptions")
     void getAllSubscriptions() {
-        List<Map<String, Object>> subs = List.of(Map.of("id", 1L));
-        when(adminService.getAllSubscriptions()).thenReturn(subs);
+        Subscription sub = new Subscription();
+        sub.setId(1L);
+        when(adminService.getAllSubscriptions()).thenReturn(List.of(sub));
 
         List<SubscriptionResponseDTO> response = adminFacade.getAllSubscriptions();
         assertThat(response.get(0).id()).isEqualTo(1L);
@@ -71,8 +80,9 @@ class AdminFacadeTest {
     @DisplayName("createPlan")
     void createPlan() {
         PlanCreateRequestDTO request = new PlanCreateRequestDTO("Premium", "MENSILE", 100.0, 100.0, 5, 5);
-        Map<String, Object> result = Map.of("id", 1L);
-        when(adminService.createPlan(anyMap())).thenReturn(result);
+        Plan result = new Plan();
+        result.setId(1L);
+        when(adminService.createPlan(any())).thenReturn(result);
 
         PlanResponseDTO response = adminFacade.createPlan(request);
         assertThat(response.id()).isEqualTo(1L);

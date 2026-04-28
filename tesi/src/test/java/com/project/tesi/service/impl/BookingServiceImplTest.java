@@ -59,16 +59,18 @@ class BookingServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").role(Role.PERSONAL_TRAINER).build();
-        client = User.builder().id(1L).firstName("Mario").lastName("Rossi").role(Role.CLIENT).assignedPT(pt).build();
+        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").assignedPT(pt).build();
 
         slot = Slot.builder().id(10L).professional(pt)
                 .startTime(LocalDateTime.now().plusDays(1))
                 .endTime(LocalDateTime.now().plusDays(1).plusHours(1))
                 .isBooked(false).build();
 
+        com.project.tesi.model.Plan plan = com.project.tesi.model.Plan.builder().name("Plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).build();
         subscription = Subscription.builder()
-                .id(100L).user(client).active(true).currentCreditsPT(5).currentCreditsNutri(3).endDate(LocalDateTime.now().plusMonths(1).toLocalDate()).build();
+                .id(100L).user(client).plan(plan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE)
+                .active(true).currentCreditsPT(5).currentCreditsNutri(3).endDate(LocalDateTime.now().plusMonths(1).toLocalDate()).build();
 
         // Crea strategy reale per PT
         BookingStrategy ptStrategy = new PersonalTrainerBookingStrategy();
@@ -91,6 +93,8 @@ class BookingServiceImplTest {
             b.setId(1L);
             return b;
         });
+
+        when(videoConferenceService.generateMeetingLink(any(), any(), any())).thenReturn("https://meet.jit.si/test");
 
         BookingResponse expectedResp = BookingResponse.builder().id(1L).status(BookingStatus.CONFIRMED).build();
         when(bookingMapper.toResponse(any())).thenReturn(expectedResp);
@@ -161,7 +165,7 @@ class BookingServiceImplTest {
     @Test
     @DisplayName("createBooking — ruolo professionista non supportato lancia IllegalStateException")
     void createBooking_unsupportedRole() {
-        User admin = User.builder().id(3L).role(Role.ADMIN).build();
+        User admin = User.builder().email("admin@test.com").password("pass").role(Role.ADMIN).id(3L).build();
         Slot adminSlot = Slot.builder().id(20L).professional(admin).isBooked(false)
                 .startTime(LocalDateTime.now().plusDays(1))
                 .endTime(LocalDateTime.now().plusDays(1).plusHours(1)).build();
