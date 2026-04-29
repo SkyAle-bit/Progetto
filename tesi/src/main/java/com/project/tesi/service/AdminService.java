@@ -2,12 +2,12 @@ package com.project.tesi.service;
 
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Interfaccia del servizio per le operazioni CRUD di amministrazione.
@@ -34,7 +34,7 @@ public interface AdminService {
     User createUserAsModerator(UserCreateRequestDTO request);
 
     /** Aggiorna un utente come moderatore (solo ruoli consentiti). */
-    User updateUserAsModerator(Long id, Map<String, Object> body);
+    User updateUserAsModerator(Long id, ModeratorUserUpdateRequest request);
 
     /** Elimina un utente e le sue entità collegate. */
     void deleteUser(Long id);

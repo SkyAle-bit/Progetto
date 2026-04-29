@@ -1,13 +1,13 @@
 package com.project.tesi.facade;
 
 import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -48,8 +48,8 @@ public class ModeratorFacade {
         return FacadeMapper.mapToUserResponse(adminService.createUserAsModerator(request));
     }
 
-    public UserResponseDTO updateUser(Long id, Map<String, Object> body) {
-        return FacadeMapper.mapToUserResponse(adminService.updateUserAsModerator(id, body));
+    public UserResponseDTO updateUser(Long id, ModeratorUserUpdateRequest request) {
+        return FacadeMapper.mapToUserResponse(adminService.updateUserAsModerator(id, request));
     }
 
     public void deleteUser(Long id) {

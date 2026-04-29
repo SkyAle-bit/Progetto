@@ -146,9 +146,10 @@ public class BookingServiceImpl implements BookingService {
             return bookingMapper.toResponse(saved);
         } finally {
             lock.unlock();
-            // Nota: i lock non vengono rimossi dalla mappa perché il numero di slot
-            // è limitato e bounded dal DB. Una rimozione concorrente introdurrebbe
-            // una race condition più pericolosa del leak di memoria stesso.
+            // Pulizia della mappa per evitare memory leak a lungo termine.
+            // Una volta rilasciato il lock, l'ID dello slot viene rimosso
+            // in modo thread-safe dalla ConcurrentHashMap.
+            slotLocks.remove(slotId);
         }
     }
 

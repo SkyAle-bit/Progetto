@@ -2,30 +2,34 @@ package com.project.tesi.observer.listener.impl;
 
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
-import com.project.tesi.model.Subscription;
-import com.project.tesi.model.User;
 import com.project.tesi.observer.listener.EventListener;
 import com.project.tesi.observer.manager.EventManager;
-import com.project.tesi.repository.SubscriptionRepository;
-import com.project.tesi.service.strategy.BookingStrategy;
+import com.project.tesi.service.SubscriptionService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
+/**
+ * Listener Observer per il rimborso dei crediti alla cancellazione di una prenotazione.
+ *
+ * <p>Implementa il Design Pattern <b>Observer</b>: si registra all'{@link EventManager}
+ * per l'evento {@code BOOKING_CANCELLED} e, alla ricezione della notifica, delega al
+ * {@link SubscriptionService} la logica di rimborso dei crediti. In questo modo si rispetta
+ * rigorosamente il principio di separazione dei layer: il listener non accede direttamente
+ * al {@code SubscriptionRepository} (che sarebbe una violazione architetturale),
+ * ma invoca il metodo di servizio che incapsula la strategia corretta.</p>
+ */
 @Component
 public class CreditRefundListener implements EventListener<Booking> {
 
     private final EventManager eventManager;
-    private final SubscriptionRepository subscriptionRepository;
-    private final List<BookingStrategy> strategies;
+    private final SubscriptionService subscriptionService;
 
     // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
-    public CreditRefundListener(EventManager eventManager, SubscriptionRepository subscriptionRepository, List<BookingStrategy> strategies) {
+    public CreditRefundListener(EventManager eventManager,
+                                SubscriptionService subscriptionService) {
         this.eventManager = eventManager;
-        this.subscriptionRepository = subscriptionRepository;
-        this.strategies = strategies;
+        this.subscriptionService = subscriptionService;
     }
 
     @PostConstruct
@@ -38,19 +42,14 @@ public class CreditRefundListener implements EventListener<Booking> {
         eventManager.unsubscribe(EventType.BOOKING_CANCELLED, this);
     }
 
+    /**
+     * Riceve la notifica di una prenotazione annullata e delega al service
+     * il rimborso dei crediti sull'abbonamento dell'utente.
+     *
+     * @param booking la prenotazione annullata
+     */
     @Override
     public void update(Booking booking) {
-        User professional = booking.getProfessional();
-        
-        BookingStrategy strategy = strategies.stream()
-                .filter(s -> s.getSupportedRole() == professional.getRole())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Nessuna strategy trovata per il ruolo: " + professional.getRole()));
-
-        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
-                .orElseThrow(() -> new IllegalStateException("Nessun abbonamento attivo trovato per l'utente"));
-
-        strategy.refundCredits(sub);
-        subscriptionRepository.save(sub);
+        subscriptionService.refundCredits(booking);
     }
 }

@@ -2,32 +2,34 @@ package com.project.tesi.observer.listener.impl;
 
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
-import com.project.tesi.model.Subscription;
-import com.project.tesi.model.User;
 import com.project.tesi.observer.listener.EventListener;
 import com.project.tesi.observer.manager.EventManager;
-import com.project.tesi.repository.SubscriptionRepository;
-import com.project.tesi.service.strategy.BookingStrategy;
+import com.project.tesi.service.SubscriptionService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
+/**
+ * Listener Observer per la deduzione dei crediti alla creazione di una prenotazione.
+ *
+ * <p>Implementa il Design Pattern <b>Observer</b>: si registra all'{@link EventManager}
+ * per l'evento {@code BOOKING_CREATED} e, alla ricezione della notifica, delega al
+ * {@link SubscriptionService} la logica di scalare i crediti. In questo modo si rispetta
+ * rigorosamente il principio di separazione dei layer: il listener non accede direttamente
+ * al {@code SubscriptionRepository} (che sarebbe una violazione architetturale),
+ * ma invoca il metodo di servizio che incapsula la strategia corretta.</p>
+ */
 @Component
 public class CreditDeductionListener implements EventListener<Booking> {
 
     private final EventManager eventManager;
-    private final SubscriptionRepository subscriptionRepository;
-    private final List<BookingStrategy> strategies;
+    private final SubscriptionService subscriptionService;
 
     // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
     public CreditDeductionListener(EventManager eventManager,
-                                   SubscriptionRepository subscriptionRepository,
-                                   List<BookingStrategy> strategies) {
+                                   SubscriptionService subscriptionService) {
         this.eventManager = eventManager;
-        this.subscriptionRepository = subscriptionRepository;
-        this.strategies = strategies;
+        this.subscriptionService = subscriptionService;
     }
 
     @PostConstruct
@@ -40,23 +42,14 @@ public class CreditDeductionListener implements EventListener<Booking> {
         eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
     }
 
+    /**
+     * Riceve la notifica di una nuova prenotazione e delega al service
+     * la deduzione dei crediti dall'abbonamento dell'utente.
+     *
+     * @param booking la prenotazione appena creata
+     */
     @Override
     public void update(Booking booking) {
-        User user = booking.getUser();
-        User professional = booking.getProfessional();
-
-        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Abbonamento non trovato per l'utente " + user.getId()));
-
-        // Stream più leggibile e idiomatico rispetto al loop manuale
-        BookingStrategy strategy = strategies.stream()
-                .filter(s -> s.getSupportedRole() == professional.getRole())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Nessuna strategy trovata per il ruolo: " + professional.getRole()));
-
-        strategy.consumeCredits(sub);
-        subscriptionRepository.save(sub);
+        subscriptionService.deductCredits(booking);
     }
 }

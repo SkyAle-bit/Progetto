@@ -1,10 +1,11 @@
 package com.project.tesi.controller;
 
 import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.facade.ModeratorFacade;
-import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,10 +24,13 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/moderator")
-@RequiredArgsConstructor
 public class ModeratorController {
 
     private final ModeratorFacade moderatorFacade;
+
+    public ModeratorController(ModeratorFacade moderatorFacade) {
+        this.moderatorFacade = moderatorFacade;
+    }
 
     @GetMapping("/users")
     public ResponseEntity<List<UserResponseDTO>> getManageableUsers() {
@@ -50,7 +54,7 @@ public class ModeratorController {
 
     @PutMapping("/users/{id}")
     public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id,
-            @RequestBody Map<String, Object> body) {
+            @Valid @RequestBody ModeratorUserUpdateRequest body) {
         return ResponseEntity.ok(moderatorFacade.updateUser(id, body));
     }
 

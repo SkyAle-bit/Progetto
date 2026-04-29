@@ -18,7 +18,7 @@ import com.project.tesi.service.ReviewService;
 import com.project.tesi.service.SlotService;
 import com.project.tesi.service.SubscriptionService;
 import com.project.tesi.service.UserService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -42,7 +42,6 @@ import java.util.Map;
  * I controller comunicano esclusivamente con questa facade.
  */
 @Component
-@RequiredArgsConstructor
 public class UserFacade {
 
     private final UserService userService;
@@ -52,6 +51,24 @@ public class UserFacade {
     private final ActivityFeedService activityFeedService;
     private final ProfessionalStatsService professionalStatsService;
     private final SlotService slotService;
+
+    // Costruttore esplicito — pattern Facade
+    @Autowired
+    public UserFacade(UserService userService,
+                      BookingService bookingService,
+                      ReviewService reviewService,
+                      SubscriptionService subscriptionService,
+                      ActivityFeedService activityFeedService,
+                      ProfessionalStatsService professionalStatsService,
+                      SlotService slotService) {
+        this.userService = userService;
+        this.bookingService = bookingService;
+        this.reviewService = reviewService;
+        this.subscriptionService = subscriptionService;
+        this.activityFeedService = activityFeedService;
+        this.professionalStatsService = professionalStatsService;
+        this.slotService = slotService;
+    }
 
     /**
      * Restituisce la dashboard completa del cliente (profilo, professionisti,

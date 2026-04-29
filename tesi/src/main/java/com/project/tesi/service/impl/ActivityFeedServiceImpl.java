@@ -10,7 +10,8 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.DocumentRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ActivityFeedService;
-import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,12 +35,22 @@ import java.util.stream.Collectors;
  * Le attività vengono ordinate per timestamp decrescente e limitate al numero richiesto.
  */
 @Service
-@RequiredArgsConstructor
 public class ActivityFeedServiceImpl implements ActivityFeedService {
+
+    private static final Logger log = LoggerFactory.getLogger(ActivityFeedServiceImpl.class);
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final DocumentRepository documentRepository;
+
+    // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
+    public ActivityFeedServiceImpl(UserRepository userRepository,
+                                   BookingRepository bookingRepository,
+                                   DocumentRepository documentRepository) {
+        this.userRepository = userRepository;
+        this.bookingRepository = bookingRepository;
+        this.documentRepository = documentRepository;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -158,6 +169,37 @@ public class ActivityFeedServiceImpl implements ActivityFeedService {
         if (days < 7) return days + " giorni fa";
         long weeks = days / 7;
         return weeks + " settiman" + (weeks == 1 ? "a" : "e") + " fa";
+    }
+
+    /**
+     * Persiste nel database una conferma di avvenuta prenotazione.
+     *
+     * <p>Invocato dal {@code ActivityFeedUpdateListener} (pattern Observer) quando
+     * viene emesso l'evento {@code BOOKING_CREATED}. Verifica che il campo
+     * {@code bookedAt} sia valorizzato e salva l'entità, garantendo che ogni
+     * prenotazione abbia un timestamp di registrazione persistente. Questo approccio
+     * assicura che il listener non sia codice morto, ma attivi una vera operazione
+     * di persistenza delegata al service layer.</p>
+     *
+     * @param booking la prenotazione appena creata e notificata dall'EventManager
+     */
+    @Override
+    @Transactional
+    public void logBookingCreated(Booking booking) {
+        if (booking.getBookedAt() == null) {
+            booking.setBookedAt(LocalDateTime.now());
+            bookingRepository.save(booking);
+            log.info("ActivityFeed [Observer]: timestamp bookedAt registrato per la prenotazione ID={} " +
+                    "(utente={}, professionista={}, slot={})",
+                    booking.getId(),
+                    booking.getUser().getEmail(),
+                    booking.getProfessional().getEmail(),
+                    booking.getSlot().getStartTime());
+        } else {
+            log.info("ActivityFeed [Observer]: prenotazione ID={} già registrata (bookedAt={}). " +
+                    "Nessuna azione di persistenza necessaria.",
+                    booking.getId(), booking.getBookedAt());
+        }
     }
 }
 

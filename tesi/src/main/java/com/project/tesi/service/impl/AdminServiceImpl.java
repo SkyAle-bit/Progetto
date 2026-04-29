@@ -2,6 +2,7 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
+import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.enums.PlanDuration;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;
@@ -109,10 +110,10 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public User updateUserAsModerator(Long id, Map<String, Object> body) {
+    public User updateUserAsModerator(Long id, ModeratorUserUpdateRequest request) {
         User actor = getAuthenticatedActor();
         ensureRole(actor, Role.MODERATOR);
-        return updateUserInternal(id, body, actor);
+        return updateUserInternal(id, request, actor);
     }
 
     @Override
@@ -250,14 +251,14 @@ public class AdminServiceImpl implements AdminService {
         return userRepository.save(user);
     }
 
-    private User updateUserInternal(Long id, Map<String, Object> body, User actor) {
+    private User updateUserInternal(Long id, ModeratorUserUpdateRequest request, User actor) {
         User target = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", id));
 
-        validateUpdatePermissions(actor, target, body);
+        validateUpdatePermissions(actor, target, request.role());
 
-        String email = stringValue(body.get("email"));
-        if (email != null && !email.equalsIgnoreCase(target.getEmail())) {
+        String email = request.email();
+        if (email != null && !email.isBlank() && !email.equalsIgnoreCase(target.getEmail())) {
             userRepository.findByEmail(email)
                     .filter(existing -> !existing.getId().equals(id))
                     .ifPresent(existing -> {
@@ -266,23 +267,23 @@ public class AdminServiceImpl implements AdminService {
             target.setEmail(email);
         }
 
-        String firstName = stringValue(body.get("firstName"));
+        String firstName = request.firstName();
         if (firstName != null && !firstName.isBlank()) {
             target.setFirstName(firstName);
         }
 
-        String lastName = stringValue(body.get("lastName"));
+        String lastName = request.lastName();
         if (lastName != null && !lastName.isBlank()) {
             target.setLastName(lastName);
         }
 
-        String password = stringValue(body.get("password"));
+        String password = request.password();
         if (password != null && !password.isBlank()) {
             target.setPassword(encodePassword(password));
         }
 
-        String roleRaw = stringValue(body.get("role"));
-        if (roleRaw != null) {
+        String roleRaw = request.role();
+        if (roleRaw != null && !roleRaw.isBlank()) {
             Role requestedRole = parseRole(roleRaw);
             validateRoleTransition(actor, target.getRole(), requestedRole);
             target.setRole(requestedRole);
@@ -348,7 +349,7 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    private void validateUpdatePermissions(User actor, User target, Map<String, Object> body) {
+    private void validateUpdatePermissions(User actor, User target, String requestedRoleRaw) {
         if (target.getRole() == Role.ADMIN) {
             throw new UnauthorizedAccessException(
                     "L'account amministratore non puo essere modificato da questa operazione.");
@@ -360,8 +361,7 @@ public class AdminServiceImpl implements AdminService {
                     "Il moderatore puo modificare solo clienti, personal trainer e nutrizionisti.");
         }
 
-        String requestedRoleRaw = stringValue(body.get("role"));
-        if (requestedRoleRaw != null) {
+        if (requestedRoleRaw != null && !requestedRoleRaw.isBlank()) {
             Role requestedRole = parseRole(requestedRoleRaw);
             validateRoleTransition(actor, target.getRole(), requestedRole);
         }

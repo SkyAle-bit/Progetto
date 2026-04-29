@@ -30,6 +30,27 @@ public class EventManager {
         listeners.get(eventType).remove(listener);
     }
 
+    /**
+     * Notifica tutti i listener registrati per un determinato tipo di evento.
+     *
+     * <p><b>Nota tecnica sull'uso di {@code @SuppressWarnings("unchecked")}:</b><br>
+     * L'uso del cast esplicito a {@code EventListener<T>} è reso necessario dalla 
+     * <i>type erasure</i> dei Generics in Java. Poiché i listener sono memorizzati 
+     * in una mappa eterogenea ({@code Map<EventType, List<EventListener<?>>>}), 
+     * l'informazione sul tipo specifico viene persa a runtime.</p>
+     *
+     * <p>La scelta di sopprimere il warning è giustificata dal design del sistema:
+     * il metodo {@link #subscribe(EventType, EventListener)} garantisce per contratto 
+     * che il listener registrato sia compatibile con l'oggetto {@code data} inviato 
+     * per quel determinato {@code EventType}. Questa è una soluzione pragmatica e 
+     * standard per implementare un Event Manager centralizzato e type-safe a livello 
+     * di interfaccia pubblica, pur accettando un limite tecnico del compilatore 
+     * nel layer interno.</p>
+     *
+     * @param eventType il tipo di evento emesso
+     * @param data      i dati associati all'evento (es. entità Booking)
+     * @param <T>       il tipo generico dei dati
+     */
     @SuppressWarnings("unchecked")
     public <T> void notifyListeners(EventType eventType, T data) {
         List<EventListener<?>> users = listeners.get(eventType);
