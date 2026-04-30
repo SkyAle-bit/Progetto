@@ -50,7 +50,7 @@ public class RegisterRequest {
     private PaymentFrequency paymentFrequency;
 
 
-    private RegisterRequest() {}
+    public RegisterRequest() {}
 
     public static class Builder {
         private String firstName;
