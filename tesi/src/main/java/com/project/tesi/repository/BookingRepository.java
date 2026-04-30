@@ -110,8 +110,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsBySlotAndStatus(Slot slot, BookingStatus status);
 
     @Modifying
-    @Query("DELETE FROM Booking b WHERE b.slot = :slot")
-    void deleteBySlot(@Param("slot") Slot slot);
+    @Query("DELETE FROM Booking b WHERE b.slot = :slot AND b.status = :status")
+    void deleteBySlotAndStatus(@Param("slot") Slot slot, @Param("status") BookingStatus status);
 
     @Modifying
     @Query("DELETE FROM Booking b WHERE b.user.id = :userId OR b.professional.id = :userId")

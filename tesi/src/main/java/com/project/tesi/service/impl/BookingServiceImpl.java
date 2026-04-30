@@ -49,15 +49,20 @@ public class BookingServiceImpl implements BookingService {
     private final VideoConferenceService videoConferenceService;
     private final EventManager eventManager;
 
+    private static class LockReference {
+        final ReentrantLock lock = new ReentrantLock();
+        int count = 0;
+    }
+
     /**
      * Risorsa condivisa per implementare il multithreading esplicito.
-     * Mappa gli ID degli slot a un ReentrantLock per proteggere la sezione critica 
-     * di prenotazione e prevenire overbooking concorrenziale.
+     * Mappa gli ID degli slot a un LockReference per proteggere la sezione critica
+     * di prenotazione e prevenire overbooking concorrenziale gestendo la memoria.
      */
-    private final Map<Long, ReentrantLock> slotLocks = new ConcurrentHashMap<>();
+    private final Map<Long, LockReference> slotLocks = new java.util.HashMap<>();
 
-    // Costruttore esplicito — pattern Strategy (e Facade accessibile)
-    public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository, 
+    // Costruttore esplicito €” pattern Strategy (e Facade accessibile)
+    public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository,
                               UserRepository userRepository, SubscriptionRepository subscriptionRepository, 
                               BookingMapper bookingMapper, List<BookingStrategy> strategies, 
                               VideoConferenceService videoConferenceService, EventManager eventManager) {
@@ -83,8 +88,12 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
         Long slotId = request.getSlotId();
-        ReentrantLock lock = slotLocks.computeIfAbsent(slotId, k -> new ReentrantLock());
-        lock.lock();
+        LockReference ref;
+        synchronized (slotLocks) {
+            ref = slotLocks.computeIfAbsent(slotId, k -> new LockReference());
+            ref.count++;
+        }
+        ref.lock.lock();
         try {
             User user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
@@ -97,10 +106,10 @@ public class BookingServiceImpl implements BookingService {
             }
 
             if (bookingRepository.existsBySlotAndStatus(slot, BookingStatus.CONFIRMED)) {
-                throw new SlotAlreadyBookedException("Esiste già una prenotazione confermata per questo slot.");
+                throw new SlotAlreadyBookedException("Esiste gi una prenotazione confermata per questo slot.");
             }
 
-            bookingRepository.deleteBySlot(slot);
+            bookingRepository.deleteBySlotAndStatus(slot, BookingStatus.CANCELED);
 
             User professional = slot.getProfessional();
 
@@ -121,10 +130,13 @@ public class BookingServiceImpl implements BookingService {
                 );
             } else if (slot.getStartTime().toLocalDate().isAfter(sub.getEndDate())) {
                 throw new SubscriptionExpiredException(
-                        "Operazione rifiutata: l'abbonamento scadrà il " + sub.getEndDate() +
+                        "Operazione rifiutata: l'abbonamento scadr il " + sub.getEndDate() +
                         ", prima della data prevista per questo slot (" + slot.getStartTime().toLocalDate() + ")."
                 );
             }
+
+            strategy.consumeCredits(sub);
+            subscriptionRepository.save(sub);
 
             slot.setBooked(true);
             slotRepository.save(slot);
@@ -145,11 +157,13 @@ public class BookingServiceImpl implements BookingService {
 
             return bookingMapper.toResponse(saved);
         } finally {
-            lock.unlock();
-            // Manteniamo intenzionalmente le voci nella mappa per evitare una race condition.
-            // Se venisse rimosso lo slotId, ci sarebbe la possibilità che due thread
-            // creino lock distinti per il medesimo slotId ed entrino nella sezione critica.
-            // La mappa crescerà fino al massimo al numero di slotId distinti, il che è accettabile.
+            ref.lock.unlock();
+            synchronized (slotLocks) {
+                ref.count--;
+                if (ref.count == 0) {
+                    slotLocks.remove(slotId);
+                }
+            }
         }
     }
 
@@ -177,7 +191,19 @@ public class BookingServiceImpl implements BookingService {
 
         Slot slot = booking.getSlot();
         if (slot.getStartTime().isBefore(LocalDateTime.now().plusHours(24))) {
-            throw new BookingCancellationException("Non è possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
+            throw new BookingCancellationException("Non  possibile annullare una prenotazione a meno di 24 ore dall'appuntamento.");
+        }
+
+        BookingStrategy strategy = strategies.stream()
+                .filter(s -> s.getSupportedRole() == booking.getProfessional().getRole())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Strategia non trovata"));
+
+        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
+                .orElse(null);
+        if (sub != null) {
+            strategy.refundCredits(sub);
+            subscriptionRepository.save(sub);
         }
 
         slot.setBooked(false);

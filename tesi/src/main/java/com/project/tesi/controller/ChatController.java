@@ -3,11 +3,11 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.SendMessageRequest;
 import com.project.tesi.dto.response.ChatMessageResponse;
 import com.project.tesi.dto.response.ConversationPreviewResponse;
-import com.project.tesi.facade.ChatFacade;
+import com.project.tesi.facade.IChatFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,11 +28,15 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/chat")
-@RequiredArgsConstructor
-@Tag(name = "Chat", description = "API per la messaggistica tra utenti")
+@Tag(name = "Chat", description = "API per la messaggistica interna tra utenti")
 public class ChatController {
 
-    private final ChatFacade chatFacade;
+    private final IChatFacade chatFacade;
+
+    @Autowired
+    public ChatController(IChatFacade chatFacade) {
+        this.chatFacade = chatFacade;
+    }
 
     /** Crea una nuova chat tra due utenti o recupera quella esistente. */
     @Operation(summary = "Crea o recupera la chat tra due utenti")

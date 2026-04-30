@@ -7,19 +7,25 @@ import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.*;
 import com.project.tesi.enums.Role;
 import com.project.tesi.facade.AdminFacade;
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IChatFacade;
+import com.project.tesi.facade.IDocumentFacade;
+import com.project.tesi.facade.IModeratorFacade;
+import com.project.tesi.facade.IUserFacade;
 import com.project.tesi.service.ChatService;
 import com.project.tesi.service.DocumentService;
 import com.project.tesi.service.EmailService;
 import com.project.tesi.model.Document;
+import com.project.tesi.model.User;
 import com.project.tesi.dto.request.SendMessageRequest;
 import com.project.tesi.dto.request.JobApplicationRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
@@ -96,7 +102,7 @@ class AllControllersTest {
 
     @Nested
     class UserControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private UserController userController;
 
         @Test @DisplayName("getDashboard")
@@ -130,7 +136,7 @@ class AllControllersTest {
 
     @Nested
     class SubscriptionControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private SubscriptionController subscriptionController;
 
         @Test @DisplayName("activateSubscription")
@@ -151,7 +157,7 @@ class AllControllersTest {
 
     @Nested
     class ProfessionalControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private ProfessionalController professionalController;
 
         @Test @DisplayName("getProfessionals")
@@ -183,7 +189,7 @@ class AllControllersTest {
 
     @Nested
     class ProfessionalStatsControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private ProfessionalStatsController professionalStatsController;
 
         @Test @DisplayName("getStats")
@@ -195,7 +201,7 @@ class AllControllersTest {
 
     @Nested
     class ActivityFeedControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private ActivityFeedController activityFeedController;
 
         @Test @DisplayName("getActivityFeed")
@@ -207,33 +213,39 @@ class AllControllersTest {
     }
 
     @Nested
-    class ChatControllerTests {
-        @Mock private com.project.tesi.facade.ChatFacade chatFacade;
-        @InjectMocks private ChatController chatController;
+    class ChatControllerTest {
+        @Mock private IChatFacade chatFacade;
+        private com.project.tesi.controller.ChatController controller;
+
+        @BeforeEach
+        void setUp() {
+            MockitoAnnotations.openMocks(this);
+            controller = new com.project.tesi.controller.ChatController(chatFacade);
+        }
 
         @Test @DisplayName("sendMessage")
         void sendMessage() {
-            SendMessageRequest req = new SendMessageRequest();
+            SendMessageRequest req = SendMessageRequest.builder().build();
             ChatMessageResponse resp = ChatMessageResponse.builder().id(1L).build();
             when(chatFacade.sendMessage(req)).thenReturn(resp);
-            assertThat(chatController.sendMessage(req).getBody().getId()).isEqualTo(1L);
+            assertThat(controller.sendMessage(req).getBody().getId()).isEqualTo(1L);
         }
 
         @Test @DisplayName("getConversation")
         void getConversation() {
             when(chatFacade.getConversation(1L, 2L, 0, 50)).thenReturn(List.of());
-            assertThat(chatController.getConversation(1L, 2L, 0, 50).getBody()).isEmpty();
+            assertThat(controller.getConversation(1L, 2L, 0, 50).getBody()).isEmpty();
         }
 
         @Test @DisplayName("getUserConversations")
         void getUserConversations() {
             when(chatFacade.getUserConversations(1L)).thenReturn(List.of());
-            assertThat(chatController.getUserConversations(1L).getBody()).isEmpty();
+            assertThat(controller.getUserConversations(1L).getBody()).isEmpty();
         }
 
         @Test @DisplayName("markAsRead")
         void markAsRead() {
-            ResponseEntity<Void> resp = chatController.markAsRead(1L, 2L);
+            ResponseEntity<Void> resp = controller.markAsRead(1L, 2L);
             verify(chatFacade).markAsRead(1L, 2L);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
         }
@@ -241,14 +253,20 @@ class AllControllersTest {
         @Test @DisplayName("getTotalUnreadCount")
         void getTotalUnreadCount() {
             when(chatFacade.getTotalUnreadCount(1L)).thenReturn(5);
-            assertThat(chatController.getTotalUnreadCount(1L).getBody()).isEqualTo(5);
+            assertThat(controller.getTotalUnreadCount(1L).getBody()).isEqualTo(5);
         }
     }
 
     @Nested
-    class DocumentControllerTests {
-        @Mock private com.project.tesi.facade.DocumentFacade documentFacade;
-        @InjectMocks private DocumentController documentController;
+    class DocumentControllerTest {
+        @Mock private IDocumentFacade documentFacade;
+        private com.project.tesi.controller.DocumentController controller;
+
+        @BeforeEach
+        void setUp() {
+            MockitoAnnotations.openMocks(this);
+            controller = new com.project.tesi.controller.DocumentController(documentFacade);
+        }
 
         @Test @DisplayName("downloadFile")
         void downloadFile() {
@@ -256,7 +274,7 @@ class AllControllersTest {
             when(documentFacade.getDocumentById(1L)).thenReturn(doc);
             when(documentFacade.downloadDocument(1L)).thenReturn(new byte[]{1, 2, 3});
 
-            ResponseEntity<byte[]> resp = documentController.downloadFile(1L);
+            ResponseEntity<byte[]> resp = controller.downloadFile(1L);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
             assertThat(resp.getBody()).hasSize(3);
         }
@@ -267,25 +285,25 @@ class AllControllersTest {
             when(documentFacade.getDocumentById(1L)).thenReturn(doc);
             when(documentFacade.downloadDocument(1L)).thenReturn(new byte[]{});
 
-            ResponseEntity<byte[]> resp = documentController.downloadFile(1L);
+            ResponseEntity<byte[]> resp = controller.downloadFile(1L);
             assertThat(resp.getHeaders().getContentType().toString()).isEqualTo("application/octet-stream");
         }
 
         @Test @DisplayName("getUserDocuments")
         void getUserDocuments() {
             when(documentFacade.getUserDocumentsDto(1L)).thenReturn(List.of());
-            assertThat(documentController.getUserDocuments(1L).getBody()).isEmpty();
+            assertThat(controller.getUserDocuments(1L).getBody()).isEmpty();
         }
 
         @Test @DisplayName("getUserDocumentsByType")
         void getUserDocumentsByType() {
             when(documentFacade.getUserDocumentsByTypeDto(1L, "WORKOUT_PLAN")).thenReturn(List.of());
-            assertThat(documentController.getUserDocumentsByType(1L, "WORKOUT_PLAN").getBody()).isEmpty();
+            assertThat(controller.getUserDocumentsByType(1L, "WORKOUT_PLAN").getBody()).isEmpty();
         }
 
         @Test @DisplayName("deleteDocument")
         void deleteDocument() {
-            ResponseEntity<Void> resp = documentController.deleteDocument(1L);
+            ResponseEntity<Void> resp = controller.deleteDocument(1L);
             verify(documentFacade).deleteDocument(1L);
             assertThat(resp.getStatusCode().value()).isEqualTo(204);
         }
@@ -293,7 +311,7 @@ class AllControllersTest {
         @Test @DisplayName("updateNotes")
         void updateNotes() {
             when(documentFacade.updateNotes(1L, "nuove note")).thenReturn(Map.of("notes", "nuove note"));
-            ResponseEntity<Map<String, Object>> resp = documentController.updateNotes(1L, Map.of("notes", "nuove note"));
+            ResponseEntity<Map<String, Object>> resp = controller.updateNotes(1L, Map.of("notes", "nuove note"));
             assertThat(resp.getBody().get("notes")).isEqualTo("nuove note");
         }
     }

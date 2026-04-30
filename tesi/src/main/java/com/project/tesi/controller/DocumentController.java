@@ -1,8 +1,9 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.facade.IDocumentFacade;
 import com.project.tesi.model.Document;
-import com.project.tesi.facade.DocumentFacade;
-import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +23,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/documents")
-@RequiredArgsConstructor
+@Tag(name = "Documents", description = "API per la gestione sicura dei documenti")
 public class DocumentController {
 
-    private final DocumentFacade documentFacade;
+    private final IDocumentFacade documentFacade;
+
+    @Autowired
+    public DocumentController(IDocumentFacade documentFacade) {
+        this.documentFacade = documentFacade;
+    }
 
     /** Carica un documento validando il ruolo dell'uploader rispetto al tipo di file. */
     @PostMapping("/upload")

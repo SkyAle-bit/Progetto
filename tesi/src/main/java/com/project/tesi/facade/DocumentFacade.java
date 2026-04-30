@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 @Component
-public class DocumentFacade {
+public class DocumentFacade implements IDocumentFacade {
     private final DocumentService documentService;
     @Autowired
     public DocumentFacade(DocumentService documentService) {
@@ -35,4 +35,3 @@ public class DocumentFacade {
         return documentService.updateNotes(id, notes);
     }
 }
-

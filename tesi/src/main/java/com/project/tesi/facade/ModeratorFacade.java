@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * (clienti, personal trainer e nutrizionisti).
  */
 @Component
-public class ModeratorFacade {
+public class ModeratorFacade implements IModeratorFacade {
 
     private final AdminService adminService;
 
