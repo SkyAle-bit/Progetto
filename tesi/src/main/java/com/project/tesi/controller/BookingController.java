@@ -3,6 +3,7 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import com.project.tesi.service.DatabaseInitializerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BookingController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
     private final DatabaseInitializerService databaseInitializerService;
 
     /** Crea una nuova prenotazione per lo slot indicato. */

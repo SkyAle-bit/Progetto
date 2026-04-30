@@ -7,6 +7,7 @@ import com.project.tesi.dto.response.PlanResponseDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.facade.AdminFacade;
+import com.project.tesi.facade.IAdminFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,7 +27,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final AdminFacade adminFacade;
+    private final IAdminFacade adminFacade;
 
     @GetMapping("/users")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {

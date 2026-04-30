@@ -42,7 +42,7 @@ import java.util.Map;
  * I controller comunicano esclusivamente con questa facade.
  */
 @Component
-public class UserFacade {
+public class UserFacade implements IUserFacade {
 
     private final UserService userService;
     private final BookingService bookingService;

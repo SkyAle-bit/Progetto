@@ -4,6 +4,7 @@ import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.response.SlotDTO;
 import com.project.tesi.enums.Role;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,7 +29,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProfessionalController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
     /** Restituisce la lista dei professionisti di un certo ruolo (PT o Nutrizionista). */
     @GetMapping

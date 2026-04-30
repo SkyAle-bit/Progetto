@@ -1,7 +1,7 @@
 package com.project.tesi.observer.manager;
 
 import com.project.tesi.enums.EventType;
-import com.project.tesi.observer.listener.EventListener;
+import com.project.tesi.observer.listener.Observer;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Component
 public class EventManager {
 
-    private final Map<EventType, List<EventListener<?>>> listeners;
+    private final Map<EventType, List<Observer<?>>> listeners;
 
     public EventManager() {
         this.listeners = new EnumMap<>(EventType.class);
@@ -22,11 +22,11 @@ public class EventManager {
         }
     }
 
-    public <T> void subscribe(EventType eventType, EventListener<T> listener) {
+    public <T> void subscribe(EventType eventType, Observer<T> listener) {
         listeners.get(eventType).add(listener);
     }
 
-    public <T> void unsubscribe(EventType eventType, EventListener<T> listener) {
+    public <T> void unsubscribe(EventType eventType, Observer<T> listener) {
         listeners.get(eventType).remove(listener);
     }
 
@@ -34,14 +34,14 @@ public class EventManager {
      * Notifica tutti i listener registrati per un determinato tipo di evento.
      *
      * <p><b>Nota tecnica sull'uso di {@code @SuppressWarnings("unchecked")}:</b><br>
-     * L'uso del cast esplicito a {@code EventListener<T>} è reso necessario dalla 
+     * L'uso del cast esplicito a {@code Observer<T>} è reso necessario dalla 
      * <i>type erasure</i> dei Generics in Java. Poiché i listener sono memorizzati 
-     * in una mappa eterogenea ({@code Map<EventType, List<EventListener<?>>>}), 
+     * in una mappa eterogenea ({@code Map<EventType, List<Observer<?>>>}), 
      * l'informazione sul tipo specifico viene persa a runtime.</p>
      *
      * <p>La scelta di sopprimere il warning è giustificata dal design del sistema:
-     * il metodo {@link #subscribe(EventType, EventListener)} garantisce per contratto 
-     * che il listener registrato sia compatibile con l'oggetto {@code data} inviato 
+     * il metodo {@link #subscribe(EventType, Observer)} garantisce per contratto
+     * che il listener registrato sia compatibile con l'oggetto {@code data} inviato
      * per quel determinato {@code EventType}. Questa è una soluzione pragmatica e 
      * standard per implementare un Event Manager centralizzato e type-safe a livello 
      * di interfaccia pubblica, pur accettando un limite tecnico del compilatore 
@@ -53,9 +53,9 @@ public class EventManager {
      */
     @SuppressWarnings("unchecked")
     public <T> void notifyListeners(EventType eventType, T data) {
-        List<EventListener<?>> users = listeners.get(eventType);
-        for (EventListener<?> listener : users) {
-            ((EventListener<T>) listener).update(data);
+        List<Observer<?>> users = listeners.get(eventType);
+        for (Observer<?> listener : users) {
+            ((Observer<T>) listener).update(data);
         }
     }
 }

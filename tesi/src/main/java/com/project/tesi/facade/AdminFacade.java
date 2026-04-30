@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * Fornisce un punto d'accesso unificato a tutte le operazioni admin.
  */
 @Component
-public class AdminFacade {
+public class AdminFacade implements IAdminFacade {
 
     private final AdminService adminService;
     private final AdminStatsService adminStatsService;

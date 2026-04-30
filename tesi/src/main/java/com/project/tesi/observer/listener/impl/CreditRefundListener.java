@@ -2,7 +2,7 @@ package com.project.tesi.observer.listener.impl;
 
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
-import com.project.tesi.observer.listener.EventListener;
+import com.project.tesi.observer.listener.Observer;
 import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.service.SubscriptionService;
 import jakarta.annotation.PostConstruct;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * ma invoca il metodo di servizio che incapsula la strategia corretta.</p>
  */
 @Component
-public class CreditRefundListener implements EventListener<Booking> {
+public class CreditRefundListener implements Observer<Booking> {
 
     private final EventManager eventManager;
     private final SubscriptionService subscriptionService;

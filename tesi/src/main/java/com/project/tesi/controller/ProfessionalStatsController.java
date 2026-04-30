@@ -1,6 +1,6 @@
 package com.project.tesi.controller;
 
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,14 +14,14 @@ import java.util.Map;
  * Controller REST per le statistiche della dashboard del professionista.
  * Restituisce dati aggregati come clienti assegnati, appuntamenti di oggi,
  * documenti caricati nella settimana e clienti che necessitano di aggiornamenti.
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Delega alla {@link IUserFacade} (pattern Facade).
  */
 @RestController
 @RequestMapping("/api/professional")
 @RequiredArgsConstructor
 public class ProfessionalStatsController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
     /** Restituisce tutte le statistiche aggregate per la dashboard del professionista. */
     @GetMapping("/stats/{professionalId}")

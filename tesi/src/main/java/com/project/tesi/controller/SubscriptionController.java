@@ -3,6 +3,7 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.response.SubscriptionResponse;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SubscriptionController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
     /** Attiva un nuovo abbonamento per il cliente con il piano e la modalità di pagamento scelti. */
     @PostMapping("/activate")

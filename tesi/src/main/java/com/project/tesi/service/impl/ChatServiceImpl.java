@@ -224,15 +224,15 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private ChatMessageResponse toChatMessageResponse(Message m, Long receiverId) {
-        ChatMessageResponse dto = new ChatMessageResponse();
-        dto.setId(m.getId());
-        dto.setChatId(m.getChat().getId());
-        dto.setSenderId(m.getUser().getId());
-        dto.setSenderName(m.getUser().getFirstName() + " " + m.getUser().getLastName());
-        dto.setReceiverId(receiverId);
-        dto.setContent(m.getContent());
-        dto.setCreatedAt(m.getTimeStamp());
-        dto.setStatus(m.isRead() ? com.project.tesi.enums.MessageStatus.READ : com.project.tesi.enums.MessageStatus.SENT);
-        return dto;
+        return ChatMessageResponse.builder()
+                .id(m.getId())
+                .chatId(m.getChat().getId())
+                .senderId(m.getUser().getId())
+                .senderName(m.getUser().getFirstName() + " " + m.getUser().getLastName())
+                .receiverId(receiverId)
+                .content(m.getContent())
+                .createdAt(m.getTimeStamp())
+                .status(m.isRead() ? com.project.tesi.enums.MessageStatus.READ : com.project.tesi.enums.MessageStatus.SENT)
+                .build();
     }
 }

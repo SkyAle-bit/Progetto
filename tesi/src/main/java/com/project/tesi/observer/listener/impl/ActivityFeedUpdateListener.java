@@ -2,7 +2,7 @@ package com.project.tesi.observer.listener.impl;
 
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
-import com.project.tesi.observer.listener.EventListener;
+import com.project.tesi.observer.listener.Observer;
 import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.service.ActivityFeedService;
 import jakarta.annotation.PostConstruct;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * al repository, ma funge esclusivamente da punto di smistamento degli eventi.</p>
  */
 @Component
-public class ActivityFeedUpdateListener implements EventListener<Booking> {
+public class ActivityFeedUpdateListener implements Observer<Booking> {
 
     private final EventManager eventManager;
     private final ActivityFeedService activityFeedService;

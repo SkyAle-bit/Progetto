@@ -54,12 +54,20 @@ public class User {
     private String password;
 
     @Column(columnDefinition = "TEXT")
+    
+    /**
+     * Rappresenta l'immagine profilo in base64 (o percorso locale).
+     */
     private String profilePicture;
 
     private String firstName;
 
     private String lastName;
 
+    
+    /**
+     * Rappresenta l'URL esterno per l'immagine profilo (es. caricata su cloud).
+     */
     private String profilePictureUrl;
 
     @Enumerated(EnumType.STRING)

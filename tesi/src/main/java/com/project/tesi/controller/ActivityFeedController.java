@@ -1,6 +1,6 @@
 package com.project.tesi.controller;
 
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,14 +16,14 @@ import java.util.Map;
  * Controller REST per il feed delle attività recenti di un utente.
  * Mostra prenotazioni e documenti caricati negli ultimi giorni,
  * differenziando il contenuto in base al ruolo (CLIENT o professionista).
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Delega alla IUserFacade (pattern Facade).
  */
 @RestController
 @RequestMapping("/api/activity")
 @RequiredArgsConstructor
 public class ActivityFeedController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
     /**
      * Restituisce il feed delle attività recenti di un utente.

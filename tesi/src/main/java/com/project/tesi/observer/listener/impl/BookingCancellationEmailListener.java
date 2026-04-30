@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import com.project.tesi.enums.EventType;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
-import com.project.tesi.observer.listener.EventListener;
+import com.project.tesi.observer.listener.Observer;
 import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.service.EmailService;
 import jakarta.annotation.PostConstruct;
@@ -14,7 +14,7 @@ import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BookingCancellationEmailListener implements EventListener<Booking> {
+public class BookingCancellationEmailListener implements Observer<Booking> {
 
     private static final Logger log = LoggerFactory.getLogger(BookingCancellationEmailListener.class);
 

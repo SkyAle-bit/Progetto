@@ -4,6 +4,7 @@ import com.project.tesi.dto.response.ClientBasicInfoResponse;
 import com.project.tesi.dto.response.ClientDashboardResponse;
 import com.project.tesi.dto.request.ProfileUpdateRequest;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
     /** Restituisce la dashboard completa del cliente (profilo, professionisti, abbonamento, prossimi appuntamenti). */
     @GetMapping("/dashboard/{userId}")

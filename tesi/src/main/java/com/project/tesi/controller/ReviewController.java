@@ -3,6 +3,7 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ReviewResponse;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +28,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ReviewController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
     /** Il cliente lascia una recensione a un professionista (voto 1-5 + commento). */
     @PostMapping
