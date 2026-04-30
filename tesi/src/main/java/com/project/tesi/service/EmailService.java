@@ -50,4 +50,15 @@ public interface EmailService {
      */
     void sendBookingConfirmationEmail(String toEmail, String recipientName, String otherPartyName,
                                    java.time.LocalDateTime startTime, String meetingLink);
+
+    /**
+     * Invia l'email per notificare l'annullamento di una prenotazione.
+     *
+     * @param toEmail           email del destinatario
+     * @param recipientName     nome del destinatario
+     * @param otherPartyName    nome dell'altra parte (cliente o professionista)
+     * @param startTime         data/ora dell'appuntamento
+     */
+    void sendBookingCancellationEmail(String toEmail, String recipientName, String otherPartyName,
+                                   java.time.LocalDateTime startTime);
 }

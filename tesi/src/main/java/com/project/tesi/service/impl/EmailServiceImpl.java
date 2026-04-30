@@ -17,10 +17,12 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 /**
  * Implementazione del servizio di invio email tramite SMTP (JavaMailSender).
@@ -44,14 +46,15 @@ public class EmailServiceImpl implements EmailService {
     private final EmailService self;
     private final JavaMailSender javaMailSender;
 
+    @Autowired
     public EmailServiceImpl(
-            @Value("${mail.from:${spring.mail.username}}") String mailFrom,
-            @Value("${admin.email}") String adminEmail,
-            JavaMailSender javaMailSender,
+            @Value("${mail.from:${spring.mail.username:}}") String mailFrom,
+            @Value("${admin.email:admin@example.com}") String adminEmail,
+            Optional<JavaMailSender> javaMailSenderOptional,
             @Lazy EmailService self) {
         this.mailFrom = mailFrom;
         this.adminEmail = adminEmail;
-        this.javaMailSender = javaMailSender;
+        this.javaMailSender = javaMailSenderOptional.orElse(null);
         this.self = self;
     }
 
@@ -265,6 +268,33 @@ public class EmailServiceImpl implements EmailService {
             log.info("Email conferma prenotazione inviata a {} per appuntamento delle {}", toEmail, formattedTime);
         } catch (Exception e) {
             log.error("Errore nell'invio dell'email di conferma prenotazione a {}", toEmail, e);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  EMAIL DI ANNULLAMENTO PRENOTAZIONE
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    @Async
+    public void sendBookingCancellationEmail(String toEmail, String recipientName, String otherPartyName,
+                                          LocalDateTime startTime) {
+        try {
+            validateRecipient(toEmail);
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy 'alle' HH:mm");
+            String formattedTime = startTime.format(fmt);
+            String subject = "❌ Annullamento Prenotazione — " + formattedTime;
+
+            String html = buildReminderHtml(recipientName, otherPartyName, formattedTime, "#", true)
+                .replace("Promemoria Appuntamento", "Annullamento Prenotazione")
+                .replace("Il tuo appuntamento è tra 30 minuti", "Il tuo appuntamento è stato annullato")
+                .replace("Ti ricordiamo che hai un appuntamento programmato", "Ti informiamo l'appuntamento programmato")
+                .replace("<div style=\"text-align:center;margin:30px 0\">", "<div style=\"display:none;\">");
+
+            sendSimpleEmail(toEmail, subject, html);
+            log.info("Email annullamento prenotazione inviata a {} per appuntamento delle {}", toEmail, formattedTime);
+        } catch (Exception e) {
+            log.error("Errore nell'invio dell'email di annullamento prenotazione a {}", toEmail, e);
         }
     }
 

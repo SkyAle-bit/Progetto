@@ -146,10 +146,10 @@ public class BookingServiceImpl implements BookingService {
             return bookingMapper.toResponse(saved);
         } finally {
             lock.unlock();
-            // Pulizia della mappa per evitare memory leak a lungo termine.
-            // Una volta rilasciato il lock, l'ID dello slot viene rimosso
-            // in modo thread-safe dalla ConcurrentHashMap.
-            slotLocks.remove(slotId);
+            // Manteniamo intenzionalmente le voci nella mappa per evitare una race condition.
+            // Se venisse rimosso lo slotId, ci sarebbe la possibilità che due thread
+            // creino lock distinti per il medesimo slotId ed entrino nella sezione critica.
+            // La mappa crescerà fino al massimo al numero di slotId distinti, il che è accettabile.
         }
     }
 
