@@ -29,6 +29,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "plans")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Plan {

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "messages")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Message {

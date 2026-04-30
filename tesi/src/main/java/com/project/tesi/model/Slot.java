@@ -39,6 +39,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_slot_prof", columnList = "professional_id")
 })
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Slot {

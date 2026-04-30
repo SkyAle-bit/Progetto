@@ -50,4 +50,4 @@ public class BookingController {
         databaseInitializerService.initialize();
         return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Database svuotato e ripopolato con i nuovi dati di test/link Jitsi!"));
     }
-}
+}

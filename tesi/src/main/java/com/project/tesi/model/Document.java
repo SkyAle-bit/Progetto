@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "documents")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Document {

@@ -3,7 +3,7 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.SendMessageRequest;
 import com.project.tesi.dto.response.ChatMessageResponse;
 import com.project.tesi.dto.response.ConversationPreviewResponse;
-import com.project.tesi.service.ChatService;
+import com.project.tesi.facade.ChatFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,20 +32,20 @@ import java.util.List;
 @Tag(name = "Chat", description = "API per la messaggistica tra utenti")
 public class ChatController {
 
-    private final ChatService chatService;
+    private final ChatFacade chatFacade;
 
     /** Crea una nuova chat tra due utenti o recupera quella esistente. */
     @Operation(summary = "Crea o recupera la chat tra due utenti")
     @PostMapping("/create/{senderId}/{receiverId}")
     public ResponseEntity<Long> createChat(@PathVariable Long senderId, @PathVariable Long receiverId) {
-        return ResponseEntity.ok(chatService.createChat(senderId, receiverId));
+        return ResponseEntity.ok(chatFacade.createChat(senderId, receiverId));
     }
 
     /** Invia un nuovo messaggio da un utente a un altro. */
     @Operation(summary = "Invia un messaggio")
     @PostMapping("/send")
     public ResponseEntity<ChatMessageResponse> sendMessage(@Valid @RequestBody SendMessageRequest request) {
-        return ResponseEntity.ok(chatService.sendMessage(request));
+        return ResponseEntity.ok(chatFacade.sendMessage(request));
     }
 
     /** Recupera la cronologia dei messaggi di una chat tra due utenti (paginata). */
@@ -56,21 +56,21 @@ public class ChatController {
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(chatService.getConversation(chatId, userId, page, size));
+        return ResponseEntity.ok(chatFacade.getConversation(chatId, userId, page, size));
     }
 
     /** Recupera la lista di tutte le conversazioni di un utente con anteprima ultimo messaggio. */
     @Operation(summary = "Recupera la lista di tutte le conversazioni di un utente")
     @GetMapping("/conversations/{userId}")
     public ResponseEntity<List<ConversationPreviewResponse>> getUserConversations(@PathVariable Long userId) {
-        return ResponseEntity.ok(chatService.getUserConversations(userId));
+        return ResponseEntity.ok(chatFacade.getUserConversations(userId));
     }
 
     /** Segna come letti tutti i messaggi ricevuti in una chat. */
     @Operation(summary = "Segna come letti tutti i messaggi ricevuti in una chat")
     @PutMapping("/read/{chatId}/{userId}")
     public ResponseEntity<Void> markAsRead(@PathVariable Long chatId, @PathVariable Long userId) {
-        chatService.markAsRead(chatId, userId);
+        chatFacade.markAsRead(chatId, userId);
         return ResponseEntity.ok().build();
     }
 
@@ -78,6 +78,6 @@ public class ChatController {
     @Operation(summary = "Conteggio totale messaggi non letti per un utente")
     @GetMapping("/unread/{userId}")
     public ResponseEntity<Integer> getTotalUnreadCount(@PathVariable Long userId) {
-        return ResponseEntity.ok(chatService.getTotalUnreadCount(userId));
+        return ResponseEntity.ok(chatFacade.getTotalUnreadCount(userId));
     }
 }

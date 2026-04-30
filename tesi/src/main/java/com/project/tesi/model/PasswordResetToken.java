@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "password_reset_tokens")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class PasswordResetToken {

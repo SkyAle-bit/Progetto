@@ -37,6 +37,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "subscriptions")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Subscription {

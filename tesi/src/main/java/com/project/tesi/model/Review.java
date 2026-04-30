@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
         @UniqueConstraint(columnNames = {"client_id", "professional_id"})
 })
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Review {

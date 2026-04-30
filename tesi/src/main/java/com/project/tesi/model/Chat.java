@@ -20,6 +20,7 @@ import jakarta.persistence.CascadeType;
 @Entity
 @Table(name = "chats")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Chat {

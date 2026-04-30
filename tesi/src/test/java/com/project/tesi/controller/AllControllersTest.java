@@ -208,53 +208,53 @@ class AllControllersTest {
 
     @Nested
     class ChatControllerTests {
-        @Mock private ChatService chatService;
+        @Mock private com.project.tesi.facade.ChatFacade chatFacade;
         @InjectMocks private ChatController chatController;
 
         @Test @DisplayName("sendMessage")
         void sendMessage() {
             SendMessageRequest req = new SendMessageRequest();
             ChatMessageResponse resp = ChatMessageResponse.builder().id(1L).build();
-            when(chatService.sendMessage(req)).thenReturn(resp);
+            when(chatFacade.sendMessage(req)).thenReturn(resp);
             assertThat(chatController.sendMessage(req).getBody().getId()).isEqualTo(1L);
         }
 
         @Test @DisplayName("getConversation")
         void getConversation() {
-            when(chatService.getConversation(1L, 2L, 0, 50)).thenReturn(List.of());
+            when(chatFacade.getConversation(1L, 2L, 0, 50)).thenReturn(List.of());
             assertThat(chatController.getConversation(1L, 2L, 0, 50).getBody()).isEmpty();
         }
 
         @Test @DisplayName("getUserConversations")
         void getUserConversations() {
-            when(chatService.getUserConversations(1L)).thenReturn(List.of());
+            when(chatFacade.getUserConversations(1L)).thenReturn(List.of());
             assertThat(chatController.getUserConversations(1L).getBody()).isEmpty();
         }
 
         @Test @DisplayName("markAsRead")
         void markAsRead() {
             ResponseEntity<Void> resp = chatController.markAsRead(1L, 2L);
-            verify(chatService).markAsRead(1L, 2L);
+            verify(chatFacade).markAsRead(1L, 2L);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
         }
 
         @Test @DisplayName("getTotalUnreadCount")
         void getTotalUnreadCount() {
-            when(chatService.getTotalUnreadCount(1L)).thenReturn(5);
+            when(chatFacade.getTotalUnreadCount(1L)).thenReturn(5);
             assertThat(chatController.getTotalUnreadCount(1L).getBody()).isEqualTo(5);
         }
     }
 
     @Nested
     class DocumentControllerTests {
-        @Mock private DocumentService documentService;
+        @Mock private com.project.tesi.facade.DocumentFacade documentFacade;
         @InjectMocks private DocumentController documentController;
 
         @Test @DisplayName("downloadFile")
         void downloadFile() {
             Document doc = Document.builder().id(1L).fileName("test.pdf").contentType("application/pdf").build();
-            when(documentService.getDocumentById(1L)).thenReturn(doc);
-            when(documentService.downloadDocument(1L)).thenReturn(new byte[]{1, 2, 3});
+            when(documentFacade.getDocumentById(1L)).thenReturn(doc);
+            when(documentFacade.downloadDocument(1L)).thenReturn(new byte[]{1, 2, 3});
 
             ResponseEntity<byte[]> resp = documentController.downloadFile(1L);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
@@ -264,8 +264,8 @@ class AllControllersTest {
         @Test @DisplayName("downloadFile — contentType null usa application/octet-stream")
         void downloadFile_nullContentType() {
             Document doc = Document.builder().id(1L).fileName("file.bin").contentType(null).build();
-            when(documentService.getDocumentById(1L)).thenReturn(doc);
-            when(documentService.downloadDocument(1L)).thenReturn(new byte[]{});
+            when(documentFacade.getDocumentById(1L)).thenReturn(doc);
+            when(documentFacade.downloadDocument(1L)).thenReturn(new byte[]{});
 
             ResponseEntity<byte[]> resp = documentController.downloadFile(1L);
             assertThat(resp.getHeaders().getContentType().toString()).isEqualTo("application/octet-stream");
@@ -273,26 +273,26 @@ class AllControllersTest {
 
         @Test @DisplayName("getUserDocuments")
         void getUserDocuments() {
-            when(documentService.getUserDocumentsDto(1L)).thenReturn(List.of());
+            when(documentFacade.getUserDocumentsDto(1L)).thenReturn(List.of());
             assertThat(documentController.getUserDocuments(1L).getBody()).isEmpty();
         }
 
         @Test @DisplayName("getUserDocumentsByType")
         void getUserDocumentsByType() {
-            when(documentService.getUserDocumentsByTypeDto(1L, "WORKOUT_PLAN")).thenReturn(List.of());
+            when(documentFacade.getUserDocumentsByTypeDto(1L, "WORKOUT_PLAN")).thenReturn(List.of());
             assertThat(documentController.getUserDocumentsByType(1L, "WORKOUT_PLAN").getBody()).isEmpty();
         }
 
         @Test @DisplayName("deleteDocument")
         void deleteDocument() {
             ResponseEntity<Void> resp = documentController.deleteDocument(1L);
-            verify(documentService).deleteDocument(1L);
+            verify(documentFacade).deleteDocument(1L);
             assertThat(resp.getStatusCode().value()).isEqualTo(204);
         }
 
         @Test @DisplayName("updateNotes")
         void updateNotes() {
-            when(documentService.updateNotes(1L, "nuove note")).thenReturn(Map.of("notes", "nuove note"));
+            when(documentFacade.updateNotes(1L, "nuove note")).thenReturn(Map.of("notes", "nuove note"));
             ResponseEntity<Map<String, Object>> resp = documentController.updateNotes(1L, Map.of("notes", "nuove note"));
             assertThat(resp.getBody().get("notes")).isEqualTo("nuove note");
         }

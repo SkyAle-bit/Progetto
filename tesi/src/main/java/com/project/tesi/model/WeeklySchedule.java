@@ -34,6 +34,7 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "weekly_schedules")
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class WeeklySchedule {

@@ -7,6 +7,7 @@ import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class AdminFacade {
     private final AdminStatsService adminStatsService;
 
     // Costruttore esplicito — pattern Facade
+    @Autowired
     public AdminFacade(AdminService adminService, AdminStatsService adminStatsService) {
         this.adminService = adminService;
         this.adminStatsService = adminStatsService;
