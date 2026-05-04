@@ -34,4 +34,13 @@ public interface ActivityFeedService {
      * @param booking la prenotazione appena creata
      */
     void logBookingCreated(Booking booking);
+
+    /**
+     * Registra nel feed l'avvenuto caricamento di un documento.
+     *
+     * @param clientId   ID del cliente proprietario
+     * @param uploaderId ID di chi ha caricato il file
+     * @param type       tipo di documento
+     */
+    void logDocumentUploaded(Long clientId, Long uploaderId, String type);
 }

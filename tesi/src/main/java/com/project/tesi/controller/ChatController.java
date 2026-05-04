@@ -33,7 +33,6 @@ public class ChatController {
 
     private final IChatFacade chatFacade;
 
-    @Autowired
     public ChatController(IChatFacade chatFacade) {
         this.chatFacade = chatFacade;
     }

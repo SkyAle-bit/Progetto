@@ -28,7 +28,6 @@ public class DocumentController {
 
     private final IDocumentFacade documentFacade;
 
-    @Autowired
     public DocumentController(IDocumentFacade documentFacade) {
         this.documentFacade = documentFacade;
     }

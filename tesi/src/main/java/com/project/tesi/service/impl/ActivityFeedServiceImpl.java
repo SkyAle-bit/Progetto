@@ -201,5 +201,11 @@ public class ActivityFeedServiceImpl implements ActivityFeedService {
                     booking.getId(), booking.getBookedAt());
         }
     }
+
+    @Override
+    public void logDocumentUploaded(Long clientId, Long uploaderId, String type) {
+        log.info("ActivityFeed [Facade Orchestration]: Registrato upload documento tipo {} per clientId={} da uploaderId={}", type, clientId, uploaderId);
+        // Qui potrebbe essere salvato un record nel DB o emesso un evento su una coda
+    }
 }
 

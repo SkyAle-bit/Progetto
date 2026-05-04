@@ -46,6 +46,7 @@ public class DatabaseInitializerService {
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
         private final JdbcTemplate jdbcTemplate;
+        private final BookingDirector bookingDirector;
 
         /**
          * Inizializza il database con dati di test.
@@ -340,7 +341,6 @@ public class DatabaseInitializerService {
                 String meetLink = "https://meet.jit.si/SkyAle_Consulto_" + client.getId() + "_" + professional.getId()
                                 + "_" + UUID.randomUUID().toString().substring(0, 8);
 
-                BookingDirector director = new BookingDirector(Booking.builder());
-                bookingRepository.save(director.buildConfirmedBooking(client, professional, slot, meetLink));
+                bookingRepository.save(bookingDirector.buildConfirmedBooking(client, professional, slot, meetLink));
         }
 }

@@ -59,6 +59,9 @@ public class BookingMapper {
      * @return {@code true} se l'utente può accedere alla videochiamata
      */
     private boolean isMeetingJoinable(LocalDateTime startTime) {
-        return true;
+        if (startTime == null) return false;
+        LocalDateTime now = LocalDateTime.now();
+        // Finestra temporale: da 10 minuti prima a 30 minuti dopo l'inizio
+        return !now.isBefore(startTime.minusMinutes(10)) && !now.isAfter(startTime.plusMinutes(30));
     }
 }

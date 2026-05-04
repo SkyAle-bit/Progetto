@@ -3,7 +3,7 @@ package com.project.tesi.scheduler;
 import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.repository.SubscriptionRepository;
-import lombok.RequiredArgsConstructor;
+import com.project.tesi.repository.SubscriptionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,11 +21,14 @@ import java.util.List;
  * di tutti gli abbonamenti attivi secondo i valori previsti dal piano sottoscritto.
  */
 @Component
-@RequiredArgsConstructor
 public class SubscriptionScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(SubscriptionScheduler.class);
     private final SubscriptionRepository subscriptionRepository;
+
+    public SubscriptionScheduler(SubscriptionRepository subscriptionRepository) {
+        this.subscriptionRepository = subscriptionRepository;
+    }
 
     /**
      * Rinnova i crediti mensili per tutti gli abbonamenti attivi.

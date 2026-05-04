@@ -4,7 +4,7 @@ import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.service.EmailService;
-import lombok.RequiredArgsConstructor;
+import com.project.tesi.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,13 +24,17 @@ import java.util.List;
  * al cliente che al professionista.
  */
 @Component
-@RequiredArgsConstructor
 public class BookingReminderScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(BookingReminderScheduler.class);
 
     private final BookingRepository bookingRepository;
     private final EmailService emailService;
+
+    public BookingReminderScheduler(BookingRepository bookingRepository, EmailService emailService) {
+        this.bookingRepository = bookingRepository;
+        this.emailService = emailService;
+    }
 
     /**
      * Ogni 5 minuti cerca prenotazioni imminenti (entro 35 min) e invia

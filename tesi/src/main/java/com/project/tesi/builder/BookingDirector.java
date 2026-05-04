@@ -4,7 +4,9 @@ import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.Slot;
 import com.project.tesi.model.User;
+import org.springframework.stereotype.Component;
 
+@Component
 public class BookingDirector {
 
     private final BookingBuilder builder;

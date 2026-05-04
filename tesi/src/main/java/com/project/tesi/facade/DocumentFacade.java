@@ -1,7 +1,7 @@
 package com.project.tesi.facade;
 import com.project.tesi.model.Document;
+import com.project.tesi.service.ActivityFeedService;
 import com.project.tesi.service.DocumentService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
@@ -9,11 +9,18 @@ import java.util.Map;
 @Component
 public class DocumentFacade implements IDocumentFacade {
     private final DocumentService documentService;
-    public DocumentFacade(DocumentService documentService) {
+    private final ActivityFeedService activityFeedService;
+
+    public DocumentFacade(DocumentService documentService, ActivityFeedService activityFeedService) {
         this.documentService = documentService;
+        this.activityFeedService = activityFeedService;
     }
+
     public Map<String, Object> uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String type) {
-        return documentService.uploadDocumentWithValidation(file, clientId, uploaderId, type);
+        Map<String, Object> result = documentService.uploadDocumentWithValidation(file, clientId, uploaderId, type);
+        // Logica di orchestrazione (Facade Architetturale)
+        activityFeedService.logDocumentUploaded(clientId, uploaderId, type);
+        return result;
     }
     public Document getDocumentById(Long id) {
         return documentService.getDocumentById(id);

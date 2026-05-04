@@ -51,6 +51,7 @@ public class BookingServiceImpl implements BookingService {
     private final List<BookingStrategy> strategies;
     private final VideoConferenceService videoConferenceService;
     private final EventManager eventManager;
+    private final BookingDirector bookingDirector;
 
     private static class LockReference {
         final ReentrantLock lock = new ReentrantLock();
@@ -68,7 +69,8 @@ public class BookingServiceImpl implements BookingService {
     public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository,
                               UserRepository userRepository, SubscriptionRepository subscriptionRepository, 
                               BookingMapper bookingMapper, List<BookingStrategy> strategies, 
-                              VideoConferenceService videoConferenceService, EventManager eventManager) {
+                              VideoConferenceService videoConferenceService, EventManager eventManager,
+                              BookingDirector bookingDirector) {
         this.bookingRepository = bookingRepository;
         this.slotRepository = slotRepository;
         this.userRepository = userRepository;
@@ -77,6 +79,7 @@ public class BookingServiceImpl implements BookingService {
         this.strategies = strategies;
         this.videoConferenceService = videoConferenceService;
         this.eventManager = eventManager;
+        this.bookingDirector = bookingDirector;
     }
 
     /**
@@ -146,8 +149,7 @@ public class BookingServiceImpl implements BookingService {
 
             String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
 
-            BookingDirector director = new BookingDirector(Booking.builder());
-            Booking booking = director.buildConfirmedBooking(user, professional, slot, meetLink);
+            Booking booking = bookingDirector.buildConfirmedBooking(user, professional, slot, meetLink);
 
             Booking saved = bookingRepository.save(booking);
 
