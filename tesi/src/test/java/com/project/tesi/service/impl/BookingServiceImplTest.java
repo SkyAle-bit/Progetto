@@ -21,6 +21,7 @@ import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.service.strategy.PersonalTrainerBookingStrategy;
 import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.enums.EventType;
+import com.project.tesi.builder.BookingDirector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ class BookingServiceImplTest {
     @Mock private BookingMapper bookingMapper;
     @Mock private VideoConferenceService videoConferenceService;
     @Mock private EventManager eventManager;
+    @Mock private BookingDirector bookingDirector;
 
     private BookingServiceImpl bookingService;
 
@@ -75,7 +77,7 @@ class BookingServiceImplTest {
         // Crea strategy reale per PT
         BookingStrategy ptStrategy = new PersonalTrainerBookingStrategy();
         bookingService = new BookingServiceImpl(bookingRepository, slotRepository, userRepository,
-                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService, eventManager);
+                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService, eventManager, bookingDirector);
     }
 
     @Test
@@ -95,6 +97,9 @@ class BookingServiceImplTest {
         });
 
         when(videoConferenceService.generateMeetingLink(any(), any(), any())).thenReturn("https://meet.jit.si/test");
+
+        Booking fakeBooking = new Booking();
+        when(bookingDirector.buildConfirmedBooking(any(), any(), any(), anyString())).thenReturn(fakeBooking);
 
         BookingResponse expectedResp = BookingResponse.builder().id(1L).status(BookingStatus.CONFIRMED).build();
         when(bookingMapper.toResponse(any())).thenReturn(expectedResp);

@@ -9,14 +9,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class BookingDirector {
 
-    private final BookingBuilder builder;
-
-    public BookingDirector(BookingBuilder builder) {
-        this.builder = builder;
-    }
-
     public Booking buildConfirmedBooking(User user, User professional, Slot slot, String meetingLink) {
-        return builder.user(user)
+        return Booking.builder()
+                .user(user)
                 .professional(professional)
                 .slot(slot)
                 .meetingLink(meetingLink)
