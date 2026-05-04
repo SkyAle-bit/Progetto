@@ -23,6 +23,7 @@ import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.enums.EventType;
 import com.project.tesi.observer.manager.EventManager;
+import com.project.tesi.builder.BookingDirector;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +60,7 @@ public class BookingServiceImpl implements BookingService {
      * Mappa gli ID degli slot a un LockReference per proteggere la sezione critica
      * di prenotazione e prevenire overbooking concorrenziale gestendo la memoria.
      */
-    private final Map<Long, LockReference> slotLocks = new java.util.HashMap<>();
+    private final Map<Long, LockReference> slotLocks = new ConcurrentHashMap<>();
 
     // Costruttore esplicito €” pattern Strategy (e Facade accessibile)
     public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository,
@@ -143,13 +144,8 @@ public class BookingServiceImpl implements BookingService {
 
             String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
 
-            Booking booking = Booking.builder()
-                    .user(user)
-                    .professional(professional)
-                    .slot(slot)
-                    .meetingLink(meetLink)
-                    .status(BookingStatus.CONFIRMED)
-                    .build();
+            BookingDirector director = new BookingDirector(Booking.builder());
+            Booking booking = director.buildConfirmedBooking(user, professional, slot, meetLink);
 
             Booking saved = bookingRepository.save(booking);
 

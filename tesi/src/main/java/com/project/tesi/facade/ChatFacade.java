@@ -9,7 +9,6 @@ import java.util.List;
 @Component
 public class ChatFacade implements IChatFacade {
     private final ChatService chatService;
-    @Autowired
     public ChatFacade(ChatService chatService) {
         this.chatService = chatService;
     }

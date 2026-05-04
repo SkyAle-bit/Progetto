@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
-public class EventManager {
+public class EventManager implements Subject {
 
     private final Map<EventType, List<Observer<?>>> listeners;
 

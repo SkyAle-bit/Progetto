@@ -26,7 +26,6 @@ public class AdminFacade implements IAdminFacade {
     private final AdminStatsService adminStatsService;
 
     // Costruttore esplicito — pattern Facade
-    @Autowired
     public AdminFacade(AdminService adminService, AdminStatsService adminStatsService) {
         this.adminService = adminService;
         this.adminStatsService = adminStatsService;

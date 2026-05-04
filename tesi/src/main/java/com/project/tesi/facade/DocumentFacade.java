@@ -9,7 +9,6 @@ import java.util.Map;
 @Component
 public class DocumentFacade implements IDocumentFacade {
     private final DocumentService documentService;
-    @Autowired
     public DocumentFacade(DocumentService documentService) {
         this.documentService = documentService;
     }

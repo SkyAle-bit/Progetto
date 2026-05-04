@@ -53,7 +53,6 @@ public class UserFacade implements IUserFacade {
     private final SlotService slotService;
 
     // Costruttore esplicito — pattern Facade
-    @Autowired
     public UserFacade(UserService userService,
                       BookingService bookingService,
                       ReviewService reviewService,
