@@ -24,6 +24,7 @@ import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.enums.EventType;
 import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.builder.BookingDirector;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Assicura la validità delle richieste controllando abbonamenti, crediti e conflitti di concorrenza.
  */
 @Service
+@Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -62,7 +64,7 @@ public class BookingServiceImpl implements BookingService {
      */
     private final Map<Long, LockReference> slotLocks = new ConcurrentHashMap<>();
 
-    // Costruttore esplicito €” pattern Strategy (e Facade accessibile)
+    // Costruttore esplicito — pattern Strategy (e Facade accessibile)
     public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository,
                               UserRepository userRepository, SubscriptionRepository subscriptionRepository, 
                               BookingMapper bookingMapper, List<BookingStrategy> strategies, 
@@ -131,7 +133,7 @@ public class BookingServiceImpl implements BookingService {
                 );
             } else if (slot.getStartTime().toLocalDate().isAfter(sub.getEndDate())) {
                 throw new SubscriptionExpiredException(
-                        "Operazione rifiutata: l'abbonamento scadr il " + sub.getEndDate() +
+                        "Operazione rifiutata: l'abbonamento scadrà il " + sub.getEndDate() +
                         ", prima della data prevista per questo slot (" + slot.getStartTime().toLocalDate() + ")."
                 );
             }
@@ -200,6 +202,8 @@ public class BookingServiceImpl implements BookingService {
         if (sub != null) {
             strategy.refundCredits(sub);
             subscriptionRepository.save(sub);
+        } else {
+            log.warn("Nessun abbonamento attivo trovato per l'utente ID {}: impossibile elaborare il rimborso (prenotazione ID {}).", booking.getUser().getId(), bookingId);
         }
 
         slot.setBooked(false);

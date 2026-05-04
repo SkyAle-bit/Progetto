@@ -3,6 +3,7 @@ package com.project.tesi.service;
 import com.project.tesi.enums.*;
 import com.project.tesi.model.*;
 import com.project.tesi.repository.*;
+import com.project.tesi.builder.BookingDirector;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -46,6 +47,16 @@ public class DatabaseInitializerService {
         private final EntityManager entityManager;
         private final JdbcTemplate jdbcTemplate;
 
+        /**
+         * Inizializza il database con dati di test.
+         * 
+         * <b>Nota Architetturale sul Pattern Builder:</b>
+         * All'interno di questo servizio di popolamento (ad es. per storicizzare prenotazioni COMPLETED),
+         * viene intenzionalmente bypassato il {@code BookingDirector} per istanziare direttamente le 
+         * entità tramite il builder "nudo". Questa è una scelta voluta per l'infrastruttura di mock/test,
+         * in quanto permette di iniettare stati arbitrari non previsti dal normale ciclo di vita 
+         * incapsulato dal Director (che impone regole rigide di business, come lo stato CONFIRMED).
+         */
         @Transactional
         public void initialize() {
                 dropLegacySlotIdUniqueConstraint();
@@ -329,12 +340,7 @@ public class DatabaseInitializerService {
                 String meetLink = "https://meet.jit.si/SkyAle_Consulto_" + client.getId() + "_" + professional.getId()
                                 + "_" + UUID.randomUUID().toString().substring(0, 8);
 
-                bookingRepository.save(Booking.builder()
-                                .user(client)
-                                .professional(professional)
-                                .slot(slot)
-                                .meetingLink(meetLink)
-                                .status(BookingStatus.CONFIRMED)
-                                .build());
+                BookingDirector director = new BookingDirector(Booking.builder());
+                bookingRepository.save(director.buildConfirmedBooking(client, professional, slot, meetLink));
         }
 }
