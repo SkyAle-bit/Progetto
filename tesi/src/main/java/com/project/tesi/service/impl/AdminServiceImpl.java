@@ -147,6 +147,10 @@ public class AdminServiceImpl implements AdminService {
             throw new UnauthorizedAccessException("Non hai i permessi per modificare i crediti.");
         }
 
+        if (creditsPT < 0 || creditsNutri < 0) {
+            throw new IllegalArgumentException("I crediti non possono essere negativi.");
+        }
+
         Subscription sub = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Abbonamento", subscriptionId));
 
