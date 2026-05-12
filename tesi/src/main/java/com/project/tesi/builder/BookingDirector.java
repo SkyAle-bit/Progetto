@@ -18,4 +18,24 @@ public class BookingDirector {
                 .status(BookingStatus.CONFIRMED)
                 .build();
     }
+
+    public Booking buildCompletedBooking(User user, User professional, Slot slot, String meetingLink) {
+        return Booking.builder()
+                .user(user)
+                .professional(professional)
+                .slot(slot)
+                .meetingLink(meetingLink)
+                .status(BookingStatus.COMPLETED)
+                .build();
+    }
+
+    public Booking buildCancelledBooking(User user, User professional, Slot slot, String meetingLink) {
+        return Booking.builder()
+                .user(user)
+                .professional(professional)
+                .slot(slot)
+                .meetingLink(meetingLink)
+                .status(BookingStatus.CANCELED)
+                .build();
+    }
 }

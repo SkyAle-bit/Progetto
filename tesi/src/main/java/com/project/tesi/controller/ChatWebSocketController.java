@@ -25,6 +25,7 @@ public class ChatWebSocketController {
     private final SimpMessageSendingOperations messagingTemplate;
     private final WebSocketEventListener eventListener;
     private final ChatService chatService;
+    private final com.project.tesi.service.ChatAsyncService chatAsyncService;
 
     @MessageMapping("/chat.join")
     public void joinRoom(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor ha) {
@@ -76,7 +77,7 @@ public class ChatWebSocketController {
 
         messagingTemplate.convertAndSend("/topic/chat/" + roomId, (Object) dto);
 
-        saveMessageAsync(chatId, senderId, content);
+        chatAsyncService.saveMessageAsync(chatId, senderId, content);
 
         if (receiverId != null) {
             try {
@@ -94,26 +95,8 @@ public class ChatWebSocketController {
         Long uid = toLong(payload.get("userId"));
         Long chatId = toLong(payload.get("chatId"));
         if (uid != null && chatId != null) {
-            markAsReadAsync(chatId, uid);
+            chatAsyncService.markAsReadAsync(chatId, uid);
             sendUnreadUpdate(uid);
-        }
-    }
-
-    @Async
-    public void saveMessageAsync(Long chatId, Long senderId, String content) {
-        try {
-            chatService.sendMessageDirect(chatId, senderId, content);
-        } catch (Exception e) {
-            System.err.println("[WS] Save error: " + e.getMessage());
-        }
-    }
-
-    @Async
-    public void markAsReadAsync(Long chatId, Long userId) {
-        try {
-            chatService.markAsRead(chatId, userId);
-        } catch (Exception e) {
-            System.err.println("[WS] MarkAsRead error: " + e.getMessage());
         }
     }
 

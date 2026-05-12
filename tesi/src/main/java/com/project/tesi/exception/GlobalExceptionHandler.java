@@ -106,6 +106,13 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(org.springframework.orm.ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+        log.warn("Conflitto di concorrenza su record (Optimistic Locking): {} — Path: {}", ex.getMessage(), request.getRequestURI());
+        com.project.tesi.exception.common.ConcurrentUpdateException concurrentException = new com.project.tesi.exception.common.ConcurrentUpdateException("Slot non più disponibile, riprova");
+        return buildErrorResponse(concurrentException.getMessage(), concurrentException.getStatus(), request);
+    }
+
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

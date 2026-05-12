@@ -3,7 +3,6 @@ package com.project.tesi.scheduler;
 import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.repository.SubscriptionRepository;
-import com.project.tesi.repository.SubscriptionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
