@@ -40,6 +40,14 @@ public interface EmailService {
     void sendPasswordResetEmail(String toEmail, String firstName, String resetToken);
 
     /**
+     * Invia un'email di notifica per l'avvenuto cambio della password.
+     *
+     * @param toEmail   email del destinatario
+     * @param firstName nome del destinatario
+     */
+    void sendPasswordChangeEmail(String toEmail, String firstName);
+
+    /**
      * Invia l'email di conferma per una prenotazione appena creata.
      *
      * @param toEmail           email del destinatario

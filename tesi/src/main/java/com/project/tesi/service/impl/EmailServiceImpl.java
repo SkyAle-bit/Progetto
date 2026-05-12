@@ -336,6 +336,41 @@ public class EmailServiceImpl implements EmailService {
     }
 
     // ══════════════════════════════════════════════════════════════
+    //  EMAIL DI AVVENUTO CAMBIO PASSWORD
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    @Async
+    public void sendPasswordChangeEmail(String toEmail, String firstName) {
+        try {
+            validateRecipient(toEmail);
+            String subject = "🔒 Password Aggiornata — Kore";
+            String html = buildPasswordChangeHtml(firstName);
+            sendSimpleEmail(toEmail, subject, html);
+            log.info("Email di avvenuto cambio password inviata a {}", toEmail);
+        } catch (Exception e) {
+            log.error("Errore nell'invio dell'email di cambio password a {}", toEmail, e);
+        }
+    }
+
+    private String buildPasswordChangeHtml(String firstName) {
+        return "<div style=\"font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;border-radius:12px;overflow:hidden\">"
+             + "<div style=\"background:linear-gradient(135deg,#1a3462,#112240);padding:40px 30px;text-align:center\">"
+             + "<h1 style=\"color:#c9a96e;margin:0;font-size:28px\">🔒 Password Aggiornata</h1>"
+             + "<p style=\"color:#b1c0d4;margin:12px 0 0;font-size:15px\">La tua password è stata modificata con successo</p>"
+             + "</div>"
+             + "<div style=\"padding:30px\">"
+             + "<p style=\"color:#212529;font-size:16px;line-height:1.6;margin:0 0 20px\">Ciao <strong>" + firstName + "</strong>,</p>"
+             + "<p style=\"color:#495057;font-size:15px;line-height:1.6;margin:0 0 20px\">Ti confermiamo che la password del tuo account Kore è stata aggiornata con successo. "
+             + "Ora puoi accedere alla piattaforma utilizzando la tua nuova password.</p>"
+             + "<p style=\"color:#6c757d;font-size:13px;line-height:1.5;margin:0\">Se non sei stato tu a modificare la password, ti preghiamo di contattare immediatamente il nostro supporto.</p>"
+             + "</div>"
+             + "<div style=\"background:#e9ecef;padding:16px;text-align:center;font-size:13px;color:#6c757d\">"
+             + "Email generata automaticamente da Kore Platform"
+             + "</div></div>";
+    }
+
+    // ══════════════════════════════════════════════════════════════
     // ══════════════════════════════════════════════════════════════
 
     private void sendSimpleEmail(String to, String subject, String html) {

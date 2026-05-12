@@ -87,6 +87,11 @@ public class UserServiceImpl implements UserService {
         }
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
+            try {
+                emailService.sendPasswordChangeEmail(user.getEmail(), user.getFirstName());
+            } catch (Exception e) {
+                log.warn("Impossibile inviare email di cambio password a {}: {}", user.getEmail(), e.getMessage());
+            }
         }
 
         userRepository.save(user);

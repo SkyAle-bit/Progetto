@@ -133,6 +133,12 @@ public class AuthServiceImpl implements AuthService {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
 
+        try {
+            emailService.sendPasswordChangeEmail(user.getEmail(), user.getFirstName());
+        } catch (Exception e) {
+            log.warn("Impossibile inviare email di avvenuto reset password a {}: {}", user.getEmail(), e.getMessage());
+        }
+
         log.info("Password reimpostata con successo per l'utente {}", user.getEmail());
     }
 }
