@@ -21,10 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controller REST per la chat (endpoint HTTP).
- * Fornisce le API per inviare messaggi, recuperare la cronologia,
- * ottenere la lista conversazioni e gestire lo stato di lettura.
- * Per l'interazione in tempo reale si usa {@link ChatWebSocketController}.
+ * Endpoint REST per la chat. Recupera lo storico dei messaggi e lo stato delle conversazioni, usato al caricamento iniziale prima del WebSocket.
  */
 @RestController
 @RequestMapping("/api/chat")

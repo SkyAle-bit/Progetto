@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Controller REST per la gestione degli abbonamenti dei clienti.
- * Permette l'attivazione di un nuovo piano e la consultazione
- * dello stato dell'abbonamento (crediti residui, scadenza).
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Endpoint REST per la gestione abbonamenti e crediti residui.
  */
 @RestController
 @RequestMapping("/api/subscriptions")

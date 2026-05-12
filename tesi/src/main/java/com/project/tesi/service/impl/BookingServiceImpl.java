@@ -36,8 +36,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Gestisce il ciclo di vita delle prenotazioni tra clienti e professionisti.
- * Assicura la validità delle richieste controllando abbonamenti, crediti e conflitti di concorrenza.
+ * Gestisce le prenotazioni tra clienti e professionisti.
+ * 
+ * Qui ci sono i controlli più critici del sistema: dobbiamo assicurarci che 
+ * l'abbonamento copra la data scelta, che i crediti bastino e, soprattutto, 
+ * evitare race condition se due clienti provano a prenotare lo stesso slot nello stesso istante.
  */
 @Service
 @Slf4j
@@ -59,9 +62,12 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * Risorsa condivisa per implementare il multithreading esplicito.
-     * Mappa gli ID degli slot a un LockReference per proteggere la sezione critica
-     * di prenotazione e prevenire overbooking concorrenziale gestendo la memoria.
+     * Mappa per gestire i lock a grana fine sugli slot.
+     * Invece di usare un lock globale (che rallenterebbe tutto bloccando l'intera applicazione), 
+     * o un 'synchronized' sul metodo (stesso problema), usiamo una ConcurrentHashMap per mappare
+     * ogni ID dello slot a un suo ReentrantLock specifico. 
+     * Il contatore 'count' serve a capire quanti thread stanno aspettando quello slot: quando arriva a zero, 
+     * rimuoviamo il lock dalla mappa per non saturare la memoria.
      */
     private final Map<Long, LockReference> slotLocks = new ConcurrentHashMap<>();
 
@@ -83,12 +89,12 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * Valida e registra una nuova prenotazione.
-     * Il processo assicura che le policy di business siano rispettate: disponibilità effettiva dello slot (gestendo 
-     * scenari di concorrenza tramite locking ottimistico), copertura temporale dell'abbonamento e adeguatezza dei crediti.
-     * 
-     * @param request I dettagli della richiesta (inclusi utente e slot desiderato).
-     * @return La risposta contenente i dati della prenotazione e il link per la conferenza.
+     * Il cuore del processo di prenotazione. Segue questo flusso narrativo:
+     * 1. Acquisiamo il lock specifico per questo slot. Se un altro thread ci sta provando, aspetta al varco.
+     * 2. Controlliamo se lo slot è stato occupato nel frattempo. Se sì, lanciamo SlotAlreadyBookedException!
+     * 3. Scegliamo la Strategy corretta (PT o Nutrizionista) per consumare i crediti.
+     * 4. Validiamo l'abbonamento (deve essere attivo e coprire la data dello slot).
+     * 5. Scaliamo i crediti, generiamo il link della call e salviamo tutto.
      */
     @Override
     @Transactional
@@ -119,6 +125,8 @@ public class BookingServiceImpl implements BookingService {
 
             User professional = slot.getProfessional();
 
+            // Applichiamo il pattern Strategy: a seconda del ruolo del professionista 
+            // (Personal Trainer o Nutrizionista), la logica di controllo e di scalatura dei crediti cambia.
             BookingStrategy strategy = strategies.stream()
                     .filter(s -> s.getSupportedRole() == professional.getRole())
                     .findFirst()
@@ -168,12 +176,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * Elabora la richiesta di annullamento di un appuntamento.
-     * L'operazione è vincolata a regole temporali (es. disdetta con almeno 24h di preavviso) per tutelare i professionisti.
-     * In caso di esito positivo, libera lo slot e riaccredita l'utilizzo all'utente delegando la logica di rimborso al ruolo specifico.
-     * 
-     * @param bookingId L'ID della prenotazione da annullare.
-     * @param userId L'ID dell'utente richiedente (per verifica di sicurezza).
+     * Annulla una prenotazione. 
+     * La regola è rigida: puoi annullare e riavere i crediti SOLO se mancano 
+     * più di 24 ore all'appuntamento. Sotto quella soglia, per tutelare il professionista, 
+     * lo slot si libera ma il credito è perso.
      */
     @Override
     @Transactional

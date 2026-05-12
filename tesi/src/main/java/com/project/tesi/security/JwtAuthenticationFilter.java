@@ -17,14 +17,11 @@ import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Filtro di autenticazione JWT eseguito una volta per ogni richiesta HTTP.
- *
- * Intercetta l'header {@code Authorization: Bearer <token>}, estrae e valida il JWT,
- * e se valido imposta l'autenticazione nel {@link SecurityContextHolder}
- * in modo che i controller possano accedere all'utente autenticato.
- *
- * Se il token è assente, scaduto o non valido, la richiesta prosegue
- * senza autenticazione e verrà bloccata dalle regole di {@link SecurityConfig}.
+ * Filtro JWT custom, eseguito per ogni singola richiesta HTTP (ecco perché OncePerRequestFilter).
+ * 
+ * Qui controlliamo se c'è un header "Authorization: Bearer <token>". 
+ * Se c'è, lo validiamo ed estraiamo l'utente, mettendolo nel SecurityContextHolder.
+ * In questo modo Spring Security sa chi è l'utente e i controller possono recuperarlo.
  */
 @Slf4j
 @Component
@@ -34,21 +31,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
-    /**
-     * Filtra ogni richiesta HTTP per verificare la presenza di un token JWT valido.
-     *
-     * Flusso:
-     * <ol>
-     *   <li>Estrae l'header "Authorization" dalla richiesta</li>
-     *   <li>Se assente o non inizia con "Bearer ", lascia passare la richiesta</li>
-     *   <li>Estrae il token (rimuovendo il prefisso "Bearer ")</li>
-     *   <li>Estrae l'email dal token</li>
-     *   <li>Se l'utente non è già autenticato, carica i dati dal DB</li>
-     *   <li>Valida il token (firma + scadenza)</li>
-     *   <li>Se valido, salva l'autenticazione nel contesto di Spring Security</li>
-     *   <li>Passa alla prossima fase della filter chain</li>
-     * </ol>
-     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

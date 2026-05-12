@@ -6,6 +6,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Review.
+ */
 public class ReviewBuilderImpl implements ReviewBuilder {
     private Long id;
     private User client;
@@ -46,6 +49,7 @@ public class ReviewBuilderImpl implements ReviewBuilder {
     }
 
     @Override
+    // Valida la presenza di recensore, recensito e voto.
     public Review build() {
         Objects.requireNonNull(this.client, "client è obbligatorio");
         Objects.requireNonNull(this.professional, "professional è obbligatorio");

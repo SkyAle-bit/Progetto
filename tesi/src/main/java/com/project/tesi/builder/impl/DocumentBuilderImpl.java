@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Document.
+ */
 public class DocumentBuilderImpl implements DocumentBuilder {
     private Long id;
     private String fileName;
@@ -64,6 +67,7 @@ public class DocumentBuilderImpl implements DocumentBuilder {
     }
 
     @Override
+    // Valida i campi obbligatori prima di creare il documento
     public Document build() {
         Document obj = new Document();
         obj.setId(this.id);

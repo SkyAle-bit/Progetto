@@ -14,11 +14,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Scheduler per il rinnovo automatico dei crediti mensili degli abbonamenti.
- *
- * Viene eseguito ogni notte a mezzanotte (cron: {@code 0 0 0 * * ?}).
- * Al primo giorno di ogni mese, resetta i crediti PT e Nutrizionista
- * di tutti gli abbonamenti attivi secondo i valori previsti dal piano sottoscritto.
+ * Cron job che gira in background ogni notte a mezzanotte.
+ * Controlla se è il primo del mese: se sì, resetta i crediti mensili di PT e Nutrizionista 
+ * per tutti gli abbonamenti attivi, gestendo anche lo scatto delle rate.
  */
 @Component
 public class SubscriptionScheduler {
@@ -30,11 +28,6 @@ public class SubscriptionScheduler {
         this.subscriptionRepository = subscriptionRepository;
     }
 
-    /**
-     * Rinnova i crediti mensili per tutti gli abbonamenti attivi.
-     * Eseguito automaticamente ogni notte a mezzanotte.
-     * Il reset avviene solo il primo giorno del mese (logica semplificata).
-     */
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void renewCredits() {

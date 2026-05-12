@@ -11,17 +11,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Listener per gli eventi del ciclo di vita delle connessioni WebSocket.
- *
- * Gestisce tre strutture dati thread-safe (ConcurrentHashMap) per tracciare:
- * <ul>
- *   <li>{@code userSessions} — mappa userId → set di sessionId (un utente può avere più tab aperte)</li>
- *   <li>{@code sessionUser} — mappa inversa sessionId → userId (per il cleanup alla disconnessione)</li>
- *   <li>{@code sessionRooms} — mappa sessionId → set di roomId (stanze chat in cui la sessione è entrata)</li>
- * </ul>
- *
- * Queste informazioni servono a determinare se un utente è attivamente
- * presente in una stanza chat, per decidere se inviare notifiche push.
+ * Listener che tiene traccia della "presence" degli utenti.
+ * Usiamo tre ConcurrentHashMap incrociate per mappare userId <-> sessionId <-> roomId.
+ * Questo ci permette di sapere in tempo reale chi è dentro una chat e decidere 
+ * se mandare una notifica push (se l'utente è offline o in un'altra pagina) o meno.
  */
 @Component
 public class WebSocketEventListener {
@@ -35,13 +28,7 @@ public class WebSocketEventListener {
     /** Mappa sessionId → insieme delle stanze chat in cui la sessione è attualmente presente. */
     private final Map<String, Set<String>> sessionRooms = new ConcurrentHashMap<>();
 
-    /**
-     * Gestisce l'evento di connessione WebSocket STOMP.
-     * Estrae l'header personalizzato {@code userId} e registra la sessione
-     * nelle mappe di tracciamento.
-     *
-     * @param event evento di connessione STOMP
-     */
+    // Estrae l'header userId al momento della connessione e registra la sessione
     @EventListener
     public void handleConnect(SessionConnectEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
@@ -55,12 +42,7 @@ public class WebSocketEventListener {
         }
     }
 
-    /**
-     * Gestisce l'evento di disconnessione WebSocket.
-     * Rimuove la sessione da tutte le mappe di tracciamento.
-     *
-     * @param event evento di disconnessione STOMP
-     */
+    // Pulisce in modo sicuro le mappe quando un utente chiude la tab o perde la connessione
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
@@ -77,36 +59,19 @@ public class WebSocketEventListener {
         sessionRooms.remove(sessionId);
     }
 
-    /**
-     * Registra l'ingresso di una sessione in una stanza chat.
-     *
-     * @param sessionId ID della sessione WebSocket
-     * @param roomId    ID della stanza chat
-     */
+    // Registra l'ingresso in una chat room
     public void joinRoom(String sessionId, String roomId) {
         Set<String> rooms = sessionRooms.get(sessionId);
         if (rooms != null) rooms.add(roomId);
     }
 
-    /**
-     * Registra l'uscita di una sessione da una stanza chat.
-     *
-     * @param sessionId ID della sessione WebSocket
-     * @param roomId    ID della stanza chat
-     */
+    // Registra l'uscita da una chat room
     public void leaveRoom(String sessionId, String roomId) {
         Set<String> rooms = sessionRooms.get(sessionId);
         if (rooms != null) rooms.remove(roomId);
     }
 
-    /**
-     * Verifica se un utente è attualmente presente in una stanza chat.
-     * Controlla tutte le sessioni attive dell'utente.
-     *
-     * @param userId ID dell'utente
-     * @param roomId ID della stanza chat
-     * @return {@code true} se almeno una sessione dell'utente è nella stanza
-     */
+    // Verifica incrociata: l'utente ha almeno una sessione attiva dentro quella specifica stanza?
     public boolean isUserInRoom(Long userId, String roomId) {
         Set<String> sessions = userSessions.get(userId);
         if (sessions == null) return false;

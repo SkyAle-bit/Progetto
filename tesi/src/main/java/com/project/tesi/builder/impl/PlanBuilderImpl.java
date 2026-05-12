@@ -6,6 +6,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Plan.
+ */
 public class PlanBuilderImpl implements PlanBuilder {
     private Long id;
     private String name;
@@ -58,6 +61,7 @@ public class PlanBuilderImpl implements PlanBuilder {
     }
 
     @Override
+    // Validazione preventiva: il piano deve avere almeno nome, durata e crediti.
     public Plan build() {
         Objects.requireNonNull(this.name, "name è obbligatorio");
         Objects.requireNonNull(this.duration, "duration è obbligatorio");

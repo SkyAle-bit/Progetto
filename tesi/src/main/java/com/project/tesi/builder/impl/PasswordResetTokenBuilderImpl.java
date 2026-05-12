@@ -6,6 +6,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità PasswordResetToken.
+ */
 public class PasswordResetTokenBuilderImpl implements PasswordResetTokenBuilder {
     private Long id;
     private String token;
@@ -40,6 +43,7 @@ public class PasswordResetTokenBuilderImpl implements PasswordResetTokenBuilder 
     }
 
     @Override
+    // Assicuriamoci che ci siano token e utente, altrimenti non ha senso.
     public PasswordResetToken build() {
         Objects.requireNonNull(this.token, "token è obbligatorio");
         Objects.requireNonNull(this.user, "user è obbligatorio");

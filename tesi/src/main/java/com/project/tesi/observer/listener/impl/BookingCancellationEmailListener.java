@@ -13,6 +13,11 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
+/**
+ * Listener per l'evento BOOKING_CANCELLED.
+ * Quando un appuntamento salta, si occupa di mandare la mail di avviso sia al 
+ * cliente che al professionista, lavorando dietro le quinte.
+ */
 @Component
 public class BookingCancellationEmailListener implements Observer<Booking> {
 
@@ -38,6 +43,7 @@ public class BookingCancellationEmailListener implements Observer<Booking> {
     }
 
     @Override
+    // Spedisce le mail di cancellazione ed evita che un'eccezione blocchi l'app
     public void update(Booking booking) {
         try {
             User client = booking.getUser();

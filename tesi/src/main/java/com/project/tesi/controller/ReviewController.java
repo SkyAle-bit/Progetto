@@ -18,10 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller REST per la gestione delle recensioni.
- * Permette ai clienti di lasciare una valutazione ai professionisti
- * e di consultare le recensioni ricevute da un professionista.
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Endpoint REST per le recensioni. Permette ai clienti di valutare i professionisti post-appuntamento.
  */
 @RestController
 @RequestMapping("/api/reviews")

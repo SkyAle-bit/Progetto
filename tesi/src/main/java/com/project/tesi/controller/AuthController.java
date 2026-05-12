@@ -19,9 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Controller REST per l'autenticazione degli utenti.
- * Gestisce registrazione, login, recupero password e health-check del backend.
- * Tutta la logica è delegata all'{@link AuthService}.
+ * Endpoint REST per l'autenticazione. Include login, registrazione, recupero password e una rotta /ping per check-up.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -61,4 +59,4 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> ping() {
         return ResponseEntity.ok(Map.of("status", "UP", "message", "Il Backend è online e funziona correttamente"));
     }
-}
+}

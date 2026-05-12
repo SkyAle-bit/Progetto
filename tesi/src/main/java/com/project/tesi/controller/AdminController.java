@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Endpoint REST per il pannello amministrativo. Gestisce utenti, abbonamenti e piani.
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor

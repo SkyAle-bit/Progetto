@@ -22,6 +22,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Gestisce la logica e la persistenza delle chat.
+ *
+ * La chat usa WebSocket e STOMP. Sfruttiamo le code (queue) specifiche per utente 
+ * anziché i topic (broadcast), in modo che i messaggi arrivino solo al destinatario corretto.
+ * C'è un forte controllo sui permessi: solo i due partecipanti diretti possono 
+ * leggere e scrivere in una conversazione (oltre a moderatori/admin per supporto).
+ */
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
@@ -42,6 +50,8 @@ public class ChatServiceImpl implements ChatService {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Destinatario", receiverId));
 
+        // Verifica permessi: controlliamo che ci sia un rapporto professionale 
+        // tra i due utenti prima di fargli aprire una chat.
         validateChatPermission(sender, receiver);
 
         Chat chat = getOrCreateChat(sender, receiver);
@@ -57,6 +67,8 @@ public class ChatServiceImpl implements ChatService {
         User sender = userRepository.findById(request.getSenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Mittente", request.getSenderId()));
 
+        // Controlliamo che l'utente che cerca di inviare il messaggio faccia 
+        // effettivamente parte di questa specifica chat.
         if (!chat.getUser1().getId().equals(sender.getId()) && !chat.getUser2().getId().equals(sender.getId())) {
              throw new ChatNotAllowedException("Non sei parte di questa chat");
         }

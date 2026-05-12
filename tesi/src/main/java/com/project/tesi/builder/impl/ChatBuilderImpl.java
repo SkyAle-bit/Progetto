@@ -8,6 +8,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Chat.
+ */
 public class ChatBuilderImpl implements ChatBuilder {
     private Long id;
     private User user1;
@@ -42,6 +45,7 @@ public class ChatBuilderImpl implements ChatBuilder {
     }
 
     @Override
+    // Validiamo che i due interlocutori siano presenti prima di creare la chat.
     public Chat build() {
         Objects.requireNonNull(this.user1, "user1 è obbligatorio");
         Objects.requireNonNull(this.user2, "user2 è obbligatorio");

@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Controller REST per le statistiche della dashboard del professionista.
- * Restituisce dati aggregati come clienti assegnati, appuntamenti di oggi,
- * documenti caricati nella settimana e clienti che necessitano di aggiornamenti.
- * Delega alla {@link IUserFacade} (pattern Facade).
+ * Endpoint REST per le metriche della dashboard del professionista.
  */
 @RestController
 @RequestMapping("/api/professional")

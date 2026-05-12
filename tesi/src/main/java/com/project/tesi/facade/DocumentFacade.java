@@ -6,6 +6,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
+/**
+ * Facade per la gestione dei documenti.
+ * Oltre a chiamare DocumentService, orchestra l'ActivityFeedService per tracciare 
+ * automaticamente il log di upload, togliendo questa logica dal controller.
+ */
 @Component
 public class DocumentFacade implements IDocumentFacade {
     private final DocumentService documentService;
@@ -18,7 +23,8 @@ public class DocumentFacade implements IDocumentFacade {
 
     public Map<String, Object> uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String type) {
         Map<String, Object> result = documentService.uploadDocumentWithValidation(file, clientId, uploaderId, type);
-        // Logica di orchestrazione (Facade Architetturale)
+        // La Facade brilla qui: coordina il salvataggio e logga l'evento tutto insieme
+
         activityFeedService.logDocumentUploaded(clientId, uploaderId, type);
         return result;
     }

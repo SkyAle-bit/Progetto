@@ -13,6 +13,11 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
+/**
+ * Listener per l'evento BOOKING_CREATED.
+ * Riceve la notifica di nuova prenotazione e spara le mail di conferma con il link 
+ * alla call, operando disaccoppiato dal flusso principale.
+ */
 @Component
 public class BookingEmailNotificationListener implements Observer<Booking> {
 
@@ -38,6 +43,8 @@ public class BookingEmailNotificationListener implements Observer<Booking> {
     }
 
     @Override
+    // Invia le mail di conferma a entrambi gli attori. Il try-catch serve a non far 
+    // fallire la prenotazione se il server SMTP fa i capricci.
     public void update(Booking booking) {
         try {
             User client = booking.getUser();

@@ -15,13 +15,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Scheduler per l'invio automatico dei promemoria email
- * 30 minuti prima di ogni appuntamento confermato.
- *
- * Viene eseguito ogni 5 minuti (cron: {@code 0 *&#47;5 * * * ?}).
- * Cerca le prenotazioni CONFIRMED il cui slot inizia entro i prossimi 35 minuti
- * e che non hanno ancora ricevuto il promemoria, poi invia l'email sia
- * al cliente che al professionista.
+ * Cron job che gira ogni 5 minuti in background.
+ * Spazzola il database in cerca di appuntamenti imminenti (entro i prossimi 35 minuti) 
+ * e spara una mail di reminder col link della call a cliente e professionista.
  */
 @Component
 public class BookingReminderScheduler {
@@ -36,10 +32,6 @@ public class BookingReminderScheduler {
         this.emailService = emailService;
     }
 
-    /**
-     * Ogni 5 minuti cerca prenotazioni imminenti (entro 35 min) e invia
-     * l'email di promemoria a cliente e professionista.
-     */
     @Scheduled(cron = "0 */5 * * * ?")
     @Transactional
     public void sendBookingReminders() {

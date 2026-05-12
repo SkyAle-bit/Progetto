@@ -7,10 +7,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configurazione per l'inizializzazione automatica del database.
- * Viene eseguita una sola volta all'avvio dell'applicazione tramite
- * un {@link CommandLineRunner} che delega al {@link DatabaseInitializerService}
- * il popolamento dei dati di test (utenti, piani, slot, ecc.).
+ * Inizializza o resetta il database all'avvio.
+ * È una scorciatoia comodissima in fase di sviluppo per avere sempre un set di dati pulito 
+ * (utenti, piani, slot) senza dover ricreare tutto a mano ogni volta.
  */
 @Configuration
 @RequiredArgsConstructor
@@ -18,12 +17,7 @@ public class DataInitializer {
 
     private final DatabaseInitializerService databaseInitializerService;
 
-    /**
-     * Bean eseguito automaticamente all'avvio di Spring Boot.
-     * Popola il database con i dati iniziali di test.
-     *
-     * @return il CommandLineRunner che invoca l'inizializzazione
-     */
+    // Lancia il popolamento dei dati di test al bootstrap
     @Bean
     public CommandLineRunner initData() {
         return args -> {

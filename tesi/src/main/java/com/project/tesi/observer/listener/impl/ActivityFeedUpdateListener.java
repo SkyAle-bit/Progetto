@@ -10,14 +10,9 @@ import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 /**
- * Listener Observer per l'evento {@code BOOKING_CREATED}.
- *
- * <p>Implementa il Design Pattern <b>Observer</b>: si registra all'{@link EventManager}
- * al momento della costruzione ({@code @PostConstruct}) e si deregistra alla distruzione
- * ({@code @PreDestroy}). Quando riceve una notifica, delega al {@link ActivityFeedService}
- * la responsabilità di persistere l'evento nel database, rispettando il principio
- * di separazione dei layer: il listener non contiene logica di business o accesso diretto
- * al repository, ma funge esclusivamente da punto di smistamento degli eventi.</p>
+ * Listener che si mette in ascolto dell'evento BOOKING_CREATED.
+ * Appena qualcuno prenota, intercetta l'evento e dice ad ActivityFeedService di loggare 
+ * l'attività nel database. In questo modo disaccoppiamo la logica di tracciamento.
  */
 @Component
 public class ActivityFeedUpdateListener implements Observer<Booking> {
@@ -42,12 +37,7 @@ public class ActivityFeedUpdateListener implements Observer<Booking> {
         eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
     }
 
-    /**
-     * Riceve la notifica di una nuova prenotazione e delega al service
-     * la registrazione dell'attività nel layer di persistenza.
-     *
-     * @param booking la prenotazione appena creata
-     */
+    // Metodo triggerato dall'EventManager. Passiamo la palla al service.
     @Override
     public void update(Booking booking) {
         activityFeedService.logBookingCreated(booking);

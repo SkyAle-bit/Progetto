@@ -7,6 +7,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità WeeklySchedule.
+ */
 public class WeeklyScheduleBuilderImpl implements WeeklyScheduleBuilder {
     private Long id;
     private User professional;
@@ -41,6 +44,7 @@ public class WeeklyScheduleBuilderImpl implements WeeklyScheduleBuilder {
     }
 
     @Override
+    // Controlliamo i parametri obbligatori (professionista e giorno della settimana).
     public WeeklySchedule build() {
         Objects.requireNonNull(this.professional, "professional è obbligatorio");
         Objects.requireNonNull(this.dayOfWeek, "dayOfWeek è obbligatorio");

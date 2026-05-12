@@ -25,16 +25,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 /**
- * Implementazione del servizio di invio email tramite SMTP (JavaMailSender).
+ * Servizio per l'invio delle email tramite SMTP.
  *
- * Gestisce l'invio di candidature lavorative:
- * <ul>
- *   <li>Valida il formato del CV (solo PDF)</li>
- *   <li>Legge il file in memoria e delega l'invio a un metodo asincrono</li>
- *   <li>Invia l'email all'admin con i dati del candidato e il CV in allegato</li>
- * </ul>
- * Usa Self-Injection per garantire il corretto funzionamento di {@code @Async}
- * tramite il proxy Spring.
+ * NOTA: Quasi tutti i metodi qui usano @Async. Inviare un'email è un'operazione lenta 
+ * e soggetta a timeout di rete. Farla in sincrono dentro una transazione HTTP 
+ * rallenterebbe l'app e terrebbe aperta la connessione al database per niente.
+ * Usiamo la Self-Injection (iniettando l'interfaccia di se stessa) per forzare le 
+ * chiamate asincrone interne a passare attraverso il proxy generato da Spring.
  */
 @Service
 public class EmailServiceImpl implements EmailService {

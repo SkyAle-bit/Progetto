@@ -6,6 +6,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Message.
+ */
 public class MessageBuilderImpl implements MessageBuilder {
     private Long id;
     private String content;
@@ -46,6 +49,7 @@ public class MessageBuilderImpl implements MessageBuilder {
     }
 
     @Override
+    // Controlla che i dati minimi (chat, utente e testo) siano presenti.
     public Message build() {
         Objects.requireNonNull(this.user, "user è obbligatorio");
         Objects.requireNonNull(this.chat, "chat è obbligatorio");

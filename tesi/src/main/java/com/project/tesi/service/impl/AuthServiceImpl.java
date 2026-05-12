@@ -28,14 +28,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Implementazione del servizio di autenticazione.
- *
- * Gestisce:
- * <ul>
- *   <li>Registrazione: delega a {@link UserService} la creazione dell'utente</li>
- *   <li>Login: autentica via Spring Security, genera il JWT e restituisce il profilo completo</li>
- *   <li>Recupero password: genera token, invia email e reimposta la password</li>
- * </ul>
+ * Gestisce tutto il flusso di autenticazione e sicurezza degli account.
+ * 
+ * Separiamo chiaramente le responsabilità:
+ * - Registrazione: deleghiamo a UserService per la creazione fisica dell'entità.
+ * - Login: ci appoggiamo a Spring Security e generiamo il JWT.
+ * - Reset Password: usiamo token temporanei (30 minuti) per garantire che i link di reset 
+ *   non rimangano validi all'infinito.
  */
 @Service
 @RequiredArgsConstructor
@@ -87,10 +86,11 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", "email", email));
 
-        // Elimina eventuali token precedenti per questo utente
+        // Elimina eventuali token di reset precedenti per questo utente.
+        // Facciamo questo per evitare "spam" di link validi che potrebbero essere intercettati.
         passwordResetTokenRepository.deleteByUser(user);
 
-        // Genera un nuovo token con scadenza di 30 minuti
+        // Genera un nuovo token che scade tra soli 30 minuti
         String token = UUID.randomUUID().toString();
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .token(token)
@@ -123,7 +123,8 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Il link di reset è scaduto. Richiedi un nuovo reset.");
         }
 
-        // Aggiorna la password
+        // Aggiorniamo la password. Attenzione: usiamo BCrypt, che è lento per design.
+        // Questo ritardo intenzionale scoraggia gli attacchi brute-force.
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller REST per le operazioni del moderatore.
+ * Endpoint REST per i moderatori. Offre un sottoinsieme limitato e sicuro delle API di amministrazione.
  */
 @RestController
 @RequestMapping("/api/moderator")

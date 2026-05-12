@@ -7,6 +7,10 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Booking.
+ * Ci evita di avere un costruttore con 15 parametri, che sarebbe illeggibile.
+ */
 public class BookingBuilderImpl implements BookingBuilder {
     private Long id;
     private User user;
@@ -61,6 +65,7 @@ public class BookingBuilderImpl implements BookingBuilder {
     }
 
     @Override
+    // Prima di istanziare la prenotazione, verifichiamo che i parametri minimi sindacali ci siano.
     public Booking build() {
         Objects.requireNonNull(this.user, "user è obbligatorio");
         Objects.requireNonNull(this.slot, "slot è obbligatorio");

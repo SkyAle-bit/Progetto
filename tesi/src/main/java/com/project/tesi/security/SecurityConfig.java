@@ -35,9 +35,13 @@ public class SecurityConfig {
                         config.setAllowCredentials(true);
                         return config;
                     }))
+                    // Disabilitiamo CSRF perché l'app è completamente stateless e usiamo JWT, 
+                    // quindi non siamo vulnerabili ad attacchi basati sui cookie di sessione.
                     .csrf(AbstractHttpConfigurer::disable)
                     .authorizeHttpRequests(auth -> auth
+                            // Endpoint pubblici
                             .requestMatchers("/api/auth/**").permitAll()
+                            // Lasciamo aperte le WebSocket, l'autenticazione STOMP avviene dopo la connessione
                             .requestMatchers("/ws/**").permitAll()
                             .requestMatchers("/api/plans/**").permitAll()
                             .requestMatchers("/api/professionals/**").permitAll()
@@ -61,7 +65,9 @@ public class SecurityConfig {
                                     "/api/bookings/reset-database")
                             .hasAuthority("ADMIN")
                             .anyRequest().authenticated())
+                    // Siccome usiamo JWT non creiamo sessioni server-side
                     .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    // Inseriamo il nostro filtro JWT prima di quello standard di Spring
                     .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
             return http.build();

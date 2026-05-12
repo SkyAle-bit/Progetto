@@ -12,11 +12,9 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 
 /**
- * Implementazione di {@link UserDetailsService} per integrare il modello utente
- * dell'applicazione con Spring Security.
- *
- * Carica l'utente dal database tramite email e lo converte in un
- * {@link UserDetails} con l'authority {@code ROLE_<ruolo>} per il sistema di autorizzazione.
+ * Collega il nostro modello User al sistema di Spring Security.
+ * Dato che non usiamo username standard ma la mail, qui diciamo a Spring 
+ * di caricare l'utente cercando la mail nel database.
  */
 @Service
 @RequiredArgsConstructor
@@ -24,22 +22,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    /**
-     * Carica un utente dal database tramite email.
-     * Converte il modello {@link User} nel formato {@link UserDetails} richiesto da Spring Security,
-     * assegnando l'authority basata sul ruolo (es. ROLE_CLIENT, ROLE_PERSONAL_TRAINER).
-     *
-     * @param email l'indirizzo email dell'utente (usato come username)
-     * @return l'oggetto UserDetails per Spring Security
-     * @throws UsernameNotFoundException se l'email non corrisponde a nessun utente
-     */
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // Cerca l'utente nel tuo database tramite la mail
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato con email: " + email));
 
-        // Converte il tuo "User" nel formato "UserDetails" che piace a Spring Security
+        // Convertiamo il nostro User nell'oggetto UserDetails che serve a Spring Security.
+        // Impostiamo anche le authority in base al ruolo (es. ROLE_ADMIN).
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),

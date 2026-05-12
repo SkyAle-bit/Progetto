@@ -6,6 +6,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Slot.
+ */
 public class SlotBuilderImpl implements SlotBuilder {
     private Long id;
     private User professional;
@@ -46,6 +49,7 @@ public class SlotBuilderImpl implements SlotBuilder {
     }
 
     @Override
+    // Controlliamo che l'orario e il professionista non siano null.
     public Slot build() {
         Objects.requireNonNull(this.professional, "professional è obbligatorio");
         Objects.requireNonNull(this.startTime, "startTime è obbligatorio");

@@ -7,9 +7,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * Struttura standard per tutte le risposte di errore dell'API.
- * I campi {@code null} vengono esclusi dalla serializzazione JSON
- * grazie a {@code @JsonInclude(NON_NULL)}.
+ * Formato standard della risposta di errore.
+ * Ci garantisce che il frontend riceva sempre la stessa struttura JSON quando qualcosa esplode,
+ * ignorando i campi nulli per tenere il payload leggero.
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)

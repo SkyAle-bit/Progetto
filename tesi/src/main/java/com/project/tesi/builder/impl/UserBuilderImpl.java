@@ -7,6 +7,10 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità User.
+ * Comodo per costruire l'entità passo-passo senza impazzire con i costruttori.
+ */
 public class UserBuilderImpl implements UserBuilder {
     private Long id;
     private String email;
@@ -89,6 +93,7 @@ public class UserBuilderImpl implements UserBuilder {
     }
 
     @Override
+    // Prima di costruire l'User, verifichiamo che i campi fondamentali (email, password, ruolo) ci siano.
     public User build() {
         Objects.requireNonNull(this.email, "email è obbligatorio");
         Objects.requireNonNull(this.password, "password è obbligatorio");

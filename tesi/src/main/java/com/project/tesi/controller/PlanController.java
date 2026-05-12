@@ -11,8 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controller REST per la consultazione dei piani di abbonamento.
- * Endpoint pubblico usato durante la registrazione e nella pagina dei prezzi.
+ * Endpoint REST per i piani di abbonamento (pubblico).
  */
 @RestController
 @RequestMapping("/api/plans")

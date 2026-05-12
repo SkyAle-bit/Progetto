@@ -19,10 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controller REST per la gestione dei professionisti e dei loro slot.
- * Fornisce la vetrina pubblica per i clienti e le operazioni
- * di gestione calendario per i professionisti stessi.
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Endpoint REST per le funzioni esclusive del professionista (es. recupero clienti assegnati).
  */
 @RestController
 @RequestMapping("/api/professionals")

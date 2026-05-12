@@ -38,6 +38,12 @@ import java.time.LocalDateTime;
  * solo per gli utenti con ruolo CLIENT e indicano i professionisti a cui
  * il cliente è attualmente assegnato (massimo 50 clienti per professionista).
  */
+/**
+ * Entità User.
+ * Cuore del sistema. Relazioni: ManyToOne verso se stesso (assegnazione PT e Nutrizionista).
+ * Essendo l'entità principale, molte altre classi puntano qui, ma manteniamo la navigazione unidirezionale
+ * per evitare query esplosive e cicli infiniti durante la serializzazione.
+ */
 @Entity
 @Table(name = "users")
 @Getter

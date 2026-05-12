@@ -44,13 +44,16 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
- * Implementazione del servizio utente.
+ * Gestisce la logica di business legata al profilo utente e alle assegnazioni.
  */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+    
+    // Limite rigido: un professionista non può seguire più di 50 clienti attivi contemporaneamente.
+    // Serve a garantire che la qualità del servizio (risposte in chat, schede) non degradi.
     private static final int MAX_CLIENTS_PER_PROFESSIONAL = 50;
 
     private final UserRepository userRepository;
@@ -71,6 +74,8 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
+        // Aggiornamento parziale del profilo: controlliamo esplicitamente null e
+        // stringhe vuote per evitare di piallare i campi esistenti con dati sporchi.
         if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
             user.setFirstName(request.getFirstName().trim());
         }
@@ -268,6 +273,9 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    // Metodo per assegnare un professionista a un utente durante la registrazione.
+    // L'assegnazione è guidata dall'utente (passa lui l'ID del professionista scelto).
+    // Blocchiamo l'operazione se il professionista ha già raggiunto il limite di MAX_CLIENTS_PER_PROFESSIONAL.
     private void assignProfessional(User user, Long proId, Role expectedRole) {
         if (proId == null) {
             throw new IllegalArgumentException("Devi selezionare un " + expectedRole);

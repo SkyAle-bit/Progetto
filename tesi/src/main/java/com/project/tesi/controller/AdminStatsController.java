@@ -10,10 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Controller REST per le statistiche del pannello amministrativo.
- * Restituisce un aggregato di dati per la dashboard admin
- * (utenti per ruolo, fatturato, crediti, prenotazioni, ecc.).
- * Delega all'{@link IAdminFacade} (pattern Facade).
+ * Endpoint REST per le statistiche admin. Aggrega i dati globali della piattaforma.
  */
 @RestController
 @RequestMapping("/api/admin")

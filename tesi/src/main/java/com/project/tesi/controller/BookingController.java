@@ -19,10 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Controller REST per la gestione delle prenotazioni.
- * Permette al cliente di prenotare e annullare uno slot con un professionista.
- * Include un endpoint di utility per il reset del database (solo sviluppo).
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Endpoint REST per le prenotazioni. Permette di gestire appuntamenti e include una route di utilità per il reset del database locale.
  */
 @RestController
 @RequestMapping("/api/bookings")

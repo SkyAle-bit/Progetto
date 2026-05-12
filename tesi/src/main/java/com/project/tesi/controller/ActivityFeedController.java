@@ -13,10 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller REST per il feed delle attività recenti di un utente.
- * Mostra prenotazioni e documenti caricati negli ultimi giorni,
- * differenziando il contenuto in base al ruolo (CLIENT o professionista).
- * Delega alla IUserFacade (pattern Facade).
+ * Endpoint REST per l'activity feed. Restituisce la cronologia degli eventi recenti dell'utente.
  */
 @RestController
 @RequestMapping("/api/activity")

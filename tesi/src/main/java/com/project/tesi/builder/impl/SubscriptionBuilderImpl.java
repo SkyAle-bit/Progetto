@@ -7,6 +7,9 @@ import java.util.Objects;
 import com.project.tesi.model.*;
 
 
+/**
+ * Implementazione del pattern Builder per l'entità Subscription.
+ */
 public class SubscriptionBuilderImpl implements SubscriptionBuilder {
     private Long id;
     private User user;
@@ -89,6 +92,7 @@ public class SubscriptionBuilderImpl implements SubscriptionBuilder {
     }
 
     @Override
+    // Validazione dei campi core prima del salvataggio nel database.
     public Subscription build() {
         Objects.requireNonNull(this.user, "user è obbligatorio");
         Objects.requireNonNull(this.plan, "plan è obbligatorio");

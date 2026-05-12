@@ -11,10 +11,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Facade per il pannello moderatore.
- *
- * Espone solo la gestione utenti consentita al moderatore
- * (clienti, personal trainer e nutrizionisti).
+ * Facade per il pannello del moderatore.
+ * Espone solo un sottoinsieme sicuro dei metodi di amministrazione.
  */
 @Component
 public class ModeratorFacade implements IModeratorFacade {

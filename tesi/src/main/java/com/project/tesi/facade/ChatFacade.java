@@ -6,6 +6,10 @@ import com.project.tesi.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.util.List;
+/**
+ * Facade per le operazioni di chat.
+ * Centralizza l'accesso ai metodi di ChatService per mantenere i controller puliti.
+ */
 @Component
 public class ChatFacade implements IChatFacade {
     private final ChatService chatService;

@@ -21,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Endpoint REST per i documenti. L'upload usa MultipartFile per i dati binari e parametri form-data.
+ */
 @RestController
 @RequestMapping("/api/documents")
 @Tag(name = "Documents", description = "API per la gestione sicura dei documenti")

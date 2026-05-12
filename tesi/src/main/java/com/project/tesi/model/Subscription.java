@@ -37,6 +37,11 @@ import java.time.LocalDate;
  * Ogni utente può avere al massimo <b>un solo abbonamento attivo</b> alla volta
  * (campo {@code active = true}). L'attivazione di un nuovo piano disattiva il precedente.
  */
+/**
+ * Entità Subscription.
+ * Relazioni: OneToOne con User (ogni utente ha un solo abbonamento attivo) e ManyToOne con Plan (il tipo di pacchetto).
+ * Gestisce i crediti residui e le scadenze.
+ */
 @Entity
 @Table(name = "subscriptions")
 @Getter

@@ -23,17 +23,15 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementazione del servizio per la gestione degli abbonamenti.
+ * Gestisce il ciclo di vita degli abbonamenti.
  *
- * Gestisce:
- * <ul>
- *   <li>Attivazione di un nuovo piano (disattivando il precedente se presente)</li>
- *   <li>Calcolo delle date (inizio/fine) e delle rate in base al piano e alla frequenza</li>
- *   <li>Inizializzazione dei crediti PT e Nutrizionista</li>
- *   <li>Consultazione dello stato dell'abbonamento attivo</li>
- *   <li>Deduzione e rimborso dei crediti per conto dei listener Observer,
- *       evitando che i listener accedano direttamente al repository (violazione di layer)</li>
- * </ul>
+ * L'abbonamento è essenzialmente un'istanza attiva di un Piano per un utente. 
+ * Quando si attiva un nuovo abbonamento, disattiviamo il precedente (niente sovrapposizioni).
+ * I crediti PT/Nutrizionista vengono riempiti basandosi sul Piano scelto.
+ *
+ * NOTA: usiamo questa classe come punto di ingresso centrale per scalare/rimborsare
+ * i crediti dagli Observer. In questo modo evitiamo che i listener facciano chiamate
+ * dirette al database, rispettando i confini architetturali.
  */
 @Service
 public class SubscriptionServiceImpl implements SubscriptionService {
@@ -63,8 +61,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Plan plan = planRepository.findById(request.getPlanId())
                 .orElseThrow(() -> new ResourceNotFoundException("Piano", request.getPlanId()));
 
-        // Se esiste già un abbonamento attivo, lo disattiviamo (o lanciamo eccezione)
-        // Qui scegliamo di disattivare il precedente e crearne uno nuovo
+        // Se esiste già un abbonamento attivo, lo disattiviamo in modo "soft".
+        // Scegliamo di non estenderlo, ma di piallare i vecchi crediti e iniziare un nuovo ciclo.
         Optional<Subscription> existingActive = subscriptionRepository.findByUserAndActiveTrue(user);
         existingActive.ifPresent(sub -> {
             sub.setActive(false);
@@ -114,16 +112,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return mapToResponse(sub);
     }
 
-    /**
-     * Scala i crediti dell'abbonamento dell'utente in base al ruolo del professionista.
-     *
-     * <p>Seleziona la {@link BookingStrategy} appropriata tramite il ruolo del professionista
-     * e ne invoca {@code consumeCredits()}, poi persiste l'abbonamento aggiornato.
-     * Questo metodo è il punto di delegazione per il {@code CreditDeductionListener},
-     * garantendo che la logica di business rimanga nel service layer.</p>
-     *
-     * @param booking la prenotazione per cui scalare i crediti
-     */
+    // Scala i crediti quando scatta l'evento di avvenuta prenotazione (via Observer).
+    // Delega il "come" scalare alla Strategy corretta (PT vs Nutri).
     @Override
     @Transactional
     public void deductCredits(Booking booking) {
@@ -144,16 +134,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscriptionRepository.save(sub);
     }
 
-    /**
-     * Rimborsa i crediti dell'abbonamento dell'utente in base al ruolo del professionista.
-     *
-     * <p>Seleziona la {@link BookingStrategy} appropriata tramite il ruolo del professionista
-     * e ne invoca {@code refundCredits()}, poi persiste l'abbonamento aggiornato.
-     * Questo metodo è il punto di delegazione per il {@code CreditRefundListener},
-     * garantendo che la logica di business rimanga nel service layer.</p>
-     *
-     * @param booking la prenotazione annullata per cui rimborsare i crediti
-     */
+    // Restituisce il credito perso se si annulla la prenotazione (sempre chiamato via Observer).
     @Override
     @Transactional
     public void refundCredits(Booking booking) {

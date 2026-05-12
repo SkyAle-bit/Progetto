@@ -15,10 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 /**
- * Controller REST per l'invio di candidature lavorative.
- * Permette a potenziali professionisti di candidarsi come PT o Nutrizionisti,
- * allegando il proprio CV in formato PDF. L'email viene inviata all'amministratore.
- * La validazione del formato PDF è delegata all'{@link EmailService}.
+ * Endpoint REST per le candidature lavorative. Riceve il CV in PDF e delega l'invio via email.
  */
 @RestController
 @RequestMapping("/api/job-applications")

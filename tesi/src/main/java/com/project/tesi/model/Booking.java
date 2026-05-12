@@ -32,6 +32,11 @@ import java.time.LocalDateTime;
  * La relazione Slot ↔ Booking è 1:1 (uno slot può avere al massimo
  * una prenotazione, vincolo {@code unique = true}).
  */
+/**
+ * Entità Booking.
+ * Relazioni: ManyToOne con User (il cliente), Professional (il professionista) e Slot (la finestra temporale).
+ * Nessun Cascade qui: se cancelli una prenotazione, non devi cancellare gli utenti o lo slot.
+ */
 @Entity
 @Table(name = "bookings")
 @Getter

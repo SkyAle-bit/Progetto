@@ -20,6 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.CascadeType;
 
+/**
+ * Entità Chat.
+ * Relazioni: ManyToOne con User1 e User2 (i partecipanti). OneToMany con Message.
+ * Vincolo: CascadeType.ALL sui messaggi, perché se la chat viene cancellata, anche tutti i suoi messaggi devono sparire.
+ */
 @Entity
 @Table(name = "chats")
 @Getter

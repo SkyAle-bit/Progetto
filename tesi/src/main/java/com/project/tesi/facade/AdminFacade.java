@@ -15,9 +15,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Facade per il pannello amministrativo (Design Pattern Facade).
- *
- * Fornisce un punto d'accesso unificato a tutte le operazioni admin.
+ * Facade per il pannello di amministrazione.
+ * Nasconde la complessità dei service (AdminService, AdminStatsService) dietro 
+ * un'unica interfaccia, evitando di iniettare troppe dipendenze nel controller.
  */
 @Component
 public class AdminFacade implements IAdminFacade {

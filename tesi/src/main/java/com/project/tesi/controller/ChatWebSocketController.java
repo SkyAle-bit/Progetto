@@ -16,6 +16,7 @@ import java.util.Map;
 
 /**
  * Controller WebSocket (STOMP) per la chat in tempo reale.
+ * Usa le code private (/user/{id}/queue/notifications) per instradare i messaggi in modo sicuro.
  */
 @Controller
 @RequiredArgsConstructor

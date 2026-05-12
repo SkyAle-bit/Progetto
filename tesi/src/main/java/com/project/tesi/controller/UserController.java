@@ -17,10 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controller REST per le operazioni dell'utente autenticato.
- * Fornisce la dashboard cliente, la lista clienti per i professionisti,
- * l'aggiornamento del profilo e il recupero dell'account admin.
- * Delega alla {@link UserFacade} (pattern Facade).
+ * Endpoint REST per il profilo utente. Gestisce i dati anagrafici e il recupero della dashboard cliente.
  */
 @RestController
 @RequestMapping("/api/users")

@@ -20,9 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Gestore globale delle eccezioni REST.
- * Intercetta tutte le eccezioni lanciate dai controller e restituisce
- * risposte JSON uniformi tramite {@link ErrorResponse}.
+ * Cattura tutte le eccezioni (standard e custom) lanciate dall'app.
+ * Invece di sporcare i controller con mille try-catch, centralizziamo qui la gestione
+ * e restituiamo sempre un ErrorResponse pulito al frontend.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
