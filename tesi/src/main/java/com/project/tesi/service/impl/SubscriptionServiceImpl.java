@@ -15,6 +15,7 @@ import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.SubscriptionService;
 import com.project.tesi.service.strategy.BookingStrategy;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,12 +55,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public SubscriptionResponse activateSubscription(PlanRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
+    public SubscriptionResponse activateSubscription(PlanRequest request, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
-        Plan plan = planRepository.findById(request.getPlanId())
-                .orElseThrow(() -> new ResourceNotFoundException("Piano", request.getPlanId()));
+        Plan plan = planRepository.findById(request.planId())
+                .orElseThrow(() -> new ResourceNotFoundException("Piano", request.planId()));
 
         // Se esiste già un abbonamento attivo, lo disattiviamo in modo "soft".
         // Scegliamo di non estenderlo, ma di piallare i vecchi crediti e iniziare un nuovo ciclo.
@@ -77,7 +78,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription sub = Subscription.builder()
                 .user(user)
                 .plan(plan)
-                .paymentFrequency(request.getPaymentFrequency())
+                .paymentFrequency(request.paymentFrequency())
                 .startDate(startDate)
                 .endDate(endDate)
                 .active(true)
@@ -87,7 +88,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .build();
 
         // Gestione pagamento iniziale
-        if (request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE) {
+        if (request.paymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE) {
             sub.setInstallmentsPaid(1);
             sub.setTotalInstallments(1);
             sub.setNextPaymentDate(null);
@@ -120,18 +121,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         User user = booking.getUser();
         User professional = booking.getProfessional();
 
-        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(user)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Abbonamento non trovato per l'utente " + user.getId()));
+        try {
+            Subscription sub = subscriptionRepository.findByUserAndActiveTrueWithLock(user)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Abbonamento non trovato per l'utente " + user.getId()));
 
-        BookingStrategy strategy = strategies.stream()
-                .filter(s -> s.getSupportedRole() == professional.getRole())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Nessuna strategy trovata per il ruolo: " + professional.getRole()));
+            BookingStrategy strategy = strategies.stream()
+                    .filter(s -> s.getSupportedRole() == professional.getRole())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Nessuna strategy trovata per il ruolo: " + professional.getRole()));
 
-        strategy.consumeCredits(sub);
-        subscriptionRepository.save(sub);
+            strategy.consumeCredits(sub);
+            subscriptionRepository.save(sub);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new IllegalStateException(
+                    "Aggiornamento crediti fallito per conflitto concorrente. Riprovare.", e);
+        }
     }
 
     // Restituisce il credito perso se si annulla la prenotazione (sempre chiamato via Observer).
@@ -146,12 +152,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Nessuna strategy trovata per il ruolo: " + professional.getRole()));
 
-        Subscription sub = subscriptionRepository.findByUserAndActiveTrue(booking.getUser())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Nessun abbonamento attivo trovato per l'utente"));
+        try {
+            Subscription sub = subscriptionRepository.findByUserAndActiveTrueWithLock(booking.getUser())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Nessun abbonamento attivo trovato per l'utente"));
 
-        strategy.refundCredits(sub);
-        subscriptionRepository.save(sub);
+            strategy.refundCredits(sub);
+            subscriptionRepository.save(sub);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new IllegalStateException(
+                    "Rimborso crediti fallito per conflitto concorrente. Riprovare.", e);
+        }
     }
 
     private SubscriptionResponse mapToResponse(Subscription sub) {

@@ -2,7 +2,9 @@ package com.project.tesi.controller;
 
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ReviewResponse;
+import com.project.tesi.enums.Role;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.model.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +33,12 @@ class ReviewControllerTest {
     @Test
     @DisplayName("addReview — restituisce 200 con la recensione creata")
     void addReview() {
-        ReviewRequest req = new ReviewRequest();
+        User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+        ReviewRequest req = new ReviewRequest(2L, 5, null);
         ReviewResponse resp = ReviewResponse.builder().rating(5).authorName("Mario").build();
-        when(userFacade.addReview(req)).thenReturn(resp);
+        when(userFacade.addReview(req, 1L)).thenReturn(resp);
 
-        ResponseEntity<ReviewResponse> response = reviewController.addReview(req);
+        ResponseEntity<ReviewResponse> response = reviewController.addReview(req, mockUser);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getRating()).isEqualTo(5);
@@ -55,10 +58,11 @@ class ReviewControllerTest {
     @Test
     @DisplayName("canReview — true quando può recensire e non ha ancora recensito")
     void canReview_canReview() {
+        User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
         when(userFacade.hasClientReviewed(1L, 2L)).thenReturn(false);
         when(userFacade.canClientReview(1L, 2L)).thenReturn(true);
 
-        ResponseEntity<Map<String, Object>> response = reviewController.canReview(1L, 2L);
+        ResponseEntity<Map<String, Object>> response = reviewController.canReview(mockUser, 2L);
 
         assertThat(response.getBody().get("canReview")).isEqualTo(true);
         assertThat(response.getBody().get("hasReviewed")).isEqualTo(false);
@@ -67,12 +71,12 @@ class ReviewControllerTest {
     @Test
     @DisplayName("canReview — false quando ha già recensito")
     void canReview_alreadyReviewed() {
+        User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
         when(userFacade.hasClientReviewed(1L, 2L)).thenReturn(true);
 
-        ResponseEntity<Map<String, Object>> response = reviewController.canReview(1L, 2L);
+        ResponseEntity<Map<String, Object>> response = reviewController.canReview(mockUser, 2L);
 
         assertThat(response.getBody().get("canReview")).isEqualTo(false);
         assertThat(response.getBody().get("hasReviewed")).isEqualTo(true);
     }
 }
-

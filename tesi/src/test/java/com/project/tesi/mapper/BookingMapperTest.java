@@ -10,12 +10,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Test unitari per {@link BookingMapper}.
- */
 class BookingMapperTest {
 
     private final BookingMapper mapper = new BookingMapper();
@@ -23,11 +21,12 @@ class BookingMapperTest {
     @Test
     @DisplayName("toResponse — converte correttamente un Booking nel DTO")
     void toResponse_success() {
-        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
-        User pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        User client = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
+        User pt = User.builder().email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
 
-        LocalDateTime start = LocalDateTime.of(2026, 3, 15, 10, 0);
-        LocalDateTime end = LocalDateTime.of(2026, 3, 15, 11, 0);
+        // Usa un orario nel futuro prossimo (entro la finestra di joinability -10/+30 min)
+        LocalDateTime start = LocalDateTime.now().plusMinutes(5).withSecond(0).withNano(0);
+        LocalDateTime end = start.plusHours(1);
         Slot slot = Slot.builder().professional(pt).startTime(start).endTime(end).build();
 
         Booking booking = Booking.builder()
@@ -37,11 +36,14 @@ class BookingMapperTest {
 
         BookingResponse response = mapper.toResponse(booking);
 
+        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getDate()).isEqualTo("2026-03-15");
-        assertThat(response.getStartTime()).isEqualTo("10:00");
-        assertThat(response.getEndTime()).isEqualTo("11:00");
+        assertThat(response.getDate()).isEqualTo(start.format(dateFmt));
+        assertThat(response.getStartTime()).isEqualTo(start.format(timeFmt));
+        assertThat(response.getEndTime()).isEqualTo(end.format(timeFmt));
         assertThat(response.getProfessionalName()).isEqualTo("Luca Bianchi");
         assertThat(response.getClientName()).isEqualTo("Mario Rossi");
         assertThat(response.getProfessionalRole()).isEqualTo(Role.PERSONAL_TRAINER);

@@ -3,12 +3,13 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.SendMessageRequest;
 import com.project.tesi.dto.response.ChatMessageResponse;
 import com.project.tesi.dto.response.ConversationPreviewResponse;
-import com.project.tesi.facade.IChatFacade;
+import com.project.tesi.facade.ChatFacade;
+import com.project.tesi.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,63 +22,67 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Endpoint REST per la chat. Recupera lo storico dei messaggi e lo stato delle conversazioni, usato al caricamento iniziale prima del WebSocket.
+ * Endpoint REST per la chat. Recupera lo storico dei messaggi e lo stato delle conversazioni,
+ * usato al caricamento iniziale prima del WebSocket.
  */
 @RestController
 @RequestMapping("/api/chat")
 @Tag(name = "Chat", description = "API per la messaggistica interna tra utenti")
 public class ChatController {
 
-    private final IChatFacade chatFacade;
+    private final ChatFacade chatFacade;
 
-    public ChatController(IChatFacade chatFacade) {
+    public ChatController(ChatFacade chatFacade) {
         this.chatFacade = chatFacade;
     }
 
-    /** Crea una nuova chat tra due utenti o recupera quella esistente. */
-    @Operation(summary = "Crea o recupera la chat tra due utenti")
-    @PostMapping("/create/{senderId}/{receiverId}")
-    public ResponseEntity<Long> createChat(@PathVariable Long senderId, @PathVariable Long receiverId) {
-        return ResponseEntity.ok(chatFacade.createChat(senderId, receiverId));
+    /** Crea una nuova chat tra l'utente autenticato e il destinatario, o recupera quella esistente. */
+    @Operation(summary = "Crea o recupera la chat tra l'utente autenticato e un altro utente")
+    @PostMapping("/create/{receiverId}")
+    public ResponseEntity<Long> createChat(@AuthenticationPrincipal User user,
+                                            @PathVariable Long receiverId) {
+        return ResponseEntity.ok(chatFacade.createChat(user.getId(), receiverId));
     }
 
-    /** Invia un nuovo messaggio da un utente a un altro. */
+    /** Invia un nuovo messaggio da parte dell'utente autenticato. */
     @Operation(summary = "Invia un messaggio")
     @PostMapping("/send")
-    public ResponseEntity<ChatMessageResponse> sendMessage(@Valid @RequestBody SendMessageRequest request) {
-        return ResponseEntity.ok(chatFacade.sendMessage(request));
+    public ResponseEntity<ChatMessageResponse> sendMessage(@AuthenticationPrincipal User user,
+                                                            @Valid @RequestBody SendMessageRequest request) {
+        return ResponseEntity.ok(chatFacade.sendMessage(request, user.getId()));
     }
 
-    /** Recupera la cronologia dei messaggi di una chat tra due utenti (paginata). */
+    /** Recupera la cronologia dei messaggi di una chat (paginata). */
     @Operation(summary = "Recupera la cronologia messaggi di una chat")
-    @GetMapping("/conversation/{chatId}/{userId}")
+    @GetMapping("/conversation/{chatId}")
     public ResponseEntity<List<ChatMessageResponse>> getConversation(
+            @AuthenticationPrincipal User user,
             @PathVariable Long chatId,
-            @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(chatFacade.getConversation(chatId, userId, page, size));
+        return ResponseEntity.ok(chatFacade.getConversation(chatId, user.getId(), page, size));
     }
 
-    /** Recupera la lista di tutte le conversazioni di un utente con anteprima ultimo messaggio. */
-    @Operation(summary = "Recupera la lista di tutte le conversazioni di un utente")
-    @GetMapping("/conversations/{userId}")
-    public ResponseEntity<List<ConversationPreviewResponse>> getUserConversations(@PathVariable Long userId) {
-        return ResponseEntity.ok(chatFacade.getUserConversations(userId));
+    /** Recupera la lista di tutte le conversazioni dell'utente autenticato con anteprima ultimo messaggio. */
+    @Operation(summary = "Recupera la lista di tutte le conversazioni dell'utente autenticato")
+    @GetMapping("/conversations")
+    public ResponseEntity<List<ConversationPreviewResponse>> getUserConversations(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(chatFacade.getUserConversations(user.getId()));
     }
 
     /** Segna come letti tutti i messaggi ricevuti in una chat. */
     @Operation(summary = "Segna come letti tutti i messaggi ricevuti in una chat")
-    @PutMapping("/read/{chatId}/{userId}")
-    public ResponseEntity<Void> markAsRead(@PathVariable Long chatId, @PathVariable Long userId) {
-        chatFacade.markAsRead(chatId, userId);
+    @PutMapping("/read/{chatId}")
+    public ResponseEntity<Void> markAsRead(@AuthenticationPrincipal User user,
+                                            @PathVariable Long chatId) {
+        chatFacade.markAsRead(chatId, user.getId());
         return ResponseEntity.ok().build();
     }
 
-    /** Restituisce il conteggio totale dei messaggi non letti per un utente. */
-    @Operation(summary = "Conteggio totale messaggi non letti per un utente")
-    @GetMapping("/unread/{userId}")
-    public ResponseEntity<Integer> getTotalUnreadCount(@PathVariable Long userId) {
-        return ResponseEntity.ok(chatFacade.getTotalUnreadCount(userId));
+    /** Restituisce il conteggio totale dei messaggi non letti per l'utente autenticato. */
+    @Operation(summary = "Conteggio totale messaggi non letti per l'utente autenticato")
+    @GetMapping("/unread")
+    public ResponseEntity<Integer> getTotalUnreadCount(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(chatFacade.getTotalUnreadCount(user.getId()));
     }
 }

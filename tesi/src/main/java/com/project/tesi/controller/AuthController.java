@@ -9,6 +9,7 @@ import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +22,7 @@ import java.util.Map;
 /**
  * Endpoint REST per l'autenticazione. Include login, registrazione, recupero password e una rotta /ping per check-up.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -31,26 +33,30 @@ public class AuthController {
     /** Registra un nuovo cliente e restituisce i dati del profilo creato. */
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+        log.info("Registrazione nuovo utente: {}", request.email());
+        UserResponse response = authService.register(request);
+        log.info("Utente registrato con successo: id={}", response.getId());
+        return ResponseEntity.ok(response);
     }
 
     /** Autentica un utente e restituisce il token JWT con i dati del profilo. */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        log.info("Tentativo di login: {}", request.email());
         return ResponseEntity.ok(authService.login(request));
     }
 
     /** Richiede il reset della password inviando un link via email. */
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        authService.forgotPassword(request.getEmail());
+        authService.forgotPassword(request.email());
         return ResponseEntity.ok(Map.of("message", "Link di reset inviato. Controlla la tua casella di posta."));
     }
 
     /** Reimposta la password usando il token ricevuto via email. */
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request.getToken(), request.getNewPassword());
+        authService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok(Map.of("message", "Password reimpostata con successo."));
     }
 

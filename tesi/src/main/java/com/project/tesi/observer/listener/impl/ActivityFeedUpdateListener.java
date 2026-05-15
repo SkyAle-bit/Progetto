@@ -1,45 +1,25 @@
 package com.project.tesi.observer.listener.impl;
 
-import com.project.tesi.enums.EventType;
-import com.project.tesi.model.Booking;
-import com.project.tesi.observer.listener.Observer;
-import com.project.tesi.observer.manager.EventManager;
+import com.project.tesi.event.BookingCreatedEvent;
 import com.project.tesi.service.ActivityFeedService;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Listener che si mette in ascolto dell'evento BOOKING_CREATED.
- * Appena qualcuno prenota, intercetta l'evento e dice ad ActivityFeedService di loggare 
- * l'attività nel database. In questo modo disaccoppiamo la logica di tracciamento.
+ * Listener che traccia la creazione di una prenotazione nel feed attività.
+ * Attivato dopo il commit per garantire che il log sia scritto solo per
+ * prenotazioni effettivamente salvate nel database.
  */
 @Component
-public class ActivityFeedUpdateListener implements Observer<Booking> {
+@RequiredArgsConstructor
+public class ActivityFeedUpdateListener {
 
-    private final EventManager eventManager;
     private final ActivityFeedService activityFeedService;
 
-    // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
-    public ActivityFeedUpdateListener(EventManager eventManager,
-                                      ActivityFeedService activityFeedService) {
-        this.eventManager = eventManager;
-        this.activityFeedService = activityFeedService;
-    }
-
-    @PostConstruct
-    public void init() {
-        eventManager.subscribe(EventType.BOOKING_CREATED, this);
-    }
-
-    @PreDestroy
-    public void destroy() {
-        eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
-    }
-
-    // Metodo triggerato dall'EventManager. Passiamo la palla al service.
-    @Override
-    public void update(Booking booking) {
-        activityFeedService.logBookingCreated(booking);
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleBookingCreated(BookingCreatedEvent event) {
+        activityFeedService.logBookingCreated(event.getBooking());
     }
 }

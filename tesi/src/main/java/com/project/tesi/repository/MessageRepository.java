@@ -19,14 +19,20 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT m FROM Message m WHERE m.chat.id = :chatId ORDER BY m.timeStamp DESC LIMIT 1")
     Message findLastMessageByChatId(@Param("chatId") Long chatId);
 
-    @Query("SELECT COUNT(m) FROM Message m WHERE m.chat.id = :chatId AND m.user.id != :userId AND m.isRead = false")
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.chat.id = :chatId AND m.isRead = false " +
+            "AND ((m.chat.user1.id = :userId AND m.sentByUser1 = false) " +
+            "OR (m.chat.user2.id = :userId AND m.sentByUser1 = true))")
     int countUnreadMessagesByChatIdAndUserId(@Param("chatId") Long chatId, @Param("userId") Long userId);
 
-    @Query("SELECT COUNT(m) FROM Message m WHERE m.user.id != :userId AND m.isRead = false AND m.chat.id IN (SELECT c.id FROM Chat c WHERE c.user1.id = :userId OR c.user2.id = :userId)")
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.isRead = false " +
+            "AND m.chat.id IN (SELECT c.id FROM Chat c WHERE c.user1.id = :userId OR c.user2.id = :userId) " +
+            "AND ((m.chat.user1.id = :userId AND m.sentByUser1 = false) " +
+            "OR (m.chat.user2.id = :userId AND m.sentByUser1 = true))")
     int countTotalUnreadMessagesByUserId(@Param("userId") Long userId);
 
     @Modifying
-    @Query("UPDATE Message m SET m.isRead = true WHERE m.chat.id = :chatId AND m.user.id != :userId AND m.isRead = false")
+    @Query("UPDATE Message m SET m.isRead = true WHERE m.chat.id = :chatId AND m.isRead = false " +
+            "AND ((m.chat.user1.id = :userId AND m.sentByUser1 = false) " +
+            "OR (m.chat.user2.id = :userId AND m.sentByUser1 = true))")
     void markMessagesAsRead(@Param("chatId") Long chatId, @Param("userId") Long userId);
 }
-

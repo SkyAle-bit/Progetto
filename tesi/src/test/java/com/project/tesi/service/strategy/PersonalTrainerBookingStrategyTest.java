@@ -26,8 +26,8 @@ class PersonalTrainerBookingStrategyTest {
     @Test
     @DisplayName("verifyAssignment — successo quando PT è assegnato correttamente")
     void verifyAssignment_success() {
-        User pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("x@x.com").password("a").role(Role.PERSONAL_TRAINER).build();
-        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("y@y.com").password("b").role(Role.CLIENT).assignedPT(pt).build();
+        User pt = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("x@x.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+        User client = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("y@y.com").password("testpass").role(Role.CLIENT).assignedPT(pt).build();
 
         assertThatCode(() -> strategy.verifyAssignment(client, pt)).doesNotThrowAnyException();
     }
@@ -35,8 +35,8 @@ class PersonalTrainerBookingStrategyTest {
     @Test
     @DisplayName("verifyAssignment — fallisce quando PT non è assegnato")
     void verifyAssignment_notAssigned() {
-        User pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("x@x.com").password("a").role(Role.PERSONAL_TRAINER).build();
-        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("y@y.com").password("b").role(Role.CLIENT).assignedPT(null).build();
+        User pt = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("x@x.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+        User client = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("y@y.com").password("testpass").role(Role.CLIENT).assignedPT(null).build();
 
         assertThatThrownBy(() -> strategy.verifyAssignment(client, pt))
                 .isInstanceOf(ProfessionalNotAssignedException.class);
@@ -45,9 +45,9 @@ class PersonalTrainerBookingStrategyTest {
     @Test
     @DisplayName("verifyAssignment — fallisce quando PT diverso da quello assegnato")
     void verifyAssignment_differentPT() {
-        User ptAssigned = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).email("z@z.com").password("a").role(Role.PERSONAL_TRAINER).build();
-        User ptRequested = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("x@x.com").password("b").role(Role.PERSONAL_TRAINER).build();
-        User client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("c@c.com").password("c").role(Role.CLIENT).assignedPT(ptAssigned).build();
+        User ptAssigned = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(3L).email("z@z.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+        User ptRequested = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("x@x.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+        User client = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("c@c.com").password("testpass").role(Role.CLIENT).assignedPT(ptAssigned).build();
 
         assertThatThrownBy(() -> strategy.verifyAssignment(client, ptRequested))
                 .isInstanceOf(ProfessionalNotAssignedException.class);
@@ -57,7 +57,7 @@ class PersonalTrainerBookingStrategyTest {
     @DisplayName("consumeCredits — scala un credito PT")
     void consumeCredits_success() {
         com.project.tesi.model.Plan plan = new com.project.tesi.model.Plan();
-        com.project.tesi.model.User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).email("x@x.com").password("x").role(Role.CLIENT).build();
+        com.project.tesi.model.User user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).email("x@x.com").password("testpass").role(Role.CLIENT).build();
         Subscription sub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).user(user).plan(plan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).currentCreditsPT(5).build();
 
         strategy.consumeCredits(sub);
@@ -69,7 +69,7 @@ class PersonalTrainerBookingStrategyTest {
     @DisplayName("consumeCredits — crediti esauriti lancia InsufficientCreditsException")
     void consumeCredits_noCredits() {
         com.project.tesi.model.Plan plan = new com.project.tesi.model.Plan();
-        com.project.tesi.model.User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).email("x@x.com").password("x").role(Role.CLIENT).build();
+        com.project.tesi.model.User user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).email("x@x.com").password("testpass").role(Role.CLIENT).build();
         Subscription sub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).user(user).plan(plan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).currentCreditsPT(0).build();
 
         assertThatThrownBy(() -> strategy.consumeCredits(sub))

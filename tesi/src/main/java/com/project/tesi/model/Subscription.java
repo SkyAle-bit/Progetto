@@ -1,11 +1,14 @@
 package com.project.tesi.model;
 
+import com.project.tesi.builder.SubscriptionBuilder;
+import com.project.tesi.builder.impl.SubscriptionBuilderImpl;
 import com.project.tesi.enums.PaymentFrequency;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,41 +16,23 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.time.LocalDate;
 
-/**
- * Entità Abbonamento — rappresenta la sottoscrizione attiva di un cliente
- * a un determinato {@link Plan}.
- *
- * Gestisce:
- * <ul>
- *   <li><b>Stato pagamento</b> — frequenza (unica soluzione o rate mensili),
- *       rate pagate e prossima scadenza</li>
- *   <li><b>Durata temporale</b> — data di inizio e fine dell'abbonamento</li>
- *   <li><b>Saldo crediti</b> — crediti residui per prenotare consulenze con PT e Nutrizionisti,
- *       rinnovati mensilmente dallo scheduler {@code SubscriptionScheduler}</li>
- * </ul>
- *
- * Ogni utente può avere al massimo <b>un solo abbonamento attivo</b> alla volta
- * (campo {@code active = true}). L'attivazione di un nuovo piano disattiva il precedente.
- */
-/**
- * Entità Subscription.
- * Relazioni: OneToOne con User (ogni utente ha un solo abbonamento attivo) e ManyToOne con Plan (il tipo di pacchetto).
- * Gestisce i crediti residui e le scadenze.
- */
 @Entity
-@Table(name = "subscriptions")
+@Table(name = "subscriptions", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_subscription_user", columnNames = {"user_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = {"user", "plan"})
 public class Subscription {
@@ -57,41 +42,32 @@ public class Subscription {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @Version
+    private Integer version;
+
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_subscription_user_id"))
     private User user;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "plan_id", nullable = false)
+    @JoinColumn(name = "plan_id", nullable = false, foreignKey = @ForeignKey(name = "fk_subscription_plan_id"))
     private Plan plan;
-
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentFrequency paymentFrequency;
 
     private int installmentsPaid;
-
     private int totalInstallments;
-
     private LocalDate nextPaymentDate;
-
-
     private LocalDate startDate;
-
     private LocalDate endDate;
-
     private boolean active;
-
-
     private int currentCreditsPT;
-
     private int currentCreditsNutri;
-
     private LocalDate lastRenewalDate;
 
-    public static com.project.tesi.builder.SubscriptionBuilder builder() {
-        return new com.project.tesi.builder.impl.SubscriptionBuilderImpl();
+    public static SubscriptionBuilder builder() {
+        return new SubscriptionBuilderImpl();
     }
-
 }

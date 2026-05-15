@@ -1,10 +1,12 @@
 package com.project.tesi.service;
 
+import com.project.tesi.dto.response.DocumentResponse;
+import com.project.tesi.dto.response.DocumentUploadResponse;
+import com.project.tesi.dto.response.UpdatedNotesResponse;
 import com.project.tesi.model.Document;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Interfaccia del servizio per la gestione dei documenti.
@@ -14,7 +16,7 @@ import java.util.Map;
 public interface DocumentService {
 
     /** Carica un documento validando il ruolo dell'uploader rispetto al tipo di file. */
-    Map<String, Object> uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String docType);
+    DocumentUploadResponse uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String docType);
 
     /** Scarica il contenuto binario di un documento. */
     byte[] downloadDocument(Long documentId);
@@ -23,19 +25,19 @@ public interface DocumentService {
     Document getDocumentById(Long documentId);
 
     /** Restituisce tutti i documenti di un utente come lista di DTO. */
-    List<Map<String, Object>> getUserDocumentsDto(Long userId);
+    List<DocumentResponse> getUserDocumentsDto(Long userId);
 
     /** Restituisce i documenti di un utente filtrati per tipo come lista di DTO. */
-    List<Map<String, Object>> getUserDocumentsByTypeDto(Long userId, String docType);
+    List<DocumentResponse> getUserDocumentsByTypeDto(Long userId, String docType);
 
     /** Elimina un documento dal database. */
     void deleteDocument(Long documentId);
 
     /** Aggiorna le note testuali di un documento. */
-    Map<String, Object> updateNotes(Long documentId, String notes);
+    UpdatedNotesResponse updateNotes(Long documentId, String notes);
 
-    /** Converte un'entità Document nel DTO mappa per la risposta. */
-    Map<String, Object> toDto(Document doc);
+    /** Converte un'entità Document nel DTO per la risposta. */
+    DocumentResponse toDto(Document doc);
 
     /** Salva un'entità Document nel database. */
     Document saveDocument(Document document);

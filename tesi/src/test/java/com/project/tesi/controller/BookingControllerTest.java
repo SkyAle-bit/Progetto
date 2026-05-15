@@ -3,7 +3,10 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.enums.BookingStatus;
+import com.project.tesi.enums.Role;
 import com.project.tesi.facade.UserFacade;
+import com.project.tesi.model.User;
+import com.project.tesi.service.DatabaseInitializerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +25,7 @@ import static org.mockito.Mockito.*;
 class BookingControllerTest {
 
     @Mock private UserFacade userFacade;
+    @Mock private DatabaseInitializerService databaseInitializerService;
 
     @InjectMocks
     private BookingController bookingController;
@@ -29,13 +33,12 @@ class BookingControllerTest {
     @Test
     @DisplayName("createBooking — restituisce 200 con la prenotazione")
     void createBooking() {
-        BookingRequest req = new BookingRequest();
-        req.setUserId(1L);
-        req.setSlotId(10L);
+        User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+        BookingRequest req = new BookingRequest(10L);
         BookingResponse resp = BookingResponse.builder().id(1L).status(BookingStatus.CONFIRMED).build();
-        when(userFacade.createBooking(req)).thenReturn(resp);
+        when(userFacade.createBooking(req, 1L)).thenReturn(resp);
 
-        ResponseEntity<BookingResponse> response = bookingController.createBooking(req);
+        ResponseEntity<BookingResponse> response = bookingController.createBooking(req, mockUser);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getStatus()).isEqualTo(BookingStatus.CONFIRMED);

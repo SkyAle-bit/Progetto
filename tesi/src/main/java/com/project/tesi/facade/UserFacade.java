@@ -1,8 +1,10 @@
 package com.project.tesi.facade;
 
 import com.project.tesi.dto.request.BookingRequest;
+import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.request.ProfileUpdateRequest;
 import com.project.tesi.dto.request.ReviewRequest;
+import com.project.tesi.dto.response.ActivityFeedItemResponse;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.dto.response.ClientBasicInfoResponse;
 import com.project.tesi.dto.response.ClientDashboardResponse;
@@ -10,6 +12,7 @@ import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.response.ReviewResponse;
 import com.project.tesi.dto.response.SlotDTO;
 import com.project.tesi.dto.response.SubscriptionResponse;
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
 import com.project.tesi.enums.Role;
 import com.project.tesi.service.ActivityFeedService;
 import com.project.tesi.service.BookingService;
@@ -18,11 +21,9 @@ import com.project.tesi.service.ReviewService;
 import com.project.tesi.service.SlotService;
 import com.project.tesi.service.SubscriptionService;
 import com.project.tesi.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Facade principale per l'area utente (clienti e professionisti).
@@ -30,7 +31,7 @@ import java.util.Map;
  * fornendo un punto d'ingresso unico e pulito per il controller.
  */
 @Component
-public class UserFacade implements IUserFacade {
+public class UserFacade {
 
     private final UserService userService;
     private final BookingService bookingService;
@@ -40,7 +41,6 @@ public class UserFacade implements IUserFacade {
     private final ProfessionalStatsService professionalStatsService;
     private final SlotService slotService;
 
-    // Costruttore esplicito — pattern Facade
     public UserFacade(UserService userService,
                       BookingService bookingService,
                       ReviewService reviewService,
@@ -73,12 +73,8 @@ public class UserFacade implements IUserFacade {
     }
 
 
-    public ClientBasicInfoResponse getAdmin() {
-        return userService.getSupportOperator();
-    }
-
-    public BookingResponse createBooking(BookingRequest request) {
-        return bookingService.createBooking(request);
+    public BookingResponse createBooking(BookingRequest request, Long userId) {
+        return bookingService.createBooking(request, userId);
     }
 
 
@@ -87,8 +83,8 @@ public class UserFacade implements IUserFacade {
     }
 
 
-    public ReviewResponse addReview(ReviewRequest request) {
-        return reviewService.addReview(request);
+    public ReviewResponse addReview(ReviewRequest request, Long userId) {
+        return reviewService.addReview(request, userId);
     }
 
 
@@ -107,8 +103,8 @@ public class UserFacade implements IUserFacade {
     }
 
 
-    public SubscriptionResponse activateSubscription(com.project.tesi.dto.request.PlanRequest request) {
-        return subscriptionService.activateSubscription(request);
+    public SubscriptionResponse activateSubscription(PlanRequest request, Long userId) {
+        return subscriptionService.activateSubscription(request, userId);
     }
 
 
@@ -137,12 +133,12 @@ public class UserFacade implements IUserFacade {
     }
 
 
-    public Map<String, Object> getProfessionalStats(Long professionalId) {
+    public ProfessionalStatsResponse getProfessionalStats(Long professionalId) {
         return professionalStatsService.getProfessionalStats(professionalId);
     }
 
 
-    public List<Map<String, Object>> getActivityFeed(Long userId, int days, int limit) {
-        return activityFeedService.getActivityFeed(userId, days, limit);
+    public List<ActivityFeedItemResponse> getActivityFeed(Long userId, int days, int size) {
+        return activityFeedService.getActivityFeed(userId, days, size);
     }
 }

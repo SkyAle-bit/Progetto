@@ -1,15 +1,16 @@
 package com.project.tesi.builder;
 
-import java.time.LocalDateTime;
-import com.project.tesi.model.*;
+import com.project.tesi.model.Chat;
+import com.project.tesi.model.Message;
 
+import java.time.LocalDateTime;
 
 public interface MessageBuilder {
     MessageBuilder id(Long id);
     MessageBuilder content(String content);
     MessageBuilder timeStamp(LocalDateTime timeStamp);
     MessageBuilder isRead(boolean isRead);
-    MessageBuilder user(User user);
+    MessageBuilder sentByUser1(boolean sentByUser1);
     MessageBuilder chat(Chat chat);
     Message build();
 }

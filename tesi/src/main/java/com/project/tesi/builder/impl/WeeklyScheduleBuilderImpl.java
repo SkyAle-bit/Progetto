@@ -44,12 +44,14 @@ public class WeeklyScheduleBuilderImpl implements WeeklyScheduleBuilder {
     }
 
     @Override
-    // Controlliamo i parametri obbligatori (professionista e giorno della settimana).
     public WeeklySchedule build() {
         Objects.requireNonNull(this.professional, "professional è obbligatorio");
         Objects.requireNonNull(this.dayOfWeek, "dayOfWeek è obbligatorio");
         Objects.requireNonNull(this.startTime, "startTime è obbligatorio");
         Objects.requireNonNull(this.endTime, "endTime è obbligatorio");
+
+        if (!this.startTime.isBefore(this.endTime))
+            throw new IllegalArgumentException("startTime deve essere precedente a endTime");
 
         WeeklySchedule obj = new WeeklySchedule();
         obj.setId(this.id);

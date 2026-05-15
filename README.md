@@ -1,203 +1,279 @@
-# Piattaforma SaaS Integrata per il Wellness e la Tutela Assicurativa
+# FitConnect — Piattaforma SaaS per il Wellness Integrato
 
-## 🚀 Quick Start — Come eseguire il progetto
+![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=spring)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
+![Tests](https://img.shields.io/badge/tests-260_passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-### Prerequisiti
-- **Java 21** — [Download](https://adoptium.net/temurin/releases/?version=21)
-- **Docker Desktop** — [Download](https://www.docker.com/products/docker-desktop/) (deve essere avviato)
-
-> Non serve installare Maven: il progetto include il Maven Wrapper (`mvnw`).
-
-### 1. Clona la repository
-```bash
-git clone <url-repository>
-cd Progetto/tesi
-```
-
-### 2. Avvia l'applicazione (modalità sviluppo)
-
-**Linux / macOS:**
-```bash
-chmod +x mvnw
-./mvnw spring-boot:run
-```
-
-**Windows (PowerShell):**
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-> Al primo avvio Docker Compose si avvia automaticamente (PostgreSQL + pgAdmin).
-> Il database viene popolato con dati di test.
-
-### 3. Verifica che funzioni
-- **Backend API:** http://localhost:8080/api/auth/ping
-- **Swagger UI:** http://localhost:8080/swagger-ui.html
-- **pgAdmin:** http://localhost:5050 (email: `a@a.a` / password: `root`)
-
-### Utenti di test (login)
-| Email | Password | Ruolo |
-|---|---|---|
-| `pt1@test.com` | `password` | Personal Trainer |
-| `pt2@test.com` | `password` | Personal Trainer |
-| `nutri1@test.com` | `password` | Nutrizionista |
-| `nutri2@test.com` | `password` | Nutrizionista |
-| `luca@test.com` | `password` | Cliente |
-| `sofia@test.com` | `password` | Cliente |
-| `matteo@test.com` | `password` | Cliente |
-| `chiara@test.com` | `password` | Cliente |
-
-### Comandi utili
-```bash
-# Compilare senza eseguire
-./mvnw clean compile
-
-# Eseguire i test
-./mvnw test
-
-# Creare il JAR
-./mvnw clean package -DskipTests
-
-# Eseguire con profilo sviluppo locale (richiede Docker avviato)
-# Linux/Mac:
-SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
-# Windows PowerShell:
-$env:SPRING_PROFILES_ACTIVE="dev"; .\mvnw.cmd spring-boot:run
-```
-
-### Profili disponibili
-| Profilo | Database | Docker | Uso |
-|---|---|---|---|
-| `prod` (default) | PostgreSQL Neon (cloud) | ❌ Non richiesto | Produzione / Demo rapida |
-| `dev` | PostgreSQL locale (Docker) | ✅ Auto-start | Sviluppo locale |
+Backend RESTful per una piattaforma SaaS che connette clienti con Personal Trainer, Nutrizionisti e partner assicurativi in un unico abbonamento. Costruito come monolite modulare su Java 21 e Spring Boot 4 con un'architettura rigorosa a layer.
 
 ---
 
-## 📋 Descrizione del Progetto
+## Indice
+
+1. [Tech Stack](#tech-stack)
+2. [Architettura](#architettura)
+3. [Domain Model](#domain-model)
+4. [Quick Start](#quick-start)
+5. [Credenziali di Test](#credenziali-di-test)
+6. [API Docs](#api-docs)
+7. [Configurazione](#configurazione)
+8. [Testing](#testing)
+
+---
+
+## Tech Stack
+
+| Categoria | Tecnologia |
+|---|---|
+| Runtime | Java 21 (LTS) |
+| Framework | Spring Boot 4 (Web, Data JPA, Security, WebSocket, Validation) |
+| Database | PostgreSQL 16 |
+| Sicurezza | Spring Security + JWT (stateless) |
+| Messaggistica real-time | STOMP / WebSocket |
+| Logging | Log4j2 (via SLF4J) |
+| Documentazione API | SpringDoc OpenAPI 3 / Swagger UI |
+| Build | Maven Wrapper (`mvnw`) |
+| Container | Docker Compose (PostgreSQL + pgAdmin) |
+| Testing | JUnit 5, Mockito, H2 (in-memory) |
+
+---
+
+## Architettura
+
+Il flusso di ogni richiesta segue un percorso unidirezionale senza salti di layer:
+
+```
+HTTP Request
+     │
+     ▼
+┌──────────────┐
+│  Controller  │  Validazione input, estrazione principal JWT
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│    Facade    │  Orchestrazione multi-servizio, transazioni di alto livello
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Service    │  Business logic, locking, eventi Spring, strategia di crediti
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Builder    │  Costruzione entità (Builder Pattern)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  Repository  │  Spring Data JPA → PostgreSQL
+└──────────────┘
+```
+
+### Pattern di Design
 
-Titolo del Progetto: Piattaforma SaaS Integrata per il Wellness e la Tutela Assicurativa
+| Pattern | Dove |
+|---|---|
+| **Strategy** | `BookingStrategy`: `PTBookingStrategy` e `NutritionistBookingStrategy` selezionati a runtime per scalare crediti |
+| **Observer (Spring Events)** | `ApplicationEventPublisher` + `@TransactionalEventListener(AFTER_COMMIT)` — le notifiche email partono solo dopo il commit della transazione |
+| **Builder** | `BookingDirector` assembla le entità `Booking` |
+| **Optimistic Locking** | `@Version` su `Slot`, `Subscription`, `User`, `Booking` — gestione conflitti senza lock espliciti |
+| **Pessimistic Locking** | `@Lock(PESSIMISTIC_WRITE)` su `SlotRepository.findByIdWithLock()` e `SubscriptionRepository.findByUserAndActiveTrueWithLock()` |
+| **Fine-Grained Locking** | `ConcurrentHashMap<Long, ReentrantLock>` in `BookingServiceImpl` — difesa in profondità contro race condition a livello JVM |
 
-1. Visione e Obiettivo del Progetto
+---
 
-Il progetto mira a realizzare un sistema gestionale backend (SaaS) per l'erogazione di servizi integrati di benessere e salute. L'idea innovativa risiede nell'offrire all'utente finale un percorso completo che unisce tre figure professionali in un unico abbonamento:
+## Domain Model
 
+### Ruoli
 
-Personal Trainer (per l'allenamento fisico).
+| Ruolo | Descrizione |
+|---|---|
+| `CLIENT` | Acquista piani, prenota slot, scarica documenti, lascia recensioni |
+| `PERSONAL_TRAINER` | Definisce disponibilità, gestisce fino a 50 clienti, carica schede allenamento |
+| `NUTRITIONIST` | Definisce disponibilità, gestisce fino a 50 clienti, carica piani alimentari |
+| `INSURANCE_MANAGER` | Gestisce le polizze infortuni legate ai piani |
+| `MODERATOR` | Moderazione contenuti e supporto |
+| `ADMIN` | Supervisione globale, creazione piani, gestione anagrafiche |
+
+### Piani e Crediti
+
+| Piano | Durata | Crediti PT/mese | Crediti Nutri/mese | Prezzo intero | Rata mensile |
+|---|---|---|---|---|---|
+| Basic Pack | Semestrale | 1 | 1 | € 960 | € 160 |
+| Basic Pack | Annuale | 1 | 1 | € 1.800 | € 150 |
+| Premium Pack | Semestrale | 2 | 2 | € 1.620 | € 270 |
+| Premium Pack | Annuale | 2 | 2 | € 3.000 | € 250 |
+
+I crediti si azzerano mensilmente (non sono cumulabili). Lo `SubscriptionScheduler` gira ogni notte a mezzanotte per il rinnovo crediti e la gestione delle rate.
 
-Nutrizionista (per il piano alimentare).
+### Prenotazioni
 
-Partner Assicurativo (per la tutela dagli infortuni durante l'attività).
+- Slot da 30 minuti generati da `WeeklySchedule` settimanali dei professionisti
+- Locking a doppio livello (JVM + DB) per prevenire overbooking concorrente
+- Cancellazione gratuita (credito rimborsato) se richiesta con almeno 24 ore di anticipo
+- Notifiche email transazionali post-commit via `@TransactionalEventListener`
 
-A differenza dei classici marketplace di prenotazione, il sistema si basa su una relazione continuativa ed esclusiva tra cliente e professionista, regolata da abbonamenti a lungo termine e un sistema di crediti mensili.
+### Recensioni
 
+Un cliente può recensire un professionista solo se:
+- esiste almeno una prenotazione confermata tra la coppia **oppure** il cliente è attualmente assegnato al professionista
+- non ha ancora lasciato una recensione per quella coppia (unicità garantita)
 
-2. Architettura del Sistema
+### Chat
 
-Il sistema è sviluppato seguendo un'architettura RESTful Monolitica Modulare basata su Java 21 e Spring Boot. La persistenza dei dati è affidata a PostgreSQL (containerizzato via Docker), scelto per la sua robustezza nella gestione delle transazioni (ACID) e della concorrenza.
+Messaggistica real-time via STOMP/WebSocket con fallback REST per lo storico.
 
+### Documenti
 
-Stack Tecnologico
+File system storage con metadati in DB. Tipologie: schede allenamento (PT), piani alimentari (Nutrizionista), polizze (Insurance Manager).
 
-Backend Framework: Spring Boot (Web, Data JPA, Security, Validation).
+---
 
-Database: PostgreSQL (con dialetto Hibernate ottimizzato).
+## Quick Start
 
-Sicurezza: Spring Security + JWT (JSON Web Token) per autenticazione stateless.
+### Prerequisiti
 
-Containerizzazione: Docker & Docker Compose.
+- **Java 21** — [Adoptium Temurin](https://adoptium.net/temurin/releases/?version=21)
+- **Docker Desktop** — richiesto per il profilo `dev`
 
-Testing: JUnit 5, Mockito, H2 Database (In-Memory).
+> Maven è incluso nel wrapper (`mvnw`), non serve installarlo.
 
-Utility: Lombok (boilerplate reduction), Swagger/OpenAPI (documentazione API).
+### Profilo dev (database locale)
 
-3. Modulo Core: Gestione Abbonamenti e Crediti
+```bash
+git clone <url-repository>
+cd Progetto/tesi
 
-Il modello di business non si basa sul pagamento della singola prestazione, ma sull'acquisto di Piani (Plans).
+# macOS / Linux
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
+# Windows PowerShell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
 
-Tipologia Piani: I pacchetti sono vincolati a una durata temporale, specificamente Semestrale (6 mesi) o Annuale (12 mesi).
+Docker Compose avvia automaticamente PostgreSQL su `localhost:5432` e pgAdmin su `localhost:5050`.  
+Il database viene popolato con dati di test all'avvio.
 
-Modalità di Pagamento: L'utente può scegliere tra:
+### Profilo prod (database cloud)
 
-Unica Soluzione: Pagamento anticipato dell'intero importo.
+```bash
+# Richiede le variabili d'ambiente configurate (vedi sezione Configurazione)
+./mvnw spring-boot:run
+```
 
-Rateale: Pagamento mensile dilazionato.
+### Comandi utili
 
-Economia a Crediti: Ogni piano eroga mensilmente un plafond di crediti distinti (es. 4 crediti PT, 1 credito Nutrizionista).
+```bash
+# Eseguire i test
+./mvnw test
 
-I crediti si resettano ogni mese (non sono cumulabili).
+# Build JAR (senza test)
+./mvnw clean package -DskipTests
 
-Un job automatico (Scheduler) gestisce il rinnovo dei crediti e la verifica dei pagamenti rateali ogni notte.
+# Reset database di sviluppo (ripopola i dati di test)
+curl http://localhost:8080/api/bookings/reset-database
+```
 
-4. Modulo Prenotazioni (Booking System)
+---
 
-Il cuore operativo è il calendario appuntamenti, progettato per gestire slot temporali fissi da 30 minuti.
+## Credenziali di Test
 
+Disponibili solo con il profilo `dev`. Password comune: `password`.
 
-Disponibilità Ricorrente: I professionisti non inseriscono i singoli slot manualmente. Definiscono delle regole settimanali (es. "Lunedì disponibile dalle 09:00 alle 13:00").
+| Email | Ruolo | Note |
+|---|---|---|
+| `pt1@test.com` | Personal Trainer | Disponibile lun/mer/ven |
+| `pt2@test.com` | Personal Trainer | Disponibile mar/gio/sab |
+| `nutri1@test.com` | Nutrizionista | Disponibile lun/mer/ven |
+| `nutri2@test.com` | Nutrizionista | Disponibile mar/gio/sab |
+| `luca@test.com` | Cliente | Assegnato a pt1 + nutri1, Basic Pack Semestrale |
+| `sofia@test.com` | Cliente | Assegnato a pt1 + nutri2, Basic Pack Annuale |
+| `matteo@test.com` | Cliente | Assegnato a pt2 + nutri1, Premium Pack Semestrale |
+| `chiara@test.com` | Cliente | Assegnato a pt2 + nutri2, Premium Pack Annuale |
+| `testreview@test.com` | Cliente | Utente dedicato al test delle recensioni |
+| `admin@test.com` | Admin | Accesso completo |
+| `insurance@test.com` | Insurance Manager | Gestione polizze |
+| `moderator1@test.com` | Moderatore | Moderazione contenuti |
 
-Generazione Automatica: Il sistema traduce queste regole in slot prenotabili reali, applicando un vincolo di preavviso di 1 settimana (le modifiche agli orari non impattano la settimana corrente per tutelare i clienti).
+---
 
-Gestione della Concorrenza: Per evitare l'overbooking (due utenti che prenotano lo stesso istante), il database utilizza l'Optimistic Locking (campo @Version). Se due richieste arrivano simultaneamente, solo la prima viene processata, l'altra riceve un errore gestito.
+## API Docs
 
-5. Regole di Business e Vincoli
+Swagger UI disponibile a runtime:
 
-A. Assegnazione Esclusiva (Il vincolo dei 50)
+```
+http://localhost:8080/swagger-ui.html
+```
 
-Per garantire la qualità del servizio, il sistema impone che ogni Cliente sia assegnato a uno specifico Personal Trainer e a uno specifico Nutrizionista.
+Endpoint principali:
 
+| Gruppo | Base path |
+|---|---|
+| Autenticazione | `/api/auth` |
+| Prenotazioni | `/api/bookings` |
+| Slot | `/api/slots` |
+| Recensioni | `/api/reviews` |
+| Abbonamenti | `/api/subscriptions` |
+| Profilo utente | `/api/users` |
+| Documenti | `/api/documents` |
+| Chat | `/api/chat` (REST) + WebSocket `/ws` |
 
-Regola: Ogni professionista può seguire contemporaneamente un massimo di 10 Clienti.
+---
 
-Il sistema blocca tentativi di assegnazione che violerebbero questo limite.
+## Configurazione
 
-B. Sistema di Recensioni Verificate ("Verified Reviews")
+Variabili d'ambiente richieste in produzione:
 
-Il sistema di feedback è progettato per essere immune da spam o recensioni fake.
+| Variabile | Descrizione |
+|---|---|
+| `JWT_SECRET` | Chiave segreta per la firma dei token JWT (min. 32 caratteri) |
+| `MAIL_FROM` | Indirizzo mittente delle email transazionali |
+| `SPRING_MAIL_HOST` | SMTP host (es. `smtp.gmail.com`) |
+| `SPRING_MAIL_PORT` | SMTP port (es. `587`) |
+| `SPRING_MAIL_USERNAME` | Credenziale SMTP — username |
+| `SPRING_MAIL_PASSWORD` | Credenziale SMTP — password o app password |
+| `SPRING_DATASOURCE_URL` | JDBC URL del database di produzione |
+| `SPRING_DATASOURCE_USERNAME` | Username database |
+| `SPRING_DATASOURCE_PASSWORD` | Password database |
 
+In sviluppo (`dev`), i valori di default sono definiti in `application-dev.properties`.
 
-Vincolo di Assegnazione: Un cliente può recensire solo il Personal Trainer o il Nutrizionista a cui è attualmente assegnato. Non è possibile recensire professionisti con cui non si ha un rapporto di tutoraggio attivo.
+### Log4j2
 
-Unicità: È permessa una sola recensione per relazione professionale.
+Il logging è gestito da Log4j2 (`src/main/resources/log4j2-spring.xml`):
 
-6. Gestione Documentale
+- `com.project.tesi.controller` — INFO
+- `com.project.tesi.service` — DEBUG
+- `com.project.tesi.security` — INFO
+- Hibernate / Spring Framework — WARN
+- File rolling giornaliero in `logs/app.log` (max 10 MB, 30 file)
 
-La piattaforma gestisce lo scambio sicuro di file tra professionisti e clienti.
+---
 
+## Testing
 
-Tipologie: Piani di allenamento (PT), Diete (Nutrizionista), Polizze Infortuni (Assicurazione).
+```bash
+# Suite completa (260 test)
+./mvnw test
 
-Storage: I file non vengono salvati come BLOB nel database (per efficienza), ma su file system/cloud storage. Il database memorizza solo i metadati e i percorsi di accesso.
+# Singola classe
+./mvnw test -Dtest=BookingServiceImplTest
 
-7. Attori del Sistema (Ruoli)
+# Report coverage JaCoCo (generato in target/site/jacoco/)
+./mvnw verify
+```
 
-Il sistema gestisce 5 tipologie di utenza tramite un singolo entry-point di autenticazione ma con permessi diversificati:
+I test usano H2 in-memory con profilo `test` (`create-drop`). Gli scheduler sono disabilitati automaticamente durante i test.
 
+Pattern adottati:
+- `@ExtendWith(MockitoExtension.class)` + `@Mock` / `@InjectMocks` per unit test puri
+- `@WebMvcTest` + `MockMvc` per i controller
+- `@DisplayName` su ogni metodo per output leggibile
 
-CLIENT: Acquista piani, prenota slot, scarica documenti, lascia recensioni.
-
-PERSONAL_TRAINER: Imposta disponibilità oraria, vede i suoi 10 clienti, carica schede allenamento.
-
-NUTRITIONIST: Imposta disponibilità oraria, vede i suoi 10 clienti, carica diete.
-
-INSURANCE_MANAGER: Gestisce la parte contrattuale delle polizze incluse nei piani.
-
-ADMIN: Supervisione globale, creazione dei Piani, gestione anagrafiche.
-
-
-questo qui sono le specifiche per il mio progetto di laurea. A queste specifiche devi aggiungere anche le seguenti informazioni:
-
-
-i piani sono 2, ed entrambi possono essere semestrali o annuali, con pagamento che può avvenire in un unica soluzione o a rate.
-
-I piani sono:
-
-- Basic Pack: 1 credito per prenotare una call con Nutrizionista al mese e 1 credito per una call con il PT al mese
-
-- Premium Pack: 2 credito per prenotare una call con Nutrizionista al mese e 2 credito per una call con il PT al mese
-
-
-l'utente alla registrazione deve scegliere il suo nutrizionista e il suo personal trainer che saranno messi in ordine secondo un ranking dato dalla media delle recensioni ricevute e inoltre verrà mostrato il numero di utenti che attualmente i professionisti stanno seguendo (i professionisti possono seguire al massimo 50 utenti con contratto attivo)
-
-
-le disponibilità dei professionisti, gli slot di tempo liberi devono essere scelti settimanalmente e gli utenti potranno collegarsi negli slot di mezz'ora disponibili 
+```
+[INFO] Tests run: 260, Failures: 0, Errors: 0, Skipped: 0
+```

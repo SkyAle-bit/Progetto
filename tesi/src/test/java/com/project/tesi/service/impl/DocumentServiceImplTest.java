@@ -1,5 +1,7 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.response.DocumentResponse;
+import com.project.tesi.dto.response.DocumentUploadResponse;
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceNotFoundException;
@@ -27,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -48,9 +49,9 @@ class DocumentServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(documentService, "uploadDir", tempDir.toString());
-        pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").role(Role.PERSONAL_TRAINER).build();
-        nutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").role(Role.NUTRITIONIST).build();
-        client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").role(Role.CLIENT).build();
+        pt = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").role(Role.PERSONAL_TRAINER).build();
+        nutri = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").role(Role.NUTRITIONIST).build();
+        client = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").role(Role.CLIENT).build();
     }
 
     @Test @DisplayName("uploadDocumentWithValidation — PT carica WORKOUT_PLAN OK")
@@ -66,8 +67,8 @@ class DocumentServiceImplTest {
                 .owner(client).uploadedBy(pt).uploadDate(LocalDateTime.now()).build();
         when(documentRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = documentService.uploadDocumentWithValidation(file, 1L, 2L, "WORKOUT_PLAN");
-        assertThat(result.get("fileName")).isEqualTo("scheda.pdf");
+        DocumentUploadResponse result = documentService.uploadDocumentWithValidation(file, 1L, 2L, "WORKOUT_PLAN");
+        assertThat(result.fileName()).isEqualTo("scheda.pdf");
     }
 
     @Test @DisplayName("uploadDocumentWithValidation — PT carica DIET_PLAN → InvalidFileException")
@@ -144,7 +145,7 @@ class DocumentServiceImplTest {
                 .owner(client).uploadedBy(pt).uploadDate(LocalDateTime.now()).build();
         when(documentRepository.findByOwnerOrderByUploadDateDesc(client)).thenReturn(List.of(doc));
 
-        List<Map<String, Object>> result = documentService.getUserDocumentsDto(1L);
+        List<DocumentResponse> result = documentService.getUserDocumentsDto(1L);
         assertThat(result).hasSize(1);
     }
 
@@ -154,7 +155,7 @@ class DocumentServiceImplTest {
         when(documentRepository.findByOwnerAndTypeOrderByUploadDateDesc(client, DocumentType.WORKOUT_PLAN))
                 .thenReturn(List.of());
 
-        List<Map<String, Object>> result = documentService.getUserDocumentsByTypeDto(1L, "WORKOUT_PLAN");
+        List<DocumentResponse> result = documentService.getUserDocumentsByTypeDto(1L, "WORKOUT_PLAN");
         assertThat(result).isEmpty();
     }
 
@@ -197,8 +198,8 @@ class DocumentServiceImplTest {
                 .owner(client).uploadedBy(nutri).uploadDate(LocalDateTime.now()).build();
         when(documentRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = documentService.uploadDocumentWithValidation(file, 1L, 3L, "DIET_PLAN");
-        assertThat(result.get("fileName")).isEqualTo("dieta.pdf");
+        DocumentUploadResponse result = documentService.uploadDocumentWithValidation(file, 1L, 3L, "DIET_PLAN");
+        assertThat(result.fileName()).isEqualTo("dieta.pdf");
     }
 
     @Test @DisplayName("uploadDocumentWithValidation — CLIENT può caricare qualsiasi tipo")
@@ -213,8 +214,8 @@ class DocumentServiceImplTest {
                 .owner(client).uploadedBy(client).uploadDate(LocalDateTime.now()).build();
         when(documentRepository.save(any())).thenReturn(saved);
 
-        Map<String, Object> result = documentService.uploadDocumentWithValidation(file, 1L, 1L, "MEDICAL_CERT");
-        assertThat(result.get("type")).isEqualTo("MEDICAL_CERT");
+        DocumentUploadResponse result = documentService.uploadDocumentWithValidation(file, 1L, 1L, "MEDICAL_CERT");
+        assertThat(result.type()).isEqualTo("MEDICAL_CERT");
     }
 
     @Test @DisplayName("saveDocument — salva e restituisce documento")

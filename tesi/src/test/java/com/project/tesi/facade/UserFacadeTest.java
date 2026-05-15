@@ -5,7 +5,9 @@ import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.request.ProfileUpdateRequest;
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.*;
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
 import com.project.tesi.enums.BookingStatus;
+import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.Role;
 import com.project.tesi.service.*;
 import org.junit.jupiter.api.DisplayName;
@@ -16,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -50,7 +51,7 @@ class UserFacadeTest {
     @Test
     @DisplayName("updateProfile — delega al UserService")
     void updateProfile() {
-        ProfileUpdateRequest req = new ProfileUpdateRequest();
+        ProfileUpdateRequest req = new ProfileUpdateRequest(null, null, null, null);
         userFacade.updateProfile(1L, req);
         verify(userService).updateProfile(1L, req);
     }
@@ -66,32 +67,23 @@ class UserFacadeTest {
     }
 
     @Test
-    @DisplayName("getAdmin — delega al UserService (support operator)")
-    void getAdmin() {
-        ClientBasicInfoResponse admin = ClientBasicInfoResponse.builder().id(99L).build();
-        when(userService.getSupportOperator()).thenReturn(admin);
-
-        assertThat(userFacade.getAdmin()).isEqualTo(admin);
-    }
-
-    @Test
     @DisplayName("createBooking — delega al BookingService")
     void createBooking() {
-        BookingRequest req = new BookingRequest();
+        BookingRequest req = new BookingRequest(10L);
         BookingResponse resp = BookingResponse.builder().id(1L).status(BookingStatus.CONFIRMED).build();
-        when(bookingService.createBooking(req)).thenReturn(resp);
+        when(bookingService.createBooking(req, 1L)).thenReturn(resp);
 
-        assertThat(userFacade.createBooking(req)).isEqualTo(resp);
+        assertThat(userFacade.createBooking(req, 1L)).isEqualTo(resp);
     }
 
     @Test
     @DisplayName("addReview — delega al ReviewService")
     void addReview() {
-        ReviewRequest req = new ReviewRequest();
+        ReviewRequest req = new ReviewRequest(2L, 5, "test");
         ReviewResponse resp = ReviewResponse.builder().rating(5).build();
-        when(reviewService.addReview(req)).thenReturn(resp);
+        when(reviewService.addReview(req, 1L)).thenReturn(resp);
 
-        assertThat(userFacade.addReview(req)).isEqualTo(resp);
+        assertThat(userFacade.addReview(req, 1L)).isEqualTo(resp);
     }
 
     @Test
@@ -118,11 +110,11 @@ class UserFacadeTest {
     @Test
     @DisplayName("activateSubscription — delega al SubscriptionService")
     void activateSubscription() {
-        PlanRequest req = new PlanRequest();
+        PlanRequest req = new PlanRequest(1L, PaymentFrequency.UNICA_SOLUZIONE);
         SubscriptionResponse resp = SubscriptionResponse.builder().id(1L).build();
-        when(subscriptionService.activateSubscription(req)).thenReturn(resp);
+        when(subscriptionService.activateSubscription(req, 1L)).thenReturn(resp);
 
-        assertThat(userFacade.activateSubscription(req)).isEqualTo(resp);
+        assertThat(userFacade.activateSubscription(req, 1L)).isEqualTo(resp);
     }
 
     @Test
@@ -166,7 +158,7 @@ class UserFacadeTest {
     @Test
     @DisplayName("getProfessionalStats — delega al ProfessionalStatsService")
     void getProfessionalStats() {
-        Map<String, Object> stats = Map.of("clients", 5);
+        ProfessionalStatsResponse stats = new ProfessionalStatsResponse(List.of(), 0, List.of(), 0, 0, 5);
         when(professionalStatsService.getProfessionalStats(2L)).thenReturn(stats);
 
         assertThat(userFacade.getProfessionalStats(2L)).isEqualTo(stats);

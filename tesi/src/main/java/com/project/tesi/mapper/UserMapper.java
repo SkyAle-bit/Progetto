@@ -81,11 +81,11 @@ public class UserMapper {
         }
 
         return User.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .email(request.getEmail())
-                .password(request.getPassword())
-                .profilePicture(request.getProfilePicture())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .email(request.email())
+                .password(request.password())
+                .profilePicture(request.profilePicture())
                 .role(Role.CLIENT)
                 .build();
     }

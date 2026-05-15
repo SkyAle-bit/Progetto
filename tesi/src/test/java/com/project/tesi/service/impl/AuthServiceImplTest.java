@@ -64,16 +64,13 @@ class AuthServiceImplTest {
                 .profilePicture("pic.jpg")
                 .build();
 
-        loginRequest = new LoginRequest();
-        loginRequest.setEmail("mario@test.com");
-        loginRequest.setPassword("password123");
+        loginRequest = new LoginRequest("mario@test.com", "password123");
     }
 
     @Test
     @DisplayName("register — delega al UserService e restituisce il profilo creato")
     void register_delegatesToUserService() {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("mario@test.com");
+        RegisterRequest request = new RegisterRequest(null, null, "mario@test.com", null, null, null, null, null, null);
         UserResponse expected = UserResponse.builder().id(1L).email("mario@test.com").build();
         when(userService.registerUser(request)).thenReturn(expected);
 

@@ -21,11 +21,10 @@ class SubscriptionMapperTest {
     @Test
     @DisplayName("toSubscription — unica soluzione annuale")
     void toSubscription_unicaSoluzione() {
-        User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).build();
+        User user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).build();
         Plan plan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).duration(PlanDuration.ANNUALE)
                 .monthlyCreditsPT(8).monthlyCreditsNutri(4).build();
-        RegisterRequest req = new RegisterRequest();
-        req.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+        RegisterRequest req = new RegisterRequest(null, null, null, null, null, null, null, null, PaymentFrequency.UNICA_SOLUZIONE);
 
         Subscription sub = mapper.toSubscription(req, user, plan);
 
@@ -43,11 +42,10 @@ class SubscriptionMapperTest {
     @Test
     @DisplayName("toSubscription — rate mensili semestrali")
     void toSubscription_rateMensili() {
-        User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).build();
+        User user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).build();
         Plan plan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(2L).duration(PlanDuration.SEMESTRALE)
                 .monthlyCreditsPT(4).monthlyCreditsNutri(2).build();
-        RegisterRequest req = new RegisterRequest();
-        req.setPaymentFrequency(PaymentFrequency.RATE_MENSILI);
+        RegisterRequest req = new RegisterRequest(null, null, null, null, null, null, null, null, PaymentFrequency.RATE_MENSILI);
 
         Subscription sub = mapper.toSubscription(req, user, plan);
 
@@ -59,9 +57,10 @@ class SubscriptionMapperTest {
     @Test
     @DisplayName("toSubscription — null input restituisce null")
     void toSubscription_nullInputs() {
-        assertThat(mapper.toSubscription(null, User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).build(), Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).build())).isNull();
-        assertThat(mapper.toSubscription(new RegisterRequest(), null, Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).build())).isNull();
-        assertThat(mapper.toSubscription(new RegisterRequest(), User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).build(), null)).isNull();
+        RegisterRequest emptyReq = new RegisterRequest(null, null, null, null, null, null, null, null, null);
+        assertThat(mapper.toSubscription(null, User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).build(), Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).build())).isNull();
+        assertThat(mapper.toSubscription(emptyReq, null, Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).build())).isNull();
+        assertThat(mapper.toSubscription(emptyReq, User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).build(), null)).isNull();
     }
 }
 

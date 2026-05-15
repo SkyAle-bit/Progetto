@@ -5,6 +5,7 @@ import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.PlanResponseDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
+import com.project.tesi.dto.response.stats.AdminStatsResponse;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
@@ -98,7 +99,8 @@ class AdminFacadeTest {
     @Test
     @DisplayName("getAdminStats")
     void getAdminStats() {
-        Map<String, Object> stats = Map.of("totalUsers", 50);
+        AdminStatsResponse stats = new AdminStatsResponse(
+                Map.of(), 50, List.of(), List.of(), 0L, 0L, null, 0.0, 0.0, 0L, 0L, List.of());
         when(adminStatsService.getAdminStats()).thenReturn(stats);
 
         assertThat(adminFacade.getAdminStats()).isEqualTo(stats);

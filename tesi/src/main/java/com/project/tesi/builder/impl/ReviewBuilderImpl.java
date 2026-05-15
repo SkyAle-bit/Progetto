@@ -49,10 +49,15 @@ public class ReviewBuilderImpl implements ReviewBuilder {
     }
 
     @Override
-    // Valida la presenza di recensore, recensito e voto.
     public Review build() {
         Objects.requireNonNull(this.client, "client è obbligatorio");
         Objects.requireNonNull(this.professional, "professional è obbligatorio");
+
+        if (this.rating < 1 || this.rating > 5)
+            throw new IllegalArgumentException("rating deve essere compreso tra 1 e 5, valore ricevuto: " + this.rating);
+        if (this.client.getId() != null && this.professional.getId() != null
+                && this.client.getId().equals(this.professional.getId()))
+            throw new IllegalStateException("client e professional non possono essere lo stesso utente");
 
         Review obj = new Review();
         obj.setId(this.id);

@@ -1,13 +1,12 @@
 package com.project.tesi.controller;
 
-import com.project.tesi.facade.IAdminFacade;
+import com.project.tesi.dto.response.stats.AdminStatsResponse;
+import com.project.tesi.facade.AdminFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 /**
  * Endpoint REST per le statistiche admin. Aggrega i dati globali della piattaforma.
@@ -17,11 +16,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminStatsController {
 
-    private final IAdminFacade adminFacade;
+    private final AdminFacade adminFacade;
 
     /** Restituisce tutte le statistiche aggregate per la dashboard admin. */
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getStats() {
+    public ResponseEntity<AdminStatsResponse> getStats() {
         return ResponseEntity.ok(adminFacade.getAdminStats());
     }
 }

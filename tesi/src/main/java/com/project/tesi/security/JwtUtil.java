@@ -5,24 +5,22 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.Map;
 import java.util.function.Function;
-import jakarta.annotation.PostConstruct;
 
-/**
- * Utility per la gestione dei token JWT.
- * 
- * Genera, valida e fa il parsing dei token. Usiamo HMAC-SHA256 per la firma.
- * La secret key e la durata vengono caricate dal file di properties, quindi 
- * occhio a non mettere chiavi di produzione nel repository!
- */
 @Component
 public class JwtUtil {
+
+    private static final String PURPOSE_CLAIM = "purpose";
+    private static final String PURPOSE_PASSWORD_RESET = "PASSWORD_RESET";
+    private static final long PASSWORD_RESET_EXPIRATION_MS = 30 * 60 * 1000L;
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -32,8 +30,6 @@ public class JwtUtil {
 
     @PostConstruct
     public void validateSecret() {
-        // Controllo fail-fast: se la secret non è configurata, blocchiamo l'avvio 
-        // subito invece di far fallire le richieste di login a runtime.
         if (secretKey == null || secretKey.isBlank()) {
             throw new IllegalStateException(
                 "JWT_SECRET non configurata. " +
@@ -42,7 +38,6 @@ public class JwtUtil {
         }
     }
 
-    // Decodifica il token e recupera l'email dell'utente
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -52,7 +47,6 @@ public class JwtUtil {
         return claimsResolver.apply(claims);
     }
 
-    // Crea un nuovo JWT usando l'email come subject e firmandolo con la nostra secret
     public String generateToken(UserDetails userDetails) {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
@@ -62,8 +56,25 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Controlliamo due cose: che il token non sia scaduto e che il subject sia effettivamente 
-    // l'utente che sta cercando di usarlo
+    public String generatePasswordResetToken(String email) {
+        return Jwts.builder()
+                .setClaims(Map.of(PURPOSE_CLAIM, PURPOSE_PASSWORD_RESET))
+                .setSubject(email)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + PASSWORD_RESET_EXPIRATION_MS))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String validatePasswordResetToken(String token) {
+        Claims claims = extractAllClaims(token);
+        String purpose = claims.get(PURPOSE_CLAIM, String.class);
+        if (!PURPOSE_PASSWORD_RESET.equals(purpose)) {
+            throw new IllegalArgumentException("Token non valido per il reset della password.");
+        }
+        return claims.getSubject();
+    }
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);

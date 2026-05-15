@@ -95,12 +95,12 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    @Async
+    @Async("emailTaskExecutor")
     public void sendEmailAsync(JobApplicationRequest request, byte[] cvBytes, String cvFileName,
             String cvContentType) {
         try {
-            String roleName = "PERSONAL_TRAINER".equals(request.getRole()) ? "Personal Trainer" : "Nutrizionista";
-            String subject = "Nuova Candidatura — " + request.getFirstName() + " " + request.getLastName() + " — "
+            String roleName = "PERSONAL_TRAINER".equals(request.role()) ? "Personal Trainer" : "Nutrizionista";
+            String subject = "Nuova Candidatura — " + request.firstName() + " " + request.lastName() + " — "
                     + roleName;
             String htmlBody = buildHtmlBody(request, roleName);
 
@@ -134,13 +134,13 @@ public class EmailServiceImpl implements EmailService {
                 + "<table style=\"width: 100%; border-collapse: collapse;\">"
                 + "<tr><td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #495057; width: 140px;\">Nome</td>"
                 + "<td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;\">"
-                + request.getFirstName() + "</td></tr>"
+                + request.firstName() + "</td></tr>"
                 + "<tr><td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #495057;\">Cognome</td>"
                 + "<td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;\">"
-                + request.getLastName() + "</td></tr>"
+                + request.lastName() + "</td></tr>"
                 + "<tr><td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #495057;\">Email</td>"
                 + "<td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;\"><a href=\"mailto:"
-                + request.getEmail() + "\" style=\"color: #1a3462;\">" + request.getEmail() + "</a></td></tr>"
+                + request.email() + "\" style=\"color: #1a3462;\">" + request.email() + "</a></td></tr>"
                 + "<tr><td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #495057;\">Ruolo richiesto</td>"
                 + "<td style=\"padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;\"><span style=\"background: #c9a96e; color: #1a3462; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px;\">"
                 + roleName + "</span></td></tr>"
@@ -148,7 +148,7 @@ public class EmailServiceImpl implements EmailService {
                 + "<div style=\"margin-top: 24px; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e9ecef;\">"
                 + "<h3 style=\"margin: 0 0 12px; color: #495057; font-size: 15px;\">&#128221; Messaggio Motivazionale</h3>"
                 + "<p style=\"margin: 0; color: #212529; line-height: 1.6; white-space: pre-wrap;\">"
-                + request.getMessage() + "</p>"
+                + request.message() + "</p>"
                 + "</div></div>"
                 + "<div style=\"background: #e9ecef; padding: 16px; text-align: center; font-size: 13px; color: #6c757d;\">"
                 + "Email generata automaticamente da Naval Gold Platform"
@@ -160,7 +160,7 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
-    @Async
+    @Async("emailTaskExecutor")
     public void sendWelcomeEmail(String toEmail, String firstName) {
         try {
             validateRecipient(toEmail);
@@ -198,6 +198,7 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
+    @Async("emailTaskExecutor")
     public void sendBookingReminderEmail(String toEmail, String recipientName, String otherPartyName,
                                           LocalDateTime startTime, String meetingLink, boolean isForClient) {
         validateRecipient(toEmail);
@@ -246,7 +247,7 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
-    @Async
+    @Async("emailTaskExecutor")
     public void sendBookingConfirmationEmail(String toEmail, String recipientName, String otherPartyName,
                                           LocalDateTime startTime, String meetingLink) {
         try {
@@ -273,7 +274,7 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
-    @Async
+    @Async("emailTaskExecutor")
     public void sendBookingCancellationEmail(String toEmail, String recipientName, String otherPartyName,
                                           LocalDateTime startTime) {
         try {
@@ -300,7 +301,7 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
-    @Async
+    @Async("emailTaskExecutor")
     public void sendPasswordResetEmail(String toEmail, String firstName, String resetToken) {
         try {
             validateRecipient(toEmail);
@@ -340,7 +341,7 @@ public class EmailServiceImpl implements EmailService {
     // ══════════════════════════════════════════════════════════════
 
     @Override
-    @Async
+    @Async("emailTaskExecutor")
     public void sendPasswordChangeEmail(String toEmail, String firstName) {
         try {
             validateRecipient(toEmail);

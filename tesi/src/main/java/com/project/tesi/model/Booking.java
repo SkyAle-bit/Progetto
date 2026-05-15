@@ -1,48 +1,35 @@
 package com.project.tesi.model;
 
+import com.project.tesi.builder.BookingBuilder;
+import com.project.tesi.builder.impl.BookingBuilderImpl;
 import com.project.tesi.enums.BookingStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.Version;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
-/**
- * Entità Prenotazione — rappresenta un appuntamento prenotato da un cliente
- * con un professionista (PT o Nutrizionista).
- *
- * Ogni prenotazione è legata a uno {@link Slot} di 30 minuti e contiene
- * un link Jitsi Meet generato automaticamente per la videochiamata.
- *
- * La relazione Slot ↔ Booking è 1:1 (uno slot può avere al massimo
- * una prenotazione, vincolo {@code unique = true}).
- */
-/**
- * Entità Booking.
- * Relazioni: ManyToOne con User (il cliente), Professional (il professionista) e Slot (la finestra temporale).
- * Nessun Cascade qui: se cancelli una prenotazione, non devi cancellare gli utenti o lo slot.
- */
 @Entity
 @Table(name = "bookings")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = {"user", "professional", "slot"})
 public class Booking {
@@ -52,16 +39,19 @@ public class Booking {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @Version
+    private Integer version;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_booking_user_id"))
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "professional_id")
+    @JoinColumn(name = "professional_id", foreignKey = @ForeignKey(name = "fk_booking_professional_id"))
     private User professional;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "slot_id", nullable = false)
+    @JoinColumn(name = "slot_id", nullable = false, foreignKey = @ForeignKey(name = "fk_booking_slot_id"))
     private Slot slot;
 
     @Enumerated(EnumType.STRING)
@@ -75,8 +65,7 @@ public class Booking {
 
     private boolean reminderSent = false;
 
-    public static com.project.tesi.builder.BookingBuilder builder() {
-        return new com.project.tesi.builder.impl.BookingBuilderImpl();
+    public static BookingBuilder builder() {
+        return new BookingBuilderImpl();
     }
-
 }

@@ -1,9 +1,9 @@
 package com.project.tesi.service;
 
+import com.project.tesi.dto.response.ActivityFeedItemResponse;
 import com.project.tesi.model.Booking;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Interfaccia del servizio per il feed delle attività recenti.
@@ -20,7 +20,7 @@ public interface ActivityFeedService {
      * @param limit  numero massimo di attività
      * @return lista di attività ordinate dalla più recente
      */
-    List<Map<String, Object>> getActivityFeed(Long userId, int days, int limit);
+    List<ActivityFeedItemResponse> getActivityFeed(Long userId, int days, int limit);
 
     /**
      * Registra nel layer di persistenza la creazione di una nuova prenotazione.

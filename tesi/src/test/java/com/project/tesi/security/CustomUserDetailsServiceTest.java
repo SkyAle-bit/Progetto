@@ -31,28 +31,28 @@ class CustomUserDetailsServiceTest {
     @Test
     @DisplayName("loadUserByUsername — utente trovato restituisce UserDetails corretto")
     void loadUserByUsername_success() {
-        User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("mario@test.com")
-                .password("hashed").role(Role.CLIENT).build();
+        User user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("mario@test.com")
+                .password("testpass").role(Role.CLIENT).build();
         when(userRepository.findByEmail("mario@test.com")).thenReturn(Optional.of(user));
 
         UserDetails details = userDetailsService.loadUserByUsername("mario@test.com");
 
         assertThat(details.getUsername()).isEqualTo("mario@test.com");
-        assertThat(details.getPassword()).isEqualTo("hashed");
+        assertThat(details.getPassword()).isEqualTo("testpass");
         assertThat(details.getAuthorities()).hasSize(1);
-        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("CLIENT");
+        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("ROLE_CLIENT");
     }
 
     @Test
     @DisplayName("loadUserByUsername — utente PT restituisce ROLE_PERSONAL_TRAINER")
     void loadUserByUsername_pt() {
-        User user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("pt@test.com")
-                .password("hashed").role(Role.PERSONAL_TRAINER).build();
+        User user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(2L).email("pt@test.com")
+                .password("testpass").role(Role.PERSONAL_TRAINER).build();
         when(userRepository.findByEmail("pt@test.com")).thenReturn(Optional.of(user));
 
         UserDetails details = userDetailsService.loadUserByUsername("pt@test.com");
 
-        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("PERSONAL_TRAINER");
+        assertThat(details.getAuthorities().iterator().next().getAuthority()).isEqualTo("ROLE_PERSONAL_TRAINER");
     }
 
     @Test

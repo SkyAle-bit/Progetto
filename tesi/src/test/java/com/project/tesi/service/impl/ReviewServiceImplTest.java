@@ -8,6 +8,7 @@ import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.exception.review.ReviewNotAllowedException;
 import com.project.tesi.model.Review;
 import com.project.tesi.model.User;
+import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,14 +27,12 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Test unitari per {@link ReviewServiceImpl}.
- */
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceImplTest {
 
     @Mock private ReviewRepository reviewRepository;
     @Mock private UserRepository userRepository;
+    @Mock private BookingRepository bookingRepository;
 
     @InjectMocks
     private ReviewServiceImpl reviewService;
@@ -44,31 +43,24 @@ class ReviewServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        professional = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
-
-        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
+        professional = User.builder().email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        client = User.builder().email("mario@test.com").password("testpass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
                 .assignedPT(professional).createdAt(LocalDateTime.now().minusMonths(2)).build();
-
-        reviewRequest = new ReviewRequest();
-        reviewRequest.setUserId(1L);
-        reviewRequest.setProfessionalId(2L);
-        reviewRequest.setRating(5);
-        reviewRequest.setComment("Ottimo professionista!");
+        reviewRequest = new ReviewRequest(2L, 5, "Ottimo professionista!");
     }
 
-    @Test
-    @DisplayName("addReview — recensione aggiunta con successo")
+    @Test @DisplayName("addReview — recensione aggiunta con successo (cliente assegnato)")
     void addReview_success() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
         when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(bookingRepository.existsByUserIdAndProfessionalId(1L, 2L)).thenReturn(false);
 
         Review savedReview = Review.builder().id(1L).client(client).professional(professional)
-                .rating(5).comment("Ottimo professionista!")
-                .createdAt(LocalDateTime.now()).build();
+                .rating(5).comment("Ottimo professionista!").createdAt(LocalDateTime.now()).build();
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
 
-        ReviewResponse response = reviewService.addReview(reviewRequest);
+        ReviewResponse response = reviewService.addReview(reviewRequest, 1L);
 
         assertThat(response).isNotNull();
         assertThat(response.getRating()).isEqualTo(5);
@@ -76,66 +68,61 @@ class ReviewServiceImplTest {
         verify(reviewRepository).save(any(Review.class));
     }
 
-    @Test
-    @DisplayName("addReview — utente non trovato lancia ResourceNotFoundException")
+    @Test @DisplayName("addReview — recensione aggiunta con successo tramite storico prenotazioni")
+    void addReview_successViaBookingHistory() {
+        User unassignedClient = User.builder().email("x@x.com").password("testpass").role(Role.CLIENT)
+                .id(1L).firstName("Mario").lastName("Rossi").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(unassignedClient));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
+        when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(bookingRepository.existsByUserIdAndProfessionalId(1L, 2L)).thenReturn(true);
+
+        Review savedReview = Review.builder().id(1L).client(unassignedClient).professional(professional)
+                .rating(4).comment("Bravo").createdAt(LocalDateTime.now()).build();
+        when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
+
+        ReviewResponse response = reviewService.addReview(reviewRequest, 1L);
+        assertThat(response.getRating()).isEqualTo(4);
+    }
+
+    @Test @DisplayName("addReview — utente non trovato lancia ResourceNotFoundException")
     void addReview_userNotFound() {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> reviewService.addReview(reviewRequest))
+        assertThatThrownBy(() -> reviewService.addReview(reviewRequest, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    @Test
-    @DisplayName("addReview — professionista non trovato lancia ResourceNotFoundException")
+    @Test @DisplayName("addReview — professionista non trovato lancia ResourceNotFoundException")
     void addReview_professionalNotFound() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> reviewService.addReview(reviewRequest))
+        assertThatThrownBy(() -> reviewService.addReview(reviewRequest, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    @Test
-    @DisplayName("addReview — recensione duplicata lancia ResourceAlreadyExistsException")
+    @Test @DisplayName("addReview — recensione duplicata lancia ResourceAlreadyExistsException")
     void addReview_alreadyExists() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
         when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(true);
-
-        assertThatThrownBy(() -> reviewService.addReview(reviewRequest))
+        assertThatThrownBy(() -> reviewService.addReview(reviewRequest, 1L))
                 .isInstanceOf(ResourceAlreadyExistsException.class);
     }
 
-    @Test
-    @DisplayName("addReview — registrazione troppo recente lancia ReviewNotAllowedException")
-    void addReview_tooEarly() {
-        User recentClient = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario")
-                .assignedPT(professional).createdAt(LocalDateTime.now().minusDays(10)).build();
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(recentClient));
+    @Test @DisplayName("addReview — nessuna relazione formale lancia ReviewNotAllowedException")
+    void addReview_noFormalRelationship() {
+        User unassignedClient = User.builder().email("x@x.com").password("testpass").role(Role.CLIENT)
+                .id(1L).firstName("Mario").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(unassignedClient));
         when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(bookingRepository.existsByUserIdAndProfessionalId(1L, 2L)).thenReturn(false);
 
-        assertThatThrownBy(() -> reviewService.addReview(reviewRequest))
+        assertThatThrownBy(() -> reviewService.addReview(reviewRequest, 1L))
                 .isInstanceOf(ReviewNotAllowedException.class);
     }
 
-    @Test
-    @DisplayName("addReview — createdAt null lancia ReviewNotAllowedException")
-    void addReview_createdAtNull() {
-        User nullCreatedClient = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario")
-                .assignedPT(professional).createdAt(null).build();
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(nullCreatedClient));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
-        when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
-
-        assertThatThrownBy(() -> reviewService.addReview(reviewRequest))
-                .isInstanceOf(ReviewNotAllowedException.class);
-    }
-
-    @Test
-    @DisplayName("getReviewsForProfessional — restituisce lista recensioni")
+    @Test @DisplayName("getReviewsForProfessional — restituisce lista recensioni")
     void getReviewsForProfessional_success() {
         Review r = Review.builder().id(1L).client(client).professional(professional)
                 .rating(4).comment("Bravo").createdAt(LocalDateTime.now()).build();
@@ -143,60 +130,54 @@ class ReviewServiceImplTest {
         when(reviewRepository.findByProfessional(professional)).thenReturn(List.of(r));
 
         List<ReviewResponse> result = reviewService.getReviewsForProfessional(2L);
-
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getRating()).isEqualTo(4);
     }
 
-    @Test
-    @DisplayName("getReviewsForProfessional — professionista non trovato")
+    @Test @DisplayName("getReviewsForProfessional — professionista non trovato")
     void getReviewsForProfessional_notFound() {
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> reviewService.getReviewsForProfessional(999L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    @Test
-    @DisplayName("canClientReview — true quando registrazione > 1 mese e non ha ancora recensito")
-    void canClientReview_true() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(client));
+    @Test @DisplayName("canClientReview — true quando cliente è assegnato al professionista")
+    void canClientReview_trueViaAssignment() {
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(bookingRepository.existsByUserIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(client));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
 
         assertThat(reviewService.canClientReview(1L, 2L)).isTrue();
     }
 
-    @Test
-    @DisplayName("canClientReview — false quando ha già recensito")
+    @Test @DisplayName("canClientReview — true tramite storico prenotazioni")
+    void canClientReview_trueViaBookings() {
+        when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(bookingRepository.existsByUserIdAndProfessionalId(1L, 2L)).thenReturn(true);
+
+        assertThat(reviewService.canClientReview(1L, 2L)).isTrue();
+    }
+
+    @Test @DisplayName("canClientReview — false quando ha già recensito")
     void canClientReview_alreadyReviewed() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(client));
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(true);
-
         assertThat(reviewService.canClientReview(1L, 2L)).isFalse();
     }
 
-    @Test
-    @DisplayName("canClientReview — false quando registrazione < 1 mese")
-    void canClientReview_tooRecent() {
-        User recent = User.builder().email("x@x.com").password("x").role(Role.CLIENT).id(1L).assignedPT(professional).createdAt(LocalDateTime.now().minusDays(5)).build();
-        when(userRepository.findById(1L)).thenReturn(Optional.of(recent));
+    @Test @DisplayName("canClientReview — false senza prenotazioni né assegnazione")
+    void canClientReview_noRelationship() {
+        User unassignedClient = User.builder().email("x@x.com").password("testpass").role(Role.CLIENT)
+                .id(1L).build();
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(bookingRepository.existsByUserIdAndProfessionalId(1L, 2L)).thenReturn(false);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(unassignedClient));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(professional));
 
         assertThat(reviewService.canClientReview(1L, 2L)).isFalse();
     }
 
-    @Test
-    @DisplayName("canClientReview — false quando createdAt null")
-    void canClientReview_createdAtNull() {
-        User nullDate = User.builder().email("x@x.com").password("x").role(Role.CLIENT).id(1L).assignedPT(professional).createdAt(null).build();
-        when(userRepository.findById(1L)).thenReturn(Optional.of(nullDate));
-        when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(false);
-
-        assertThat(reviewService.canClientReview(1L, 2L)).isFalse();
-    }
-
-    @Test
-    @DisplayName("hasClientReviewed — delega al repository")
+    @Test @DisplayName("hasClientReviewed — delega al repository")
     void hasClientReviewed() {
         when(reviewRepository.existsByClientIdAndProfessionalId(1L, 2L)).thenReturn(true);
         assertThat(reviewService.hasClientReviewed(1L, 2L)).isTrue();
@@ -205,4 +186,3 @@ class ReviewServiceImplTest {
         assertThat(reviewService.hasClientReviewed(1L, 3L)).isFalse();
     }
 }
-

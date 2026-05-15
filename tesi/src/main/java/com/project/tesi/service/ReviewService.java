@@ -11,7 +11,7 @@ import java.util.List;
 public interface ReviewService {
 
     /** Il cliente lascia una recensione a un professionista. */
-    ReviewResponse addReview(ReviewRequest request);
+    ReviewResponse addReview(ReviewRequest request, Long userId);
 
     /** Restituisce tutte le recensioni ricevute da un professionista. */
     List<ReviewResponse> getReviewsForProfessional(Long professionalId);

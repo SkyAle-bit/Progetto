@@ -46,7 +46,7 @@ class SubscriptionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        user = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("x@x.com").password("x").role(com.project.tesi.enums.Role.CLIENT).firstName("Mario").lastName("Rossi").build();
+        user = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).email("x@x.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).firstName("Mario").lastName("Rossi").build();
 
         annualPlan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).name("Premium Annuale")
                 .duration(PlanDuration.ANNUALE)
@@ -62,10 +62,7 @@ class SubscriptionServiceImplTest {
     @Test
     @DisplayName("activateSubscription — piano annuale con unica soluzione")
     void activateSubscription_annualUnicaSoluzione() {
-        PlanRequest request = new PlanRequest();
-        request.setUserId(1L);
-        request.setPlanId(1L);
-        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+        PlanRequest request = new PlanRequest(1L, PaymentFrequency.UNICA_SOLUZIONE);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(planRepository.findById(1L)).thenReturn(Optional.of(annualPlan));
@@ -76,7 +73,7 @@ class SubscriptionServiceImplTest {
             return s;
         });
 
-        SubscriptionResponse response = subscriptionService.activateSubscription(request);
+        SubscriptionResponse response = subscriptionService.activateSubscription(request, 1L);
 
         assertThat(response).isNotNull();
         assertThat(response.getPlanName()).isEqualTo("Premium Annuale");
@@ -88,10 +85,7 @@ class SubscriptionServiceImplTest {
     @Test
     @DisplayName("activateSubscription — piano semestrale con rate mensili")
     void activateSubscription_semestralRate() {
-        PlanRequest request = new PlanRequest();
-        request.setUserId(1L);
-        request.setPlanId(2L);
-        request.setPaymentFrequency(PaymentFrequency.RATE_MENSILI);
+        PlanRequest request = new PlanRequest(2L, PaymentFrequency.RATE_MENSILI);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(planRepository.findById(2L)).thenReturn(Optional.of(semestralPlan));
@@ -102,7 +96,7 @@ class SubscriptionServiceImplTest {
             return s;
         });
 
-        SubscriptionResponse response = subscriptionService.activateSubscription(request);
+        SubscriptionResponse response = subscriptionService.activateSubscription(request, 1L);
 
         assertThat(response).isNotNull();
         assertThat(response.getPlanName()).isEqualTo("Base Semestrale");
@@ -111,10 +105,7 @@ class SubscriptionServiceImplTest {
     @Test
     @DisplayName("activateSubscription — disattiva abbonamento precedente")
     void activateSubscription_deactivatesPrevious() {
-        PlanRequest request = new PlanRequest();
-        request.setUserId(1L);
-        request.setPlanId(1L);
-        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+        PlanRequest request = new PlanRequest(1L, PaymentFrequency.UNICA_SOLUZIONE);
 
         Subscription existingSub = Subscription.builder().user(new com.project.tesi.model.User()).plan(new com.project.tesi.model.Plan()).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE).id(50L).user(user).plan(annualPlan).paymentFrequency(PaymentFrequency.UNICA_SOLUZIONE).active(true).build();
 
@@ -127,7 +118,7 @@ class SubscriptionServiceImplTest {
             return s;
         });
 
-        subscriptionService.activateSubscription(request);
+        subscriptionService.activateSubscription(request, 1L);
 
         assertThat(existingSub.isActive()).isFalse();
         verify(subscriptionRepository, atLeast(2)).save(any());
@@ -136,29 +127,23 @@ class SubscriptionServiceImplTest {
     @Test
     @DisplayName("activateSubscription — utente non trovato")
     void activateSubscription_userNotFound() {
-        PlanRequest request = new PlanRequest();
-        request.setUserId(999L);
-        request.setPlanId(1L);
-        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+        PlanRequest request = new PlanRequest(1L, PaymentFrequency.UNICA_SOLUZIONE);
 
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> subscriptionService.activateSubscription(request))
+        assertThatThrownBy(() -> subscriptionService.activateSubscription(request, 999L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("activateSubscription — piano non trovato")
     void activateSubscription_planNotFound() {
-        PlanRequest request = new PlanRequest();
-        request.setUserId(1L);
-        request.setPlanId(999L);
-        request.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+        PlanRequest request = new PlanRequest(999L, PaymentFrequency.UNICA_SOLUZIONE);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(planRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> subscriptionService.activateSubscription(request))
+        assertThatThrownBy(() -> subscriptionService.activateSubscription(request, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

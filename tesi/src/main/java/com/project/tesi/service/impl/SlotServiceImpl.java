@@ -55,7 +55,7 @@ public class SlotServiceImpl implements SlotService {
                     .startTime(dto.getStartTime())
                     .endTime(dto.getEndTime())
                     .professional(professional)
-                    .isBooked(false)
+                    .bookedBy(null)
                     .build();
             slotsToSave.add(slot);
         }
@@ -109,7 +109,7 @@ public class SlotServiceImpl implements SlotService {
                                 .professional(professional)
                                 .startTime(startSlot)
                                 .endTime(endSlot)
-                                .isBooked(false)
+                                .bookedBy(null)
                                 .build());
                     }
 
@@ -129,7 +129,7 @@ public class SlotServiceImpl implements SlotService {
         User professional = userRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
-        return slotRepository.findByProfessionalAndIsBookedFalse(professional).stream()
+        return slotRepository.findByProfessionalAndBookedByIsNull(professional).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -145,7 +145,7 @@ public class SlotServiceImpl implements SlotService {
                 .id(slot.getId())
                 .startTime(slot.getStartTime())
                 .endTime(slot.getEndTime())
-                .isAvailable(!slot.isBooked())
+                .isAvailable(slot.getBookedBy() == null)
                 .professionalId(slot.getProfessional().getId())
                 .build();
     }

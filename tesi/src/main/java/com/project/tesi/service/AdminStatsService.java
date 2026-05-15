@@ -1,6 +1,6 @@
 package com.project.tesi.service;
 
-import java.util.Map;
+import com.project.tesi.dto.response.stats.AdminStatsResponse;
 
 /**
  * Interfaccia del servizio per le statistiche del pannello Admin.
@@ -9,5 +9,5 @@ import java.util.Map;
 public interface AdminStatsService {
 
     /** Restituisce tutte le statistiche aggregate per la dashboard admin. */
-    Map<String, Object> getAdminStats();
+    AdminStatsResponse getAdminStats();
 }

@@ -42,34 +42,21 @@ public class DatabaseInitializerService {
         private final MessageRepository messageRepository;
         private final ChatRepository chatRepository;
         private final DocumentRepository documentRepository;
-        private final PasswordResetTokenRepository passwordResetTokenRepository;
         private final PasswordEncoder passwordEncoder;
         private final EntityManager entityManager;
         private final JdbcTemplate jdbcTemplate;
         private final BookingDirector bookingDirector;
 
-        /**
-         * Inizializza il database con dati di test.
-         * 
-         * <b>Nota Architetturale sul Pattern Builder:</b>
-         * All'interno di questo servizio di popolamento (ad es. per storicizzare prenotazioni COMPLETED),
-         * viene intenzionalmente bypassato il {@code BookingDirector} per istanziare direttamente le 
-         * entità tramite il builder "nudo". Questa è una scelta voluta per l'infrastruttura di mock/test,
-         * in quanto permette di iniettare stati arbitrari non previsti dal normale ciclo di vita 
-         * incapsulato dal Director (che impone regole rigide di business, come lo stato CONFIRMED).
-         */
         @Transactional
         public void initialize() {
                 dropLegacySlotIdUniqueConstraint();
                 ensureUsersRoleCheckSupportsModerator();
 
-                // Rimuovi tabella legacy "chat_messages" se presente per evitare violazioni di FK
                 try {
                         jdbcTemplate.execute("DROP TABLE IF EXISTS chat_messages CASCADE");
                 } catch (Exception ignored) {
                 }
 
-                // Svuota tutte le tabelle nell'ordine corretto (rispetta le FK)
                 messageRepository.deleteAllInBatch();
                 chatRepository.deleteAllInBatch();
                 bookingRepository.deleteAllInBatch();
@@ -78,7 +65,6 @@ public class DatabaseInitializerService {
                 reviewRepository.deleteAllInBatch();
                 subscriptionRepository.deleteAllInBatch();
                 documentRepository.deleteAllInBatch();
-                passwordResetTokenRepository.deleteAllInBatch();
                 userRepository.deleteAllInBatch();
                 planRepository.deleteAllInBatch();
                 entityManager.flush();
@@ -109,17 +95,14 @@ public class DatabaseInitializerService {
                 User c3 = createUser("Matteo", "Galli", "matteo@test.com", Role.CLIENT, null, pt2, nut1);
                 User c4 = createUser("Chiara", "Fontana", "chiara@test.com", Role.CLIENT, null, pt2, nut2);
 
-                // Cliente TEST per recensioni (createdAt = 40 giorni fa)
                 User cTest = createUser("Test", "Recensore", "testreview@test.com", Role.CLIENT, null, pt1, nut1);
                 jdbcTemplate.update(
                                 "UPDATE users SET created_at = ? WHERE id = ?",
                                 java.sql.Timestamp.valueOf(java.time.LocalDateTime.now().minusDays(40)),
                                 cTest.getId());
-                // Abbonamento per il cliente test
                 Plan basicSTest = planRepository.findByName("Basic Pack Semestrale").orElseThrow();
                 createSubscription(cTest, basicSTest, PaymentFrequency.UNICA_SOLUZIONE);
 
-                // Admin e Insurance Manager
                 createUser("Admin", "Sistema", "admin@test.com", Role.ADMIN, null, null, null);
                 createUser("Paolo", "Assicurazioni", "insurance@test.com", Role.INSURANCE_MANAGER, null, null, null);
                 createUser("Marta", "Moderatrice", "moderator1@test.com", Role.MODERATOR, null, null, null);
@@ -132,7 +115,6 @@ public class DatabaseInitializerService {
                 for (int i = 0; i < clients.length; i++) {
                         createSubscription(clients[i], plans[i % 4], freqs[i % 2]);
                 }
-
 
                 createWeeklySchedule(pt1, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(13, 0));
                 createWeeklySchedule(pt1, DayOfWeek.WEDNESDAY, LocalTime.of(15, 0), LocalTime.of(19, 0));
@@ -154,29 +136,25 @@ public class DatabaseInitializerService {
                 for (User pro : pros)
                         generateSlotsForProfessional(pro, start, end);
 
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt1), 0, c1, pt1, true);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt1), 1, c2, pt1, true);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt2), 0, c3, pt2, true);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(pt2), 1, c4, pt2, true);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(nut1), 0, c1, nut1, false);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(nut1), 1, c3, nut1, false);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(nut2), 0, c2, nut2, false);
-                bookSlot(slotRepository.findByProfessionalAndIsBookedFalse(nut2), 1, c4, nut2, false);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(pt1), 0, c1, pt1, true);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(pt1), 1, c2, pt1, true);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(pt2), 0, c3, pt2, true);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(pt2), 1, c4, pt2, true);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(nut1), 0, c1, nut1, false);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(nut1), 1, c3, nut1, false);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(nut2), 0, c2, nut2, false);
+                bookSlot(slotRepository.findByProfessionalAndBookedByIsNull(nut2), 1, c4, nut2, false);
 
-                // Prenotazione passata (COMPLETED)
                 LocalDateTime pastTime = LocalDateTime.now().minusDays(2).withHour(10).withMinute(0);
                 Slot pastSlot = slotRepository.save(Slot.builder().professional(pt1)
-                                .startTime(pastTime).endTime(pastTime.plusMinutes(30)).isBooked(true).build());
+                                .startTime(pastTime).endTime(pastTime.plusMinutes(30)).bookedBy(c4).build());
 
                 String pastLink = "https://meet.jit.si/SkyAle_Consulto_" + c4.getId() + "_" + pt1.getId() + "_"
                                 + UUID.randomUUID().toString().substring(0, 8);
 
                 bookingRepository.save(Booking.builder().user(c4).professional(pt1).slot(pastSlot)
                                 .meetingLink(pastLink).status(BookingStatus.COMPLETED).build());
-
         }
-
-        // --- METODI HELPER ---
 
         private void dropLegacySlotIdUniqueConstraint() {
                 try {
@@ -195,7 +173,6 @@ public class DatabaseInitializerService {
                                      "END $$;";
                         jdbcTemplate.execute(sql);
                 } catch (Exception ignored) {
-                        // Ignoriamo in caso di schema differente, H2, ecc.
                 }
         }
 
@@ -207,8 +184,6 @@ public class DatabaseInitializerService {
                                         "ALTER TABLE users ADD CONSTRAINT " + constraintName
                                                         + " CHECK (role IN ('CLIENT','PERSONAL_TRAINER','NUTRITIONIST','MODERATOR','INSURANCE_MANAGER','ADMIN'))");
                 } catch (Exception ignored) {
-                        // In ambienti senza tabella users o con schema differente ignoriamo il
-                        // tentativo.
                 }
         }
 
@@ -307,13 +282,11 @@ public class DatabaseInitializerService {
                                                         LocalDateTime slotStart = LocalDateTime.of(current, time);
                                                         if (!slotRepository.existsByProfessionalAndStartTime(pro,
                                                                         slotStart)) {
-                                                                Slot slot = Slot.builder()
+                                                                slotRepository.save(Slot.builder()
                                                                                 .professional(pro)
                                                                                 .startTime(slotStart)
                                                                                 .endTime(slotStart.plusMinutes(30))
-                                                                                .isBooked(false)
-                                                                                .build();
-                                                                slotRepository.save(slot);
+                                                                                .build());
                                                         }
                                                         time = time.plusMinutes(30);
                                                 }
@@ -325,7 +298,7 @@ public class DatabaseInitializerService {
                 if (freeSlots == null || freeSlots.size() <= index)
                         return;
                 Slot slot = freeSlots.get(index);
-                slot.setBooked(true);
+                slot.setBookedBy(client);
                 slotRepository.save(slot);
                 subscriptionRepository.findByUserAndActiveTrue(client).ifPresent(sub -> {
                         if (isPT) {

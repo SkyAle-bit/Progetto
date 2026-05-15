@@ -53,12 +53,12 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).build();
-        nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").email("nutri@test.com").password("pass").role(Role.NUTRITIONIST).build();
+        pt = User.builder().id(2L).firstName("Luca").lastName("Bianchi").email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+        nutri = User.builder().id(3L).firstName("Sara").lastName("Verdi").email("nutri@test.com").password("testpass").role(Role.NUTRITIONIST).build();
         client = User.builder().id(1L).firstName("Mario").lastName("Rossi").role(Role.CLIENT)
-                .email("mario@test.com").password("pass").assignedPT(pt).assignedNutritionist(nutri)
+                .email("mario@test.com").password("testpass").assignedPT(pt).assignedNutritionist(nutri)
                 .createdAt(LocalDateTime.now().minusMonths(2)).build();
-        admin = User.builder().id(99L).firstName("Admin").lastName("Admin").role(Role.ADMIN).password("pass").email("admin@test.com").build();
+        admin = User.builder().id(99L).firstName("Admin").lastName("Admin").role(Role.ADMIN).password("testpass").email("admin@test.com").build();
         plan = Plan.builder().id(1L).name("Premium").duration(PlanDuration.ANNUALE)
                 .monthlyCreditsPT(8).monthlyCreditsNutri(4).fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
     }
@@ -68,8 +68,7 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
         when(passwordEncoder.encode("newPass")).thenReturn("hashedPass");
 
-        ProfileUpdateRequest req = new ProfileUpdateRequest();
-        req.setFirstName("Marco"); req.setLastName("Bianchi"); req.setPassword("newPass");
+        ProfileUpdateRequest req = new ProfileUpdateRequest("Marco", "Bianchi", "newPass", null);
 
         userService.updateProfile(1L, req);
 
@@ -82,7 +81,7 @@ class UserServiceImplTest {
     @Test @DisplayName("updateProfile — campi null non aggiornano")
     void updateProfile_nullFields() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
-        ProfileUpdateRequest req = new ProfileUpdateRequest();
+        ProfileUpdateRequest req = new ProfileUpdateRequest(null, null, null, null);
         userService.updateProfile(1L, req);
         assertThat(client.getFirstName()).isEqualTo("Mario"); // non modificato
     }
@@ -90,19 +89,16 @@ class UserServiceImplTest {
     @Test @DisplayName("updateProfile — utente non trovato")
     void updateProfile_notFound() {
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> userService.updateProfile(999L, new ProfileUpdateRequest()))
+        assertThatThrownBy(() -> userService.updateProfile(999L, new ProfileUpdateRequest(null, null, null, null)))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test @DisplayName("registerUser — registrazione riuscita")
     void registerUser_success() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("new@test.com"); req.setFirstName("Nuovo"); req.setLastName("Utente");
-        req.setSelectedPtId(2L); req.setSelectedNutritionistId(3L);
-        req.setSelectedPlanId(1L); req.setPaymentFrequency(PaymentFrequency.UNICA_SOLUZIONE);
+        RegisterRequest req = new RegisterRequest("Nuovo", "Utente", "new@test.com", null, 2L, 3L, null, 1L, PaymentFrequency.UNICA_SOLUZIONE);
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        User newUser = User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build();
+        User newUser = User.builder().email("new@test.com").password("testpass").role(Role.CLIENT).build();
         when(userMapper.toUser(req)).thenReturn(newUser);
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(5L);
@@ -120,18 +116,16 @@ class UserServiceImplTest {
 
     @Test @DisplayName("registerUser — email già esistente")
     void registerUser_emailExists() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("mario@test.com");
+        RegisterRequest req = new RegisterRequest(null, null, "mario@test.com", null, null, null, null, null, null);
         when(userRepository.findByEmail("mario@test.com")).thenReturn(Optional.of(client));
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(ResourceAlreadyExistsException.class);
     }
 
     @Test @DisplayName("registerUser — PT soldout")
     void registerUser_ptSoldOut() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("new@test.com"); req.setSelectedPtId(2L); req.setSelectedNutritionistId(3L);
+        RegisterRequest req = new RegisterRequest(null, null, "new@test.com", null, 2L, 3L, null, null, null);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("testpass").role(Role.CLIENT).build());
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(50L); // SOLD OUT!
 
@@ -140,10 +134,9 @@ class UserServiceImplTest {
 
     @Test @DisplayName("registerUser — ptId null lancia IllegalArgument")
     void registerUser_ptIdNull() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("new@test.com"); req.setSelectedPtId(null); req.setSelectedNutritionistId(3L);
+        RegisterRequest req = new RegisterRequest(null, null, "new@test.com", null, null, 3L, null, null, null);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("testpass").role(Role.CLIENT).build());
 
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(IllegalArgumentException.class);
     }
@@ -241,8 +234,7 @@ class UserServiceImplTest {
     @Test @DisplayName("updateProfile — profilePicture valida viene aggiornata")
     void updateProfile_profilePicture() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
-        ProfileUpdateRequest req = new ProfileUpdateRequest();
-        req.setProfilePicture("https://example.com/photo.jpg");
+        ProfileUpdateRequest req = new ProfileUpdateRequest(null, null, null, "https://example.com/photo.jpg");
         userService.updateProfile(1L, req);
         assertThat(client.getProfilePicture()).isEqualTo("https://example.com/photo.jpg");
     }
@@ -250,20 +242,17 @@ class UserServiceImplTest {
     @Test @DisplayName("updateProfile — campi blank (spazi) non aggiornano")
     void updateProfile_blankFields() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
-        ProfileUpdateRequest req = new ProfileUpdateRequest();
-        req.setFirstName("   "); req.setLastName("   "); req.setPassword("   "); req.setProfilePicture("   ");
+        ProfileUpdateRequest req = new ProfileUpdateRequest("   ", "   ", "   ", "   ");
         userService.updateProfile(1L, req);
         assertThat(client.getFirstName()).isEqualTo("Mario"); // non cambiato
     }
 
     @Test @DisplayName("registerUser — senza piano non crea abbonamento")
     void registerUser_withoutPlan() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("new@test.com"); req.setSelectedPtId(2L); req.setSelectedNutritionistId(3L);
-        req.setSelectedPlanId(null); req.setPaymentFrequency(null); // senza piano
+        RegisterRequest req = new RegisterRequest(null, null, "new@test.com", null, 2L, 3L, null, null, null);
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        User newUser = User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build();
+        User newUser = User.builder().email("new@test.com").password("testpass").role(Role.CLIENT).build();
         when(userMapper.toUser(req)).thenReturn(newUser);
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(5L);
@@ -278,10 +267,9 @@ class UserServiceImplTest {
 
     @Test @DisplayName("registerUser — professionista con ruolo sbagliato lancia IllegalArgument")
     void registerUser_wrongProfessionalRole() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("new@test.com"); req.setSelectedPtId(3L); req.setSelectedNutritionistId(2L);
+        RegisterRequest req = new RegisterRequest(null, null, "new@test.com", null, 3L, 2L, null, null, null);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("testpass").role(Role.CLIENT).build());
         when(userRepository.findById(3L)).thenReturn(Optional.of(nutri)); // nutri al posto di PT!
 
         assertThatThrownBy(() -> userService.registerUser(req)).isInstanceOf(IllegalArgumentException.class);
@@ -289,10 +277,9 @@ class UserServiceImplTest {
 
     @Test @DisplayName("registerUser — nutrizionista sold out")
     void registerUser_nutriSoldOut() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("new@test.com"); req.setSelectedPtId(2L); req.setSelectedNutritionistId(3L);
+        RegisterRequest req = new RegisterRequest(null, null, "new@test.com", null, 2L, 3L, null, null, null);
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("pass").role(Role.CLIENT).build());
+        when(userMapper.toUser(req)).thenReturn(User.builder().email("new@test.com").password("testpass").role(Role.CLIENT).build());
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.countByAssignedPT(pt)).thenReturn(5L);
         when(userRepository.findById(3L)).thenReturn(Optional.of(nutri));
@@ -315,7 +302,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientDashboard — cliente senza PT assegnato")
     void getClientDashboard_noPT() {
         User clientNoPT = User.builder().id(10L).firstName("Anna").lastName("Neri")
-                .email("anna@test.com").password("pass")
+                .email("anna@test.com").password("testpass")
                 .role(Role.CLIENT).assignedPT(null).assignedNutritionist(nutri)
                 .createdAt(LocalDateTime.now()).build();
         when(userRepository.findById(10L)).thenReturn(Optional.of(clientNoPT));
@@ -330,7 +317,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientDashboard — cliente senza professionisti assegnati")
     void getClientDashboard_noProfessionals() {
         User clientNone = User.builder().id(11L).firstName("Bob").lastName("Test")
-                .email("bob@test.com").password("pass")
+                .email("bob@test.com").password("testpass")
                 .role(Role.CLIENT).assignedPT(null).assignedNutritionist(null)
                 .createdAt(LocalDateTime.now()).build();
         when(userRepository.findById(11L)).thenReturn(Optional.of(clientNone));
@@ -345,7 +332,7 @@ class UserServiceImplTest {
     @Test @DisplayName("getClientsForProfessional — client con profilePicture non null")
     void getClientsForProfessional_withProfilePicture() {
         User clientWithPic = User.builder().id(5L).firstName("Anna").lastName("Neri")
-                .email("anna@test.com").password("pass").role(Role.CLIENT).profilePicture("pic.jpg").build();
+                .email("anna@test.com").password("testpass").role(Role.CLIENT).profilePicture("pic.jpg").build();
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(userRepository.findByAssignedPT(pt)).thenReturn(List.of(clientWithPic));
 

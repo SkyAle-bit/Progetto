@@ -12,6 +12,10 @@ import com.project.tesi.model.*;
  * Comodo per costruire l'entità passo-passo senza impazzire con i costruttori.
  */
 public class UserBuilderImpl implements UserBuilder {
+
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+    private static final int MIN_PASSWORD_LENGTH = 8;
+
     private Long id;
     private String email;
     private String password;
@@ -93,11 +97,19 @@ public class UserBuilderImpl implements UserBuilder {
     }
 
     @Override
-    // Prima di costruire l'User, verifichiamo che i campi fondamentali (email, password, ruolo) ci siano.
     public User build() {
         Objects.requireNonNull(this.email, "email è obbligatorio");
         Objects.requireNonNull(this.password, "password è obbligatorio");
         Objects.requireNonNull(this.role, "role è obbligatorio");
+
+        if (this.email.isBlank())
+            throw new IllegalArgumentException("email non può essere vuota");
+        if (!this.email.matches(EMAIL_REGEX))
+            throw new IllegalArgumentException("email non è un indirizzo valido: " + this.email);
+        if (this.password.isBlank())
+            throw new IllegalArgumentException("password non può essere vuota");
+        if (this.password.length() < MIN_PASSWORD_LENGTH)
+            throw new IllegalArgumentException("password deve contenere almeno " + MIN_PASSWORD_LENGTH + " caratteri");
 
         User obj = new User();
         obj.setId(this.id);

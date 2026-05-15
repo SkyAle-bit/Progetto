@@ -45,10 +45,13 @@ public class ChatBuilderImpl implements ChatBuilder {
     }
 
     @Override
-    // Validiamo che i due interlocutori siano presenti prima di creare la chat.
     public Chat build() {
         Objects.requireNonNull(this.user1, "user1 è obbligatorio");
         Objects.requireNonNull(this.user2, "user2 è obbligatorio");
+
+        if (this.user1.getId() != null && this.user2.getId() != null
+                && this.user1.getId().equals(this.user2.getId()))
+            throw new IllegalStateException("user1 e user2 non possono essere lo stesso utente");
 
         Chat obj = new Chat();
         obj.setId(this.id);

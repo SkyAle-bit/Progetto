@@ -5,13 +5,12 @@ import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.PlanResponseDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
+import com.project.tesi.dto.response.stats.AdminStatsResponse;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
  * un'unica interfaccia, evitando di iniettare troppe dipendenze nel controller.
  */
 @Component
-public class AdminFacade implements IAdminFacade {
+public class AdminFacade {
 
     private final AdminService adminService;
     private final AdminStatsService adminStatsService;
@@ -63,7 +62,7 @@ public class AdminFacade implements IAdminFacade {
         adminService.deletePlan(id);
     }
 
-    public Map<String, Object> getAdminStats() {
+    public AdminStatsResponse getAdminStats() {
         return adminStatsService.getAdminStats();
     }
 }

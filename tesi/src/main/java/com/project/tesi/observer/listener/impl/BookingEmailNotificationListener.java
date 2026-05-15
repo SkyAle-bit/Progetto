@@ -1,51 +1,34 @@
 package com.project.tesi.observer.listener.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.project.tesi.enums.EventType;
+import com.project.tesi.event.BookingCreatedEvent;
 import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
-import com.project.tesi.observer.listener.Observer;
-import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.service.EmailService;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Listener per l'evento BOOKING_CREATED.
- * Riceve la notifica di nuova prenotazione e spara le mail di conferma con il link 
- * alla call, operando disaccoppiato dal flusso principale.
+ * Listener per l'evento BookingCreatedEvent.
+ * Attivato solo dopo il commit della transazione per garantire che l'email
+ * parta esclusivamente quando la prenotazione è stata persista con successo.
  */
 @Component
-public class BookingEmailNotificationListener implements Observer<Booking> {
+@RequiredArgsConstructor
+public class BookingEmailNotificationListener {
 
     private static final Logger log = LoggerFactory.getLogger(BookingEmailNotificationListener.class);
 
-    private final EventManager eventManager;
     private final EmailService emailService;
 
-    // Costruttore esplicito — sostituisce @RequiredArgsConstructor di Lombok
-    public BookingEmailNotificationListener(EventManager eventManager, EmailService emailService) {
-        this.eventManager = eventManager;
-        this.emailService = emailService;
-    }
-
-    @PostConstruct
-    public void init() {
-        eventManager.subscribe(EventType.BOOKING_CREATED, this);
-    }
-
-    @PreDestroy
-    public void destroy() {
-        eventManager.unsubscribe(EventType.BOOKING_CREATED, this);
-    }
-
-    @Override
-    // Invia le mail di conferma a entrambi gli attori. Il try-catch serve a non far 
-    // fallire la prenotazione se il server SMTP fa i capricci.
-    public void update(Booking booking) {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async("emailTaskExecutor")
+    public void handleBookingCreated(BookingCreatedEvent event) {
+        Booking booking = event.getBooking();
         try {
             User client = booking.getUser();
             User professional = booking.getProfessional();
@@ -66,7 +49,7 @@ public class BookingEmailNotificationListener implements Observer<Booking> {
                     booking.getMeetingLink()
             );
         } catch (Exception e) {
-            log.error("Invio email fallito per booking #{}: {}", booking.getId(), e.getMessage());
+            log.error("Invio email conferma fallito per booking #{}: {}", booking.getId(), e.getMessage());
         }
     }
 }

@@ -61,12 +61,22 @@ public class PlanBuilderImpl implements PlanBuilder {
     }
 
     @Override
-    // Validazione preventiva: il piano deve avere almeno nome, durata e crediti.
     public Plan build() {
         Objects.requireNonNull(this.name, "name è obbligatorio");
         Objects.requireNonNull(this.duration, "duration è obbligatorio");
         Objects.requireNonNull(this.fullPrice, "fullPrice è obbligatorio");
         Objects.requireNonNull(this.monthlyInstallmentPrice, "monthlyInstallmentPrice è obbligatorio");
+
+        if (this.name.isBlank())
+            throw new IllegalArgumentException("name non può essere vuoto");
+        if (this.fullPrice <= 0)
+            throw new IllegalArgumentException("fullPrice deve essere maggiore di zero");
+        if (this.monthlyInstallmentPrice <= 0)
+            throw new IllegalArgumentException("monthlyInstallmentPrice deve essere maggiore di zero");
+        if (this.monthlyCreditsPT < 0)
+            throw new IllegalArgumentException("monthlyCreditsPT non può essere negativo");
+        if (this.monthlyCreditsNutri < 0)
+            throw new IllegalArgumentException("monthlyCreditsNutri non può essere negativo");
 
         Plan obj = new Plan();
         obj.setId(this.id);

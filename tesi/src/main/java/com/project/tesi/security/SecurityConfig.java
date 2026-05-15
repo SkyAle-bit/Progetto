@@ -1,5 +1,6 @@
 package com.project.tesi.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -7,12 +8,13 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
@@ -35,13 +37,13 @@ public class SecurityConfig {
                         config.setAllowCredentials(true);
                         return config;
                     }))
-                    // Disabilitiamo CSRF perché l'app è completamente stateless e usiamo JWT, 
-                    // quindi non siamo vulnerabili ad attacchi basati sui cookie di sessione.
                     .csrf(AbstractHttpConfigurer::disable)
+                    .headers(headers -> headers
+                            .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                            .contentTypeOptions(HeadersConfigurer.ContentTypeOptionsConfig::disable)
+                    )
                     .authorizeHttpRequests(auth -> auth
-                            // Endpoint pubblici
                             .requestMatchers("/api/auth/**").permitAll()
-                            // Lasciamo aperte le WebSocket, l'autenticazione STOMP avviene dopo la connessione
                             .requestMatchers("/ws/**").permitAll()
                             .requestMatchers("/api/plans/**").permitAll()
                             .requestMatchers("/api/professionals/**").permitAll()
@@ -55,19 +57,17 @@ public class SecurityConfig {
                                     "/swagger-resources/**",
                                     "/webjars/**")
                             .permitAll()
-                            .requestMatchers("/api/admin/users", "/api/admin/users/**").hasAuthority("ADMIN")
-                            .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasAuthority("MODERATOR")
+                            .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
+                            .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasRole("MODERATOR")
                             .requestMatchers(
                                     "/api/admin/plans", "/api/admin/plans/**",
                                     "/api/admin/subscriptions", "/api/admin/subscriptions/**",
                                     "/api/admin/stats", "/api/admin/stats/**",
-                                    "/api/bookings/migrate-meet", 
+                                    "/api/bookings/migrate-meet",
                                     "/api/bookings/reset-database")
-                            .hasAuthority("ADMIN")
+                            .hasRole("ADMIN")
                             .anyRequest().authenticated())
-                    // Siccome usiamo JWT non creiamo sessioni server-side
                     .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                    // Inseriamo il nostro filtro JWT prima di quello standard di Spring
                     .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
             return http.build();
@@ -87,6 +87,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder();
     }
 }

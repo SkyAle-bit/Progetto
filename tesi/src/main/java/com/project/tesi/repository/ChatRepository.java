@@ -17,5 +17,12 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     @Query("SELECT c FROM Chat c WHERE c.user1.id = :userId OR c.user2.id = :userId")
     List<Chat> findAllChatsByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT COUNT(c) FROM Chat c
+            WHERE (c.user1.id = :moderatorId OR c.user2.id = :moderatorId)
+            AND c.status = com.project.tesi.enums.ChatStatus.OPEN
+            """)
+    long countOpenChatsByModerator(@Param("moderatorId") Long moderatorId);
 }
 

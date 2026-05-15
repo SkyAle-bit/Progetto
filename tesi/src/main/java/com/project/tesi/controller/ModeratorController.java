@@ -1,14 +1,17 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.request.UpdateCreditsRequest;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
-import com.project.tesi.facade.IModeratorFacade;
+import com.project.tesi.facade.ModeratorFacade;
+import com.project.tesi.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,9 +32,9 @@ import java.util.Map;
 @Tag(name = "Moderator", description = "API per i moderatori")
 public class ModeratorController {
 
-    private final IModeratorFacade moderatorFacade;
+    private final ModeratorFacade moderatorFacade;
 
-    public ModeratorController(IModeratorFacade moderatorFacade) {
+    public ModeratorController(ModeratorFacade moderatorFacade) {
         this.moderatorFacade = moderatorFacade;
     }
 
@@ -76,10 +79,17 @@ public class ModeratorController {
     @Operation(summary = "Aggiorna i crediti di un abbonamento")
     @PutMapping("/subscriptions/{id}/credits")
     public ResponseEntity<SubscriptionResponseDTO> updateSubscriptionCredits(@PathVariable Long id,
-            @RequestBody Map<String, Integer> body) {
+            @Valid @RequestBody UpdateCreditsRequest body) {
         return ResponseEntity.ok(moderatorFacade.updateSubscriptionCredits(
-                id,
-                body.getOrDefault("creditsPT", 0),
-                body.getOrDefault("creditsNutri", 0)));
+                id, body.creditsPT(), body.creditsNutri()));
+    }
+
+    @Operation(summary = "Chiude formalmente una sessione di chat")
+    @PostMapping("/chat/{chatId}/close")
+    public ResponseEntity<Void> closeChat(
+            @PathVariable Long chatId,
+            @AuthenticationPrincipal User moderator) {
+        moderatorFacade.closeChat(chatId, moderator.getId());
+        return ResponseEntity.noContent().build();
     }
 }

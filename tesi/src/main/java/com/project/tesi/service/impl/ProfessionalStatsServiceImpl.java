@@ -1,5 +1,8 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse.ClientAttentionItem;
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse.TodayBookingItem;
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceNotFoundException;
@@ -19,21 +22,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Implementazione del servizio per le statistiche della dashboard del professionista.
- *
- * Calcola in sola lettura:
- * <ul>
- *   <li>Appuntamenti di oggi con dettagli cliente</li>
- *   <li>Numero totale di clienti assegnati</li>
- *   <li>Documenti caricati nella settimana corrente</li>
- *   <li>Clienti che necessitano di aggiornamenti (es. schede scadute)</li>
- * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -45,7 +38,7 @@ public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getProfessionalStats(Long professionalId) {
+    public ProfessionalStatsResponse getProfessionalStats(Long professionalId) {
         User professional = userRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
 
@@ -58,17 +51,15 @@ public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
         LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
         List<Booking> todayBookings = bookingRepository.findTodayByProfessional(professional, dayStart, dayEnd);
 
-        List<Map<String, Object>> todayBookingsList = todayBookings.stream().map(b -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", b.getId());
-            map.put("clientName", b.getUser().getFirstName() + " " + b.getUser().getLastName());
-            map.put("clientId", b.getUser().getId());
-            map.put("startTime", b.getSlot().getStartTime().toLocalTime().toString().substring(0, 5));
-            map.put("endTime", b.getSlot().getEndTime().toLocalTime().toString().substring(0, 5));
-            map.put("status", b.getStatus().name());
-            map.put("meetingLink", b.getMeetingLink());
-            return map;
-        }).collect(Collectors.toList());
+        List<TodayBookingItem> todayList = todayBookings.stream().map(b -> new TodayBookingItem(
+                b.getId(),
+                b.getUser().getFirstName() + " " + b.getUser().getLastName(),
+                b.getUser().getId(),
+                b.getSlot().getStartTime().toLocalTime().toString().substring(0, 5),
+                b.getSlot().getEndTime().toLocalTime().toString().substring(0, 5),
+                b.getStatus().name(),
+                b.getMeetingLink()
+        )).collect(Collectors.toList());
 
         List<User> clients;
         DocumentType relevantDocType;
@@ -81,36 +72,31 @@ public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
         }
 
         LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        List<Map<String, Object>> clientsNeedingAttention = new ArrayList<>();
+        List<ClientAttentionItem> clientsNeedingAttention = new ArrayList<>();
         for (User client : clients) {
             Document latestDoc = documentRepository.findLatestByOwnerAndType(client, relevantDocType);
             boolean needsAttention = (latestDoc == null || latestDoc.getUploadDate().isBefore(sevenDaysAgo));
             if (needsAttention) {
-                Map<String, Object> clientMap = new HashMap<>();
-                clientMap.put("id", client.getId());
-                clientMap.put("firstName", client.getFirstName());
-                clientMap.put("lastName", client.getLastName());
-                clientMap.put("lastDocDate", latestDoc != null ? latestDoc.getUploadDate().toString() : null);
-                clientMap.put("daysSinceLastDoc", latestDoc != null
-                        ? java.time.Duration.between(latestDoc.getUploadDate(), LocalDateTime.now()).toDays()
-                        : -1);
-                clientsNeedingAttention.add(clientMap);
+                clientsNeedingAttention.add(new ClientAttentionItem(
+                        client.getId(),
+                        client.getFirstName(),
+                        client.getLastName(),
+                        latestDoc != null ? latestDoc.getUploadDate().toString() : null,
+                        latestDoc != null
+                                ? java.time.Duration.between(latestDoc.getUploadDate(), LocalDateTime.now()).toDays()
+                                : -1));
             }
         }
 
         LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDateTime weekStart = startOfWeek.atStartOfDay();
-        int docsUploadedThisWeek = documentRepository.countByUploaderSince(professional, weekStart);
+        int docsUploadedThisWeek = documentRepository.countByUploaderSince(professional, startOfWeek.atStartOfDay());
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("todayBookings", todayBookingsList);
-        stats.put("todayBookingsCount", todayBookingsList.size());
-        stats.put("clientsNeedingAttention", clientsNeedingAttention);
-        stats.put("clientsNeedingAttentionCount", clientsNeedingAttention.size());
-        stats.put("docsUploadedThisWeek", docsUploadedThisWeek);
-        stats.put("totalClients", clients.size());
-
-        return stats;
+        return new ProfessionalStatsResponse(
+                todayList,
+                todayList.size(),
+                clientsNeedingAttention,
+                clientsNeedingAttention.size(),
+                docsUploadedThisWeek,
+                clients.size());
     }
 }
-

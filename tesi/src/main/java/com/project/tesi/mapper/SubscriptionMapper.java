@@ -42,15 +42,15 @@ public class SubscriptionMapper {
         LocalDate endDate = startDate.plusMonths(months);
 
         // Calcolo rate: unica soluzione = 1 rata, rate mensili = numero di mesi
-        int totalInstallments = request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? 1 : months;
+        int totalInstallments = request.paymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? 1 : months;
 
         return Subscription.builder()
                 .user(user)
                 .plan(plan)
-                .paymentFrequency(request.getPaymentFrequency())
+                .paymentFrequency(request.paymentFrequency())
                 .installmentsPaid(1) // Prima rata pagata subito alla sottoscrizione
                 .totalInstallments(totalInstallments)
-                .nextPaymentDate(request.getPaymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? null : startDate.plusMonths(1))
+                .nextPaymentDate(request.paymentFrequency() == PaymentFrequency.UNICA_SOLUZIONE ? null : startDate.plusMonths(1))
                 .startDate(startDate)
                 .endDate(endDate)
                 .active(true)

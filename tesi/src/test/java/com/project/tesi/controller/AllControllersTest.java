@@ -3,14 +3,17 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.request.ProfileUpdateRequest;
+import com.project.tesi.dto.request.UpdateNotesRequest;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.*;
+import com.project.tesi.dto.response.stats.AdminStatsResponse;
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
+import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.Role;
 import com.project.tesi.facade.AdminFacade;
-import com.project.tesi.facade.IChatFacade;
-import com.project.tesi.facade.IDocumentFacade;
-import com.project.tesi.facade.IModeratorFacade;
-import com.project.tesi.facade.IUserFacade;
+import com.project.tesi.facade.ChatFacade;
+import com.project.tesi.facade.DocumentFacade;
+import com.project.tesi.facade.UserFacade;
 import com.project.tesi.service.ChatService;
 import com.project.tesi.service.DocumentService;
 import com.project.tesi.service.EmailService;
@@ -94,70 +97,70 @@ class AllControllersTest {
 
         @Test @DisplayName("getStats")
         void getStats() {
-            when(adminFacade.getAdminStats()).thenReturn(Map.of("totalUsers", 50));
-            ResponseEntity<Map<String, Object>> resp = adminStatsController.getStats();
-            assertThat(resp.getBody().get("totalUsers")).isEqualTo(50);
+            AdminStatsResponse stats = new AdminStatsResponse(
+                    Map.of(), 50, List.of(), List.of(), 0L, 0L, null, 0.0, 0.0, 0L, 0L, List.of());
+            when(adminFacade.getAdminStats()).thenReturn(stats);
+            ResponseEntity<AdminStatsResponse> resp = adminStatsController.getStats();
+            assertThat(resp.getBody().totalUsers()).isEqualTo(50);
         }
     }
 
     @Nested
     class UserControllerTests {
-        @Mock private IUserFacade userFacade;
+        @Mock private UserFacade userFacade;
         @InjectMocks private UserController userController;
 
         @Test @DisplayName("getDashboard")
         void getDashboard() {
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
             ClientDashboardResponse dash = ClientDashboardResponse.builder().build();
             when(userFacade.getClientDashboard(1L)).thenReturn(dash);
-            assertThat(userController.getDashboard(1L).getBody()).isEqualTo(dash);
+            assertThat(userController.getDashboard(mockUser).getBody()).isEqualTo(dash);
         }
 
         @Test @DisplayName("getClientsForProfessional")
         void getClientsForProfessional() {
+            User mockUser = User.builder().id(2L).email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
             when(userFacade.getClientsForProfessional(2L)).thenReturn(List.of());
-            assertThat(userController.getClientsForProfessional(2L).getBody()).isEmpty();
+            assertThat(userController.getClientsForProfessional(mockUser).getBody()).isEmpty();
         }
 
         @Test @DisplayName("updateProfile")
         void updateProfile() {
-            ProfileUpdateRequest req = new ProfileUpdateRequest();
-            ResponseEntity<Void> resp = userController.updateProfile(1L, req);
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+            ProfileUpdateRequest req = new ProfileUpdateRequest(null, null, null, null);
+            ResponseEntity<Void> resp = userController.updateProfile(mockUser, req);
             verify(userFacade).updateProfile(1L, req);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
-        }
-
-        @Test @DisplayName("getAdmin")
-        void getAdmin() {
-            ClientBasicInfoResponse admin = ClientBasicInfoResponse.builder().id(99L).build();
-            when(userFacade.getAdmin()).thenReturn(admin);
-            assertThat(userController.getAdmin().getBody().getId()).isEqualTo(99L);
         }
     }
 
     @Nested
     class SubscriptionControllerTests {
-        @Mock private IUserFacade userFacade;
+        @Mock private UserFacade userFacade;
         @InjectMocks private SubscriptionController subscriptionController;
 
         @Test @DisplayName("activateSubscription")
         void activateSubscription() {
-            PlanRequest req = new PlanRequest();
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+            PlanRequest req = new PlanRequest(1L, PaymentFrequency.UNICA_SOLUZIONE);
             SubscriptionResponse resp = SubscriptionResponse.builder().id(1L).isActive(true).build();
-            when(userFacade.activateSubscription(req)).thenReturn(resp);
-            assertThat(subscriptionController.activateSubscription(req).getBody().isActive()).isTrue();
+            when(userFacade.activateSubscription(req, 1L)).thenReturn(resp);
+            assertThat(subscriptionController.activateSubscription(req, mockUser).getBody().isActive()).isTrue();
         }
 
         @Test @DisplayName("getSubscriptionStatus")
         void getSubscriptionStatus() {
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
             SubscriptionResponse resp = SubscriptionResponse.builder().id(1L).build();
             when(userFacade.getSubscriptionStatus(1L)).thenReturn(resp);
-            assertThat(subscriptionController.getSubscriptionStatus(1L).getBody().getId()).isEqualTo(1L);
+            assertThat(subscriptionController.getSubscriptionStatus(mockUser).getBody().getId()).isEqualTo(1L);
         }
     }
 
     @Nested
     class ProfessionalControllerTests {
-        @Mock private IUserFacade userFacade;
+        @Mock private UserFacade userFacade;
         @InjectMocks private ProfessionalController professionalController;
 
         @Test @DisplayName("getProfessionals")
@@ -174,14 +177,15 @@ class AllControllersTest {
 
         @Test @DisplayName("createSlots")
         void createSlots() {
+            User mockUser = User.builder().id(2L).email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
             List<SlotDTO> slots = List.of();
             when(userFacade.createSlots(2L, slots)).thenReturn(List.of());
-            assertThat(professionalController.createSlots(2L, slots).getBody()).isEmpty();
+            assertThat(professionalController.createSlots(mockUser, slots).getBody()).isEmpty();
         }
 
         @Test @DisplayName("deleteSlot")
         void deleteSlot() {
-            ResponseEntity<Void> resp = professionalController.deleteSlot(2L, 10L);
+            ResponseEntity<Void> resp = professionalController.deleteSlot(10L);
             verify(userFacade).deleteSlot(10L);
             assertThat(resp.getStatusCode().value()).isEqualTo(204);
         }
@@ -189,32 +193,36 @@ class AllControllersTest {
 
     @Nested
     class ProfessionalStatsControllerTests {
-        @Mock private IUserFacade userFacade;
+        @Mock private UserFacade userFacade;
         @InjectMocks private ProfessionalStatsController professionalStatsController;
 
         @Test @DisplayName("getStats")
         void getStats() {
-            when(userFacade.getProfessionalStats(2L)).thenReturn(Map.of("clients", 5));
-            assertThat(professionalStatsController.getStats(2L).getBody().get("clients")).isEqualTo(5);
+            User mockUser = User.builder().id(2L).email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+            ProfessionalStatsResponse stats = new ProfessionalStatsResponse(List.of(), 0, List.of(), 0, 0, 5);
+            when(userFacade.getProfessionalStats(2L)).thenReturn(stats);
+            assertThat(professionalStatsController.getStats(mockUser).getBody().totalClients()).isEqualTo(5);
         }
     }
 
     @Nested
     class ActivityFeedControllerTests {
-        @Mock private IUserFacade userFacade;
+        @Mock private UserFacade userFacade;
         @InjectMocks private ActivityFeedController activityFeedController;
 
         @Test @DisplayName("getActivityFeed")
         void getActivityFeed() {
-            when(userFacade.getActivityFeed(1L, 14, 15)).thenReturn(List.of(Map.of("type", "booking")));
-            ResponseEntity<List<Map<String, Object>>> resp = activityFeedController.getActivityFeed(1L, 14, 15);
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+            ActivityFeedItemResponse item = new ActivityFeedItemResponse("booking", "📅", "text", "ts", "ago");
+            when(userFacade.getActivityFeed(1L, 14, 15)).thenReturn(List.of(item));
+            ResponseEntity<List<ActivityFeedItemResponse>> resp = activityFeedController.getActivityFeed(mockUser, 14, 15);
             assertThat(resp.getBody()).hasSize(1);
         }
     }
 
     @Nested
     class ChatControllerTest {
-        @Mock private IChatFacade chatFacade;
+        @Mock private ChatFacade chatFacade;
         private com.project.tesi.controller.ChatController controller;
 
         @BeforeEach
@@ -225,41 +233,46 @@ class AllControllersTest {
 
         @Test @DisplayName("sendMessage")
         void sendMessage() {
-            SendMessageRequest req = SendMessageRequest.builder().build();
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+            SendMessageRequest req = new SendMessageRequest(1L, "test");
             ChatMessageResponse resp = ChatMessageResponse.builder().id(1L).build();
-            when(chatFacade.sendMessage(req)).thenReturn(resp);
-            assertThat(controller.sendMessage(req).getBody().getId()).isEqualTo(1L);
+            when(chatFacade.sendMessage(req, 1L)).thenReturn(resp);
+            assertThat(controller.sendMessage(mockUser, req).getBody().getId()).isEqualTo(1L);
         }
 
         @Test @DisplayName("getConversation")
         void getConversation() {
+            User mockUser = User.builder().id(2L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
             when(chatFacade.getConversation(1L, 2L, 0, 50)).thenReturn(List.of());
-            assertThat(controller.getConversation(1L, 2L, 0, 50).getBody()).isEmpty();
+            assertThat(controller.getConversation(mockUser, 1L, 0, 50).getBody()).isEmpty();
         }
 
         @Test @DisplayName("getUserConversations")
         void getUserConversations() {
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
             when(chatFacade.getUserConversations(1L)).thenReturn(List.of());
-            assertThat(controller.getUserConversations(1L).getBody()).isEmpty();
+            assertThat(controller.getUserConversations(mockUser).getBody()).isEmpty();
         }
 
         @Test @DisplayName("markAsRead")
         void markAsRead() {
-            ResponseEntity<Void> resp = controller.markAsRead(1L, 2L);
+            User mockUser = User.builder().id(2L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
+            ResponseEntity<Void> resp = controller.markAsRead(mockUser, 1L);
             verify(chatFacade).markAsRead(1L, 2L);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
         }
 
         @Test @DisplayName("getTotalUnreadCount")
         void getTotalUnreadCount() {
+            User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
             when(chatFacade.getTotalUnreadCount(1L)).thenReturn(5);
-            assertThat(controller.getTotalUnreadCount(1L).getBody()).isEqualTo(5);
+            assertThat(controller.getTotalUnreadCount(mockUser).getBody()).isEqualTo(5);
         }
     }
 
     @Nested
     class DocumentControllerTest {
-        @Mock private IDocumentFacade documentFacade;
+        @Mock private DocumentFacade documentFacade;
         private com.project.tesi.controller.DocumentController controller;
 
         @BeforeEach
@@ -310,9 +323,10 @@ class AllControllersTest {
 
         @Test @DisplayName("updateNotes")
         void updateNotes() {
-            when(documentFacade.updateNotes(1L, "nuove note")).thenReturn(Map.of("notes", "nuove note"));
-            ResponseEntity<Map<String, Object>> resp = controller.updateNotes(1L, Map.of("notes", "nuove note"));
-            assertThat(resp.getBody().get("notes")).isEqualTo("nuove note");
+            UpdatedNotesResponse updated = new UpdatedNotesResponse(1L, "nuove note");
+            when(documentFacade.updateNotes(1L, "nuove note")).thenReturn(updated);
+            ResponseEntity<UpdatedNotesResponse> resp = controller.updateNotes(1L, new UpdateNotesRequest("nuove note"));
+            assertThat(resp.getBody().notes()).isEqualTo("nuove note");
         }
     }
 
@@ -323,7 +337,7 @@ class AllControllersTest {
 
         @Test @DisplayName("submitApplication")
         void submitApplication() {
-            JobApplicationRequest req = new JobApplicationRequest();
+            JobApplicationRequest req = new JobApplicationRequest("Mario", "Rossi", "mario@test.com", "Dev", "Motivazione");
             ResponseEntity<Map<String, String>> resp = jobApplicationController.submitApplication(req, null);
             verify(emailService).sendJobApplication(req, null);
             assertThat(resp.getBody().get("message")).contains("Candidatura");

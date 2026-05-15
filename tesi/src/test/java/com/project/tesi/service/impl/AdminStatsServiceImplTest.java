@@ -1,5 +1,6 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.response.stats.AdminStatsResponse;
 import com.project.tesi.enums.PlanDuration;
 import com.project.tesi.enums.Role;
 import com.project.tesi.model.*;
@@ -14,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -35,9 +35,9 @@ class AdminStatsServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").lastName("Bianchi")
+        pt = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(2L).firstName("Luca").lastName("Bianchi")
                 .role(Role.PERSONAL_TRAINER).createdAt(LocalDateTime.now().minusDays(30)).build();
-        client = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
+        client = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi")
                 .role(Role.CLIENT).assignedPT(pt)
                 .createdAt(LocalDateTime.now().minusDays(10)).build();
         plan = Plan.builder().name("plan").duration(com.project.tesi.enums.PlanDuration.ANNUALE).fullPrice(100.0).monthlyInstallmentPrice(10.0).id(1L).name("Premium").duration(PlanDuration.ANNUALE)
@@ -54,19 +54,18 @@ class AdminStatsServiceImplTest {
         when(planRepository.findAll()).thenReturn(List.of(plan));
         when(bookingRepository.findAll()).thenReturn(List.of());
 
-        Map<String, Object> stats = adminStatsService.getAdminStats();
+        AdminStatsResponse stats = adminStatsService.getAdminStats();
 
-        assertThat(stats).containsKey("totalUsers");
-        assertThat(stats.get("totalUsers")).isEqualTo(2);
-        assertThat(stats).containsKey("usersByRole");
-        assertThat(stats).containsKey("usersPerMonth");
-        assertThat(stats).containsKey("planPopularity");
-        assertThat(stats).containsKey("credits");
-        assertThat(stats).containsKey("monthlyRevenue");
-        assertThat(stats).containsKey("yearlyRevenue");
-        assertThat(stats).containsKey("bookingsThisMonth");
-        assertThat(stats).containsKey("professionalWorkload");
-        assertThat(stats.get("totalActiveSubscriptions")).isEqualTo(1L);
+        assertThat(stats.totalUsers()).isEqualTo(2);
+        assertThat(stats.usersByRole()).isNotNull();
+        assertThat(stats.usersPerMonth()).isNotNull();
+        assertThat(stats.planPopularity()).isNotNull();
+        assertThat(stats.credits()).isNotNull();
+        assertThat(stats.monthlyRevenue()).isGreaterThanOrEqualTo(0.0);
+        assertThat(stats.yearlyRevenue()).isGreaterThanOrEqualTo(0.0);
+        assertThat(stats.bookingsThisMonth()).isGreaterThanOrEqualTo(0L);
+        assertThat(stats.professionalWorkload()).isNotNull();
+        assertThat(stats.totalActiveSubscriptions()).isEqualTo(1L);
     }
 
     @Test @DisplayName("getAdminStats — senza dati restituisce statistiche vuote")
@@ -76,11 +75,11 @@ class AdminStatsServiceImplTest {
         when(planRepository.findAll()).thenReturn(List.of());
         when(bookingRepository.findAll()).thenReturn(List.of());
 
-        Map<String, Object> stats = adminStatsService.getAdminStats();
+        AdminStatsResponse stats = adminStatsService.getAdminStats();
 
-        assertThat(stats.get("totalUsers")).isEqualTo(0);
-        assertThat(stats.get("totalActiveSubscriptions")).isEqualTo(0L);
-        assertThat(stats.get("monthlyRevenue")).isEqualTo(0.0);
+        assertThat(stats.totalUsers()).isEqualTo(0);
+        assertThat(stats.totalActiveSubscriptions()).isEqualTo(0L);
+        assertThat(stats.monthlyRevenue()).isEqualTo(0.0);
     }
 
     @Test @DisplayName("getAdminStats — crediti con percentuale d'uso corretta")
@@ -90,20 +89,19 @@ class AdminStatsServiceImplTest {
         when(planRepository.findAll()).thenReturn(List.of(plan));
         when(bookingRepository.findAll()).thenReturn(List.of());
 
-        Map<String, Object> stats = adminStatsService.getAdminStats();
-        @SuppressWarnings("unchecked")
-        Map<String, Object> credits = (Map<String, Object>) stats.get("credits");
+        AdminStatsResponse stats = adminStatsService.getAdminStats();
+        AdminStatsResponse.CreditsStats credits = stats.credits();
 
-        assertThat(credits.get("ptAvailable")).isEqualTo(5);
-        assertThat(credits.get("ptTotal")).isEqualTo(8);
-        assertThat(credits.get("ptConsumed")).isEqualTo(3);
+        assertThat(credits.ptAvailable()).isEqualTo(5);
+        assertThat(credits.ptTotal()).isEqualTo(8);
+        assertThat(credits.ptConsumed()).isEqualTo(3);
     }
 
     @Test @DisplayName("getAdminStats — nutrizionista nel carico professionisti")
     void getAdminStats_nutriWorkload() {
-        User nutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").lastName("Verdi")
+        User nutri = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(3L).firstName("Sara").lastName("Verdi")
                 .role(Role.NUTRITIONIST).createdAt(LocalDateTime.now()).build();
-        User clientNutri = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(4L).firstName("Anna").lastName("Neri")
+        User clientNutri = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(4L).firstName("Anna").lastName("Neri")
                 .role(Role.CLIENT).assignedNutritionist(nutri).createdAt(LocalDateTime.now()).build();
 
         when(userRepository.findAll()).thenReturn(List.of(nutri, clientNutri));
@@ -111,12 +109,8 @@ class AdminStatsServiceImplTest {
         when(planRepository.findAll()).thenReturn(List.of());
         when(bookingRepository.findAll()).thenReturn(List.of());
 
-        Map<String, Object> stats = adminStatsService.getAdminStats();
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> workload = (List<Map<String, Object>>) stats.get("professionalWorkload");
-
-        assertThat(workload).hasSize(1);
-        assertThat(workload.get(0).get("clientCount")).isEqualTo(1L);
+        AdminStatsResponse stats = adminStatsService.getAdminStats();
+        assertThat(stats.professionalWorkload()).hasSize(1);
+        assertThat(stats.professionalWorkload().get(0).clientCount()).isEqualTo(1L);
     }
 }
-

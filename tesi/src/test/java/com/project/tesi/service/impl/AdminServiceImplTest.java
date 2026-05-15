@@ -40,7 +40,7 @@ class AdminServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        user = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
+        user = User.builder().email("mario@test.com").password("testpass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
         plan = Plan.builder().id(1L).name("Premium").duration(PlanDuration.ANNUALE)
                 .monthlyCreditsPT(8).monthlyCreditsNutri(4)
                 .fullPrice(1200.0).monthlyInstallmentPrice(100.0).build();
@@ -59,8 +59,8 @@ class AdminServiceImplTest {
         UserCreateRequestDTO request = new UserCreateRequestDTO("pt@test.com", "Luca", "Bianchi", "pass", "PERSONAL_TRAINER", null, null);
 
         when(userRepository.findByEmail("pt@test.com")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("pass")).thenReturn("hashed");
-        User saved = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        when(passwordEncoder.encode("pass")).thenReturn("hashedpassword");
+        User saved = User.builder().email("pt@test.com").password("hashedpassword").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
         when(userRepository.save(any())).thenReturn(saved);
 
         User result = adminService.createUser(request);
@@ -170,7 +170,7 @@ class AdminServiceImplTest {
 
     @Test @DisplayName("getAllSubscriptions — plan null mostra N/A e prezzo 0")
     void getAllSubscriptions_planNull() {
-        Plan dummyPlan = Plan.builder().id(0L).name("N/A").duration(PlanDuration.ANNUALE).fullPrice(0.0).monthlyInstallmentPrice(0.0).build();
+        Plan dummyPlan = Plan.builder().id(0L).name("N/A").duration(PlanDuration.ANNUALE).fullPrice(1.0).monthlyInstallmentPrice(1.0).build();
         Subscription sub = Subscription.builder().id(1L).user(user).plan(dummyPlan).paymentFrequency(com.project.tesi.enums.PaymentFrequency.UNICA_SOLUZIONE)
                 .active(false).startDate(null).endDate(null).build();
         sub.setPlan(null); // Force null for test logic
@@ -196,14 +196,12 @@ class AdminServiceImplTest {
         UserCreateRequestDTO request = new UserCreateRequestDTO("new@test.com", "New", "User", "pass", "CLIENT", null, null);
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("pass")).thenReturn("hashed");
-        User saved = User.builder().email("new@test.com").password("pass").role(Role.CLIENT).id(10L).firstName("New").lastName("User").build();
+        when(passwordEncoder.encode("pass")).thenReturn("hashedpassword");
+        User saved = User.builder().email("new@test.com").password("hashedpassword").role(Role.CLIENT).id(10L).firstName("New").lastName("User").build();
         when(userRepository.save(any())).thenReturn(saved);
 
         User result = adminService.createUser(request);
         assertThat(result.getRole()).isEqualTo(Role.CLIENT);
-        // Nessun abbonamento creato
-        // In AdminServiceImpl refactored, plan creation logic for client is removed from string-based map args.
         verify(subscriptionRepository, never()).save(any());
     }
 }

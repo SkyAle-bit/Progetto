@@ -10,7 +10,7 @@ import com.project.tesi.dto.response.BookingResponse;
 public interface BookingService {
 
     /** Crea una nuova prenotazione verificando tutti i vincoli di business. */
-    BookingResponse createBooking(BookingRequest request);
+    BookingResponse createBooking(BookingRequest request, Long userId);
 
     /** Annulla una prenotazione esistente, liberando lo slot e riaccreditando il credito. */
     void cancelBooking(Long bookingId, Long userId);

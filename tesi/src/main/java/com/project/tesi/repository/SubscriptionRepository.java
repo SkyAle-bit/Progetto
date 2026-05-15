@@ -2,7 +2,11 @@ package com.project.tesi.repository;
 
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.List;
@@ -23,6 +27,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
      * @return un Optional contenente l'abbonamento attivo, vuoto se non presente
      */
     Optional<Subscription> findByUserAndActiveTrue(User user);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Subscription s WHERE s.user = :user AND s.active = true")
+    Optional<Subscription> findByUserAndActiveTrueWithLock(@Param("user") User user);
 
     /**
      * Cerca l'abbonamento attivo di un utente (passando direttamente l'ID).

@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:latest
+    image: postgres:16
     ports:
       - "5432:5432"
     restart: always
@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   pgadmin:
     image: dpage/pgadmin4
@@ -20,3 +22,17 @@ services:
     restart: always
     depends_on:
       - db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: tesi-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+volumes:
+  postgres_data:

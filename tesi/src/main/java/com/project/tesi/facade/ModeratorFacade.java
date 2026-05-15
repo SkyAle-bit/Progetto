@@ -5,6 +5,7 @@ import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
 import com.project.tesi.service.AdminService;
+import com.project.tesi.service.ChatService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,13 +16,14 @@ import java.util.stream.Collectors;
  * Espone solo un sottoinsieme sicuro dei metodi di amministrazione.
  */
 @Component
-public class ModeratorFacade implements IModeratorFacade {
+public class ModeratorFacade {
 
     private final AdminService adminService;
+    private final ChatService chatService;
 
-    // Costruttore esplicito — pattern Facade
-    public ModeratorFacade(AdminService adminService) {
+    public ModeratorFacade(AdminService adminService, ChatService chatService) {
         this.adminService = adminService;
+        this.chatService = chatService;
     }
 
     public List<UserResponseDTO> getManageableUsers() {
@@ -56,5 +58,9 @@ public class ModeratorFacade implements IModeratorFacade {
 
     public SubscriptionResponseDTO updateSubscriptionCredits(Long id, int pt, int nutri) {
         return FacadeMapper.mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
+    }
+
+    public void closeChat(Long chatId, Long moderatorId) {
+        chatService.closeChat(chatId, moderatorId);
     }
 }

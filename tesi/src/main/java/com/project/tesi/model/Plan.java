@@ -1,5 +1,7 @@
 package com.project.tesi.model;
 
+import com.project.tesi.builder.PlanBuilder;
+import com.project.tesi.builder.impl.PlanBuilderImpl;
 import com.project.tesi.enums.PlanDuration;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,32 +11,20 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.UniqueConstraint;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-/**
- * Entità Piano di Abbonamento — definisce un'offerta commerciale della piattaforma.
- *
- * Ogni piano specifica:
- * <ul>
- *   <li>La durata (SEMESTRALE o ANNUALE, tramite {@link PlanDuration})</li>
- *   <li>Il prezzo totale in soluzione unica e il prezzo della singola rata mensile</li>
- *   <li>Il numero di crediti mensili per prenotare consulenze con PT e Nutrizionisti</li>
- *   <li>I dettagli della copertura assicurativa inclusa</li>
- * </ul>
- *
- * Il nome del piano è univoco (es. "Gold Annuale", "Silver Semestrale").
- */
 @Entity
-@Table(name = "plans")
+@Table(name = "plans", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_plan_name", columnNames = {"name"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
 public class Plan {
@@ -44,13 +34,12 @@ public class Plan {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlanDuration duration;
-
 
     @Column(nullable = false)
     private Double fullPrice;
@@ -58,16 +47,11 @@ public class Plan {
     @Column(nullable = false)
     private Double monthlyInstallmentPrice;
 
-
     private int monthlyCreditsPT;
-
     private int monthlyCreditsNutri;
-
-
     private String insuranceCoverageDetails;
 
-    public static com.project.tesi.builder.PlanBuilder builder() {
-        return new com.project.tesi.builder.impl.PlanBuilderImpl();
+    public static PlanBuilder builder() {
+        return new PlanBuilderImpl();
     }
-
 }

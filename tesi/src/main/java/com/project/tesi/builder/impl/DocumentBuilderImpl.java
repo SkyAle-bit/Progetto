@@ -3,6 +3,7 @@ package com.project.tesi.builder.impl;
 import com.project.tesi.builder.DocumentBuilder;
 import com.project.tesi.enums.DocumentType;
 import java.time.LocalDateTime;
+import java.util.Map;
 import com.project.tesi.model.*;
 
 
@@ -10,6 +11,17 @@ import com.project.tesi.model.*;
  * Implementazione del pattern Builder per l'entità Document.
  */
 public class DocumentBuilderImpl implements DocumentBuilder {
+
+    private static final Map<String, String> EXT_CONTENT_TYPE = Map.of(
+        "pdf",  "application/pdf",
+        "jpg",  "image/jpeg",
+        "jpeg", "image/jpeg",
+        "png",  "image/png",
+        "doc",  "application/msword",
+        "gif",  "image/gif",
+        "txt",  "text/plain"
+    );
+
     private Long id;
     private String fileName;
     private String filePath;
@@ -67,8 +79,18 @@ public class DocumentBuilderImpl implements DocumentBuilder {
     }
 
     @Override
-    // Valida i campi obbligatori prima di creare il documento
     public Document build() {
+        if (this.fileName != null && this.contentType != null) {
+            int dot = this.fileName.lastIndexOf('.');
+            if (dot >= 0) {
+                String ext = this.fileName.substring(dot + 1).toLowerCase();
+                String expected = EXT_CONTENT_TYPE.get(ext);
+                if (expected != null && !this.contentType.equals(expected))
+                    throw new IllegalArgumentException(
+                        "contentType '" + this.contentType + "' non è coerente con l'estensione '." + ext + "'");
+            }
+        }
+
         Document obj = new Document();
         obj.setId(this.id);
         obj.setFileName(this.fileName);

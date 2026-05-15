@@ -2,11 +2,13 @@ package com.project.tesi.service.impl;
 
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ReviewResponse;
+import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.exception.review.ReviewNotAllowedException;
 import com.project.tesi.model.Review;
 import com.project.tesi.model.User;
+import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ReviewService;
@@ -14,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,8 @@ import java.util.stream.Collectors;
  * Regole di business applicate:
  * <ul>
  *   <li>Unicità: una sola recensione per coppia cliente-professionista</li>
- *   <li>Tempo minimo: il cliente può recensire solo dopo 1 mese dalla registrazione</li>
+ *   <li>Relazione formale: il cliente può recensire solo se ha avuto almeno una
+ *       prenotazione con il professionista, oppure è attualmente assegnato a lui</li>
  *   <li>Voto: da 1 a 5 stelle con commento opzionale</li>
  * </ul>
  */
@@ -34,45 +36,34 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional
-    public ReviewResponse addReview(ReviewRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
+    public ReviewResponse addReview(ReviewRequest request, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
-        User professional = userRepository.findById(request.getProfessionalId())
-                .orElseThrow(() -> new ResourceNotFoundException("Professionista", request.getProfessionalId()));
+        User professional = userRepository.findById(request.professionalId())
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", request.professionalId()));
 
-        // REGOLA BUSINESS: Unicità — una sola recensione per coppia
-        // client-professionista
+        // REGOLA BUSINESS: Unicità — una sola recensione per coppia cliente-professionista
         if (reviewRepository.existsByClientIdAndProfessionalId(user.getId(), professional.getId())) {
             throw new ResourceAlreadyExistsException("Hai già lasciato una recensione per questo professionista.");
         }
 
-        // REGOLA BUSINESS: Il cliente può recensire solo dopo 1 mese dalla
-        // registrazione
-        if (user.getCreatedAt() == null ||
-                user.getCreatedAt().plusMonths(1).isAfter(LocalDateTime.now())) {
+        // REGOLA BUSINESS: Relazione formale — almeno una prenotazione storica
+        // oppure assegnazione corrente attiva
+        if (!hasFormerRelationship(user, professional)) {
             throw new ReviewNotAllowedException(
-                    "Puoi recensire un professionista solo dopo 1 mese dalla tua registrazione.");
-        }
-
-        if (professional.getRole() == com.project.tesi.enums.Role.PERSONAL_TRAINER) {
-            if (user.getAssignedPT() == null || !user.getAssignedPT().getId().equals(professional.getId())) {
-                throw new ReviewNotAllowedException("Puoi recensire solo il tuo Personal Trainer assegnato.");
-            }
-        } else if (professional.getRole() == com.project.tesi.enums.Role.NUTRITIONIST) {
-            if (user.getAssignedNutritionist() == null || !user.getAssignedNutritionist().getId().equals(professional.getId())) {
-                throw new ReviewNotAllowedException("Puoi recensire solo il tuo Nutrizionista assegnato.");
-            }
+                    "Puoi recensire solo professionisti con cui hai avuto un rapporto formale.");
         }
 
         Review review = Review.builder()
                 .client(user)
                 .professional(professional)
-                .rating(request.getRating())
-                .comment(request.getComment())
+                .rating(request.rating())
+                .comment(request.comment())
                 .build();
 
         Review savedReview = reviewRepository.save(review);
@@ -93,21 +84,34 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public boolean canClientReview(Long clientId, Long professionalId) {
-        User client = userRepository.findById(clientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Utente", clientId));
-
-        // Ha già recensito?
         if (reviewRepository.existsByClientIdAndProfessionalId(clientId, professionalId)) {
             return false;
         }
-
-        // Ha passato 1 mese dalla registrazione?
-        if (client.getCreatedAt() == null ||
-                client.getCreatedAt().plusMonths(1).isAfter(LocalDateTime.now())) {
-            return false;
+        if (bookingRepository.existsByUserIdAndProfessionalId(clientId, professionalId)) {
+            return true;
         }
+        User client = userRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente", clientId));
+        User professional = userRepository.findById(professionalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Professionista", professionalId));
+        return isCurrentlyAssigned(client, professional);
+    }
 
-        return true;
+    private boolean hasFormerRelationship(User client, User professional) {
+        if (bookingRepository.existsByUserIdAndProfessionalId(client.getId(), professional.getId())) {
+            return true;
+        }
+        return isCurrentlyAssigned(client, professional);
+    }
+
+    private boolean isCurrentlyAssigned(User client, User professional) {
+        if (professional.getRole() == Role.PERSONAL_TRAINER) {
+            return professional.equals(client.getAssignedPT());
+        }
+        if (professional.getRole() == Role.NUTRITIONIST) {
+            return professional.equals(client.getAssignedNutritionist());
+        }
+        return false;
     }
 
     @Override

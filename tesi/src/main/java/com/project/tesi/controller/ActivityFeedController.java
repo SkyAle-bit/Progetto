@@ -1,40 +1,34 @@
 package com.project.tesi.controller;
 
-import com.project.tesi.facade.IUserFacade;
+import com.project.tesi.dto.response.ActivityFeedItemResponse;
+import com.project.tesi.facade.UserFacade;
+import com.project.tesi.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * Endpoint REST per l'activity feed. Restituisce la cronologia degli eventi recenti dell'utente.
+ * Endpoint REST per il feed attività dell'utente autenticato.
  */
 @RestController
 @RequestMapping("/api/activity")
 @RequiredArgsConstructor
 public class ActivityFeedController {
 
-    private final IUserFacade userFacade;
+    private final UserFacade userFacade;
 
-    /**
-     * Restituisce il feed delle attività recenti di un utente.
-     *
-     * @param userId ID dell'utente
-     * @param days   numero di giorni da considerare (default 14)
-     * @param limit  numero massimo di attività da restituire (default 15)
-     * @return lista di attività ordinate dalla più recente
-     */
-    @GetMapping("/feed/{userId}")
-    public ResponseEntity<List<Map<String, Object>>> getActivityFeed(
-            @PathVariable Long userId,
+    /** Restituisce il feed delle attività recenti dell'utente autenticato. */
+    @GetMapping("/feed")
+    public ResponseEntity<List<ActivityFeedItemResponse>> getActivityFeed(
+            @AuthenticationPrincipal User user,
             @RequestParam(defaultValue = "14") int days,
-            @RequestParam(defaultValue = "15") int limit) {
-        return ResponseEntity.ok(userFacade.getActivityFeed(userId, days, limit));
+            @RequestParam(defaultValue = "15") int size) {
+        return ResponseEntity.ok(userFacade.getActivityFeed(user.getId(), days, size));
     }
 }

@@ -1,20 +1,18 @@
 package com.project.tesi.builder.impl;
 
 import com.project.tesi.builder.SlotBuilder;
+import com.project.tesi.model.Slot;
+import com.project.tesi.model.User;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
-import com.project.tesi.model.*;
 
-
-/**
- * Implementazione del pattern Builder per l'entità Slot.
- */
 public class SlotBuilderImpl implements SlotBuilder {
     private Long id;
     private User professional;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private boolean isBooked;
+    private User bookedBy;
     private Integer version;
 
     @Override
@@ -22,26 +20,31 @@ public class SlotBuilderImpl implements SlotBuilder {
         this.id = id;
         return this;
     }
+
     @Override
     public SlotBuilder professional(User professional) {
         this.professional = professional;
         return this;
     }
+
     @Override
     public SlotBuilder startTime(LocalDateTime startTime) {
         this.startTime = startTime;
         return this;
     }
+
     @Override
     public SlotBuilder endTime(LocalDateTime endTime) {
         this.endTime = endTime;
         return this;
     }
+
     @Override
-    public SlotBuilder isBooked(boolean isBooked) {
-        this.isBooked = isBooked;
+    public SlotBuilder bookedBy(User bookedBy) {
+        this.bookedBy = bookedBy;
         return this;
     }
+
     @Override
     public SlotBuilder version(Integer version) {
         this.version = version;
@@ -49,18 +52,20 @@ public class SlotBuilderImpl implements SlotBuilder {
     }
 
     @Override
-    // Controlliamo che l'orario e il professionista non siano null.
     public Slot build() {
         Objects.requireNonNull(this.professional, "professional è obbligatorio");
         Objects.requireNonNull(this.startTime, "startTime è obbligatorio");
         Objects.requireNonNull(this.endTime, "endTime è obbligatorio");
 
-        Slot obj = new Slot();
+        if (!this.startTime.isBefore(this.endTime))
+            throw new IllegalArgumentException("startTime deve essere precedente a endTime");
+
+    Slot obj = new Slot();
         obj.setId(this.id);
         obj.setProfessional(this.professional);
         obj.setStartTime(this.startTime);
         obj.setEndTime(this.endTime);
-        obj.setBooked(this.isBooked);
+        obj.setBookedBy(this.bookedBy);
         obj.setVersion(this.version);
         return obj;
     }

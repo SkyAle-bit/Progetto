@@ -1,5 +1,8 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.response.DocumentResponse;
+import com.project.tesi.dto.response.DocumentUploadResponse;
+import com.project.tesi.dto.response.UpdatedNotesResponse;
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceNotFoundException;
@@ -23,9 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -54,7 +55,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional
-    public Map<String, Object> uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String docType) {
+    public DocumentUploadResponse uploadDocumentWithValidation(MultipartFile file, Long clientId, Long uploaderId, String docType) {
         User uploader = userRepository.findById(uploaderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Uploader", uploaderId));
 
@@ -67,7 +68,8 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         Document doc = uploadDocument(file, clientId, uploaderId, docType);
-        return toDto(doc);
+        return new DocumentUploadResponse(doc.getId(), doc.getFileName(),
+                doc.getType().name(), doc.getUploadDate().toString());
     }
 
     @Override
@@ -140,7 +142,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public List<Map<String, Object>> getUserDocumentsDto(Long userId) {
+    public List<DocumentResponse> getUserDocumentsDto(Long userId) {
         return getUserDocuments(userId).stream().map(this::toDto).collect(Collectors.toList());
     }
 
@@ -153,7 +155,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public List<Map<String, Object>> getUserDocumentsByTypeDto(Long userId, String docType) {
+    public List<DocumentResponse> getUserDocumentsByTypeDto(Long userId, String docType) {
         return getUserDocumentsByType(userId, docType).stream().map(this::toDto).collect(Collectors.toList());
     }
 
@@ -175,11 +177,11 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional
-    public Map<String, Object> updateNotes(Long documentId, String notes) {
+    public UpdatedNotesResponse updateNotes(Long documentId, String notes) {
         Document doc = getDocumentById(documentId);
         doc.setNotes(notes);
         documentRepository.save(doc);
-        return toDto(doc);
+        return new UpdatedNotesResponse(doc.getId(), doc.getNotes());
     }
 
     @Override
@@ -188,20 +190,19 @@ public class DocumentServiceImpl implements DocumentService {
         return documentRepository.save(document);
     }
 
-
     @Override
-    public Map<String, Object> toDto(Document doc) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", doc.getId());
-        map.put("fileName", doc.getFileName());
-        map.put("contentType", doc.getContentType());
-        map.put("type", doc.getType().name());
-        map.put("uploadDate", doc.getUploadDate().toString());
-        map.put("ownerId", doc.getOwner().getId());
-        map.put("ownerName", doc.getOwner().getFirstName() + " " + doc.getOwner().getLastName());
-        map.put("uploadedById", doc.getUploadedBy().getId());
-        map.put("uploaderName", doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName());
-        map.put("notes", doc.getNotes());
-        return map;
+    public DocumentResponse toDto(Document doc) {
+        return new DocumentResponse(
+                doc.getId(),
+                doc.getFileName(),
+                doc.getContentType(),
+                doc.getType().name(),
+                doc.getUploadDate().toString(),
+                doc.getOwner().getId(),
+                doc.getOwner().getFirstName() + " " + doc.getOwner().getLastName(),
+                doc.getUploadedBy().getId(),
+                doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName(),
+                doc.getNotes()
+        );
     }
 }

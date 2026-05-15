@@ -41,7 +41,7 @@ class SlotServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        pt = User.builder().email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
     }
 
     @Test @DisplayName("createSlots — crea e salva slot")
@@ -52,7 +52,7 @@ class SlotServiceImplTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         Slot saved = Slot.builder().id(1L).professional(pt)
-                .startTime(dto.getStartTime()).endTime(dto.getEndTime()).isBooked(false).build();
+                .startTime(dto.getStartTime()).endTime(dto.getEndTime()).build();
         when(slotRepository.saveAll(anyList())).thenReturn(List.of(saved));
 
         List<SlotDTO> result = slotService.createSlots(2L, List.of(dto));
@@ -71,8 +71,8 @@ class SlotServiceImplTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         Slot s = Slot.builder().id(1L).professional(pt)
                 .startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30))
-                .isBooked(false).build();
-        when(slotRepository.findByProfessionalAndIsBookedFalse(pt)).thenReturn(List.of(s));
+                .build();
+        when(slotRepository.findByProfessionalAndBookedByIsNull(pt)).thenReturn(List.of(s));
 
         List<SlotDTO> result = slotService.getAvailableSlots(2L);
         assertThat(result).hasSize(1);
@@ -94,7 +94,6 @@ class SlotServiceImplTest {
     void generateSlotsFromSchedule_success() {
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
 
-        // Crea un WeeklySchedule per lunedì 09:00-10:00 (2 slot da 30 min)
         LocalDate nextMonday = LocalDate.now().with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.MONDAY));
         WeeklySchedule schedule = WeeklySchedule.builder()
                 .professional(pt).dayOfWeek(DayOfWeek.MONDAY)
@@ -115,11 +114,10 @@ class SlotServiceImplTest {
                 .professional(pt).dayOfWeek(DayOfWeek.MONDAY)
                 .startTime(LocalTime.of(9, 0)).endTime(LocalTime.of(9, 30)).build();
         when(weeklyScheduleRepository.findByProfessional(pt)).thenReturn(List.of(schedule));
-        when(slotRepository.existsByProfessionalAndStartTime(any(), any())).thenReturn(true); // già esiste
+        when(slotRepository.existsByProfessionalAndStartTime(any(), any())).thenReturn(true);
 
         slotService.generateSlotsFromSchedule(2L, nextMon, nextMon);
 
         verify(slotRepository, never()).saveAll(any());
     }
 }
-

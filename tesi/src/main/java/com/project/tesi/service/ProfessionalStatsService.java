@@ -1,6 +1,6 @@
 package com.project.tesi.service;
 
-import java.util.Map;
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
 
 /**
  * Interfaccia del servizio per le statistiche della dashboard del professionista.
@@ -9,5 +9,5 @@ import java.util.Map;
 public interface ProfessionalStatsService {
 
     /** Restituisce le statistiche aggregate per la dashboard del professionista. */
-    Map<String, Object> getProfessionalStats(Long professionalId);
+    ProfessionalStatsResponse getProfessionalStats(Long professionalId);
 }

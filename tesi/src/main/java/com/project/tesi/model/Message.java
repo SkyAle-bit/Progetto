@@ -1,18 +1,20 @@
 package com.project.tesi.model;
 
+import com.project.tesi.builder.MessageBuilder;
+import com.project.tesi.builder.impl.MessageBuilderImpl;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -21,9 +23,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = {"user", "chat"})
+@ToString(exclude = {"chat"})
 public class Message {
 
     @Id
@@ -35,17 +36,13 @@ public class Message {
     private LocalDateTime timeStamp;
     private boolean isRead;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private boolean sentByUser1;
 
     @ManyToOne
-    @JoinColumn(name = "chat_id", nullable = false)
+    @JoinColumn(name = "chat_id", nullable = false, foreignKey = @ForeignKey(name = "fk_message_chat_id"))
     private Chat chat;
 
-    public static com.project.tesi.builder.MessageBuilder builder() {
-        return new com.project.tesi.builder.impl.MessageBuilderImpl();
+    public static MessageBuilder builder() {
+        return new MessageBuilderImpl();
     }
-
 }
-

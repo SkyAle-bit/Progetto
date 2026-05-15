@@ -1,45 +1,36 @@
 package com.project.tesi.model;
 
+import com.project.tesi.builder.WeeklyScheduleBuilder;
+import com.project.tesi.builder.impl.WeeklyScheduleBuilderImpl;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.UniqueConstraint;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
-/**
- * Entità Programmazione Settimanale — definisce una fascia oraria ricorrente
- * nel calendario di un professionista (PT o Nutrizionista).
- *
- * Ogni record indica che il professionista è disponibile in un certo
- * giorno della settimana (es. MONDAY) dalle {@code startTime} alle {@code endTime}.
- *
- * Lo scheduler automatico ({@code SlotServiceImpl.generateSlotsFromSchedule})
- * legge queste regole per generare gli {@link Slot} di 30 minuti
- * per la settimana successiva.
- *
- * Esempio: se un PT ha una regola MONDAY 09:00–13:00, verranno generati
- * 8 slot da 30 minuti per ogni lunedì futuro nel range richiesto.
- */
 @Entity
-@Table(name = "weekly_schedules")
+@Table(name = "weekly_schedules", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_weekly_schedule_prof_day", columnNames = {"professional_id", "dayOfWeek"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = {"professional"})
 public class WeeklySchedule {
@@ -50,7 +41,7 @@ public class WeeklySchedule {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "professional_id", nullable = false)
+    @JoinColumn(name = "professional_id", nullable = false, foreignKey = @ForeignKey(name = "fk_weekly_schedule_professional_id"))
     private User professional;
 
     @Enumerated(EnumType.STRING)
@@ -63,8 +54,7 @@ public class WeeklySchedule {
     @Column(nullable = false)
     private LocalTime endTime;
 
-    public static com.project.tesi.builder.WeeklyScheduleBuilder builder() {
-        return new com.project.tesi.builder.impl.WeeklyScheduleBuilderImpl();
+    public static WeeklyScheduleBuilder builder() {
+        return new WeeklyScheduleBuilderImpl();
     }
-
 }

@@ -92,11 +92,19 @@ public class SubscriptionBuilderImpl implements SubscriptionBuilder {
     }
 
     @Override
-    // Validazione dei campi core prima del salvataggio nel database.
     public Subscription build() {
         Objects.requireNonNull(this.user, "user è obbligatorio");
         Objects.requireNonNull(this.plan, "plan è obbligatorio");
         Objects.requireNonNull(this.paymentFrequency, "paymentFrequency è obbligatorio");
+
+        if (this.startDate != null && this.endDate != null && this.startDate.isAfter(this.endDate))
+            throw new IllegalArgumentException("startDate non può essere successiva a endDate");
+        if (this.installmentsPaid > this.totalInstallments)
+            throw new IllegalStateException("installmentsPaid (" + this.installmentsPaid + ") non può superare totalInstallments (" + this.totalInstallments + ")");
+        if (this.currentCreditsPT < 0)
+            throw new IllegalArgumentException("currentCreditsPT non può essere negativo");
+        if (this.currentCreditsNutri < 0)
+            throw new IllegalArgumentException("currentCreditsNutri non può essere negativo");
 
         Subscription obj = new Subscription();
         obj.setId(this.id);

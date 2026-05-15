@@ -1,12 +1,18 @@
 package com.project.tesi.controller;
 
-import com.project.tesi.facade.IDocumentFacade;
+import com.project.tesi.dto.request.UpdateNotesRequest;
+import com.project.tesi.dto.response.DocumentResponse;
+import com.project.tesi.dto.response.DocumentUploadResponse;
+import com.project.tesi.dto.response.UpdatedNotesResponse;
+import com.project.tesi.facade.DocumentFacade;
 import com.project.tesi.model.Document;
+import com.project.tesi.model.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Endpoint REST per i documenti. L'upload usa MultipartFile per i dati binari e parametri form-data.
@@ -29,20 +34,20 @@ import java.util.Map;
 @Tag(name = "Documents", description = "API per la gestione sicura dei documenti")
 public class DocumentController {
 
-    private final IDocumentFacade documentFacade;
+    private final DocumentFacade documentFacade;
 
-    public DocumentController(IDocumentFacade documentFacade) {
+    public DocumentController(DocumentFacade documentFacade) {
         this.documentFacade = documentFacade;
     }
 
     /** Carica un documento validando il ruolo dell'uploader rispetto al tipo di file. */
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, Object>> uploadFile(
+    public ResponseEntity<DocumentUploadResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("clientId") Long clientId,
-            @RequestParam("uploaderId") Long uploaderId,
-            @RequestParam("type") String type) {
-        return ResponseEntity.ok(documentFacade.uploadDocumentWithValidation(file, clientId, uploaderId, type));
+            @RequestParam("type") String type,
+            @AuthenticationPrincipal User uploader) {
+        return ResponseEntity.ok(documentFacade.uploadDocumentWithValidation(file, clientId, uploader.getId(), type));
     }
 
     /** Scarica il contenuto binario di un documento per la visualizzazione inline nel browser. */
@@ -60,13 +65,13 @@ public class DocumentController {
 
     /** Restituisce tutti i documenti di un utente (qualsiasi tipo). */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Map<String, Object>>> getUserDocuments(@PathVariable Long userId) {
+    public ResponseEntity<List<DocumentResponse>> getUserDocuments(@PathVariable Long userId) {
         return ResponseEntity.ok(documentFacade.getUserDocumentsDto(userId));
     }
 
     /** Restituisce i documenti di un utente filtrati per tipologia. */
     @GetMapping("/user/{userId}/type/{type}")
-    public ResponseEntity<List<Map<String, Object>>> getUserDocumentsByType(
+    public ResponseEntity<List<DocumentResponse>> getUserDocumentsByType(
             @PathVariable Long userId, @PathVariable String type) {
         return ResponseEntity.ok(documentFacade.getUserDocumentsByTypeDto(userId, type));
     }
@@ -80,9 +85,9 @@ public class DocumentController {
 
     /** Aggiorna le note testuali associate a un documento. */
     @PutMapping("/{id}/notes")
-    public ResponseEntity<Map<String, Object>> updateNotes(
+    public ResponseEntity<UpdatedNotesResponse> updateNotes(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(documentFacade.updateNotes(id, body.get("notes")));
+            @Valid @RequestBody UpdateNotesRequest body) {
+        return ResponseEntity.ok(documentFacade.updateNotes(id, body.notes()));
     }
 }

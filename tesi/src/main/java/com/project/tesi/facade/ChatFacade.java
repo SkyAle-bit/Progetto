@@ -11,7 +11,7 @@ import java.util.List;
  * Centralizza l'accesso ai metodi di ChatService per mantenere i controller puliti.
  */
 @Component
-public class ChatFacade implements IChatFacade {
+public class ChatFacade {
     private final ChatService chatService;
     public ChatFacade(ChatService chatService) {
         this.chatService = chatService;
@@ -19,8 +19,8 @@ public class ChatFacade implements IChatFacade {
     public Long createChat(Long senderId, Long receiverId) {
         return chatService.createChat(senderId, receiverId);
     }
-    public ChatMessageResponse sendMessage(SendMessageRequest request) {
-        return chatService.sendMessage(request);
+    public ChatMessageResponse sendMessage(SendMessageRequest request, Long senderId) {
+        return chatService.sendMessage(request, senderId);
     }
     public List<ChatMessageResponse> getConversation(Long chatId, Long userId, int page, int size) {
         return chatService.getConversation(chatId, userId, page, size);

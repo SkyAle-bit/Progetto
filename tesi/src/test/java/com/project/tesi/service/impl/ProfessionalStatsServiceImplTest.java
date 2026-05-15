@@ -1,5 +1,6 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
 import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
@@ -18,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -38,9 +38,9 @@ class ProfessionalStatsServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
-        nutri = User.builder().email("nutri@test.com").password("pass").role(Role.NUTRITIONIST).id(3L).firstName("Sara").lastName("Verdi").build();
-        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
+        pt     = User.builder().email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        nutri  = User.builder().email("nutri@test.com").password("testpass").role(Role.NUTRITIONIST).id(3L).firstName("Sara").lastName("Verdi").build();
+        client = User.builder().email("mario@test.com").password("testpass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
     }
 
     @Test @DisplayName("getProfessionalStats — PT con booking e clienti")
@@ -54,17 +54,16 @@ class ProfessionalStatsServiceImplTest {
                 .status(BookingStatus.CONFIRMED).meetingLink("https://meet.jit.si/test").build();
         when(bookingRepository.findTodayByProfessional(eq(pt), any(), any())).thenReturn(List.of(booking));
         when(userRepository.findByAssignedPT(pt)).thenReturn(List.of(client));
-        // Documento vecchio → clienti che necessitano attenzione
         Document oldDoc = Document.builder().uploadDate(LocalDateTime.now().minusDays(10)).build();
         when(documentRepository.findLatestByOwnerAndType(client, DocumentType.WORKOUT_PLAN)).thenReturn(oldDoc);
         when(documentRepository.countByUploaderSince(eq(pt), any())).thenReturn(3);
 
-        Map<String, Object> stats = statsService.getProfessionalStats(2L);
+        ProfessionalStatsResponse stats = statsService.getProfessionalStats(2L);
 
-        assertThat(stats.get("todayBookingsCount")).isEqualTo(1);
-        assertThat(stats.get("totalClients")).isEqualTo(1);
-        assertThat(stats.get("docsUploadedThisWeek")).isEqualTo(3);
-        assertThat(stats.get("clientsNeedingAttentionCount")).isEqualTo(1);
+        assertThat(stats.todayBookingsCount()).isEqualTo(1);
+        assertThat(stats.totalClients()).isEqualTo(1);
+        assertThat(stats.docsUploadedThisWeek()).isEqualTo(3);
+        assertThat(stats.clientsNeedingAttentionCount()).isEqualTo(1);
     }
 
     @Test @DisplayName("getProfessionalStats — Nutrizionista senza prenotazioni")
@@ -72,17 +71,14 @@ class ProfessionalStatsServiceImplTest {
         when(userRepository.findById(3L)).thenReturn(Optional.of(nutri));
         when(bookingRepository.findTodayByProfessional(eq(nutri), any(), any())).thenReturn(List.of());
         when(userRepository.findByAssignedNutritionist(nutri)).thenReturn(List.of(client));
-        // Nessun documento → necessita attenzione
         when(documentRepository.findLatestByOwnerAndType(client, DocumentType.DIET_PLAN)).thenReturn(null);
         when(documentRepository.countByUploaderSince(eq(nutri), any())).thenReturn(0);
 
-        Map<String, Object> stats = statsService.getProfessionalStats(3L);
+        ProfessionalStatsResponse stats = statsService.getProfessionalStats(3L);
 
-        assertThat(stats.get("todayBookingsCount")).isEqualTo(0);
-        assertThat(stats.get("clientsNeedingAttentionCount")).isEqualTo(1);
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> attention = (List<Map<String, Object>>) stats.get("clientsNeedingAttention");
-        assertThat(attention.get(0).get("daysSinceLastDoc")).isEqualTo(-1L);
+        assertThat(stats.todayBookingsCount()).isEqualTo(0);
+        assertThat(stats.clientsNeedingAttentionCount()).isEqualTo(1);
+        assertThat(stats.clientsNeedingAttention().get(0).daysSinceLastDoc()).isEqualTo(-1L);
     }
 
     @Test @DisplayName("getProfessionalStats — professionista non trovato")
@@ -104,13 +100,11 @@ class ProfessionalStatsServiceImplTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(pt));
         when(bookingRepository.findTodayByProfessional(eq(pt), any(), any())).thenReturn(List.of());
         when(userRepository.findByAssignedPT(pt)).thenReturn(List.of(client));
-        // Documento recente → non necessita attenzione
         Document recentDoc = Document.builder().uploadDate(LocalDateTime.now().minusDays(2)).build();
         when(documentRepository.findLatestByOwnerAndType(client, DocumentType.WORKOUT_PLAN)).thenReturn(recentDoc);
         when(documentRepository.countByUploaderSince(eq(pt), any())).thenReturn(1);
 
-        Map<String, Object> stats = statsService.getProfessionalStats(2L);
-        assertThat(stats.get("clientsNeedingAttentionCount")).isEqualTo(0);
+        ProfessionalStatsResponse stats = statsService.getProfessionalStats(2L);
+        assertThat(stats.clientsNeedingAttentionCount()).isEqualTo(0);
     }
 }
-

@@ -40,7 +40,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 /**
@@ -76,17 +76,17 @@ public class UserServiceImpl implements UserService {
 
         // Aggiornamento parziale del profilo: controlliamo esplicitamente null e
         // stringhe vuote per evitare di piallare i campi esistenti con dati sporchi.
-        if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
-            user.setFirstName(request.getFirstName().trim());
+        if (request.firstName() != null && !request.firstName().trim().isEmpty()) {
+            user.setFirstName(request.firstName().trim());
         }
-        if (request.getLastName() != null && !request.getLastName().trim().isEmpty()) {
-            user.setLastName(request.getLastName().trim());
+        if (request.lastName() != null && !request.lastName().trim().isEmpty()) {
+            user.setLastName(request.lastName().trim());
         }
-        if (request.getProfilePicture() != null && !request.getProfilePicture().trim().isEmpty()) {
-            user.setProfilePicture(request.getProfilePicture().trim());
+        if (request.profilePicture() != null && !request.profilePicture().trim().isEmpty()) {
+            user.setProfilePicture(request.profilePicture().trim());
         }
-        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
+        if (request.password() != null && !request.password().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.password().trim()));
             try {
                 emailService.sendPasswordChangeEmail(user.getEmail(), user.getFirstName());
             } catch (Exception e) {
@@ -100,21 +100,21 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse registerUser(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ResourceAlreadyExistsException("Utente", "email", request.getEmail());
+        if (userRepository.findByEmail(request.email()).isPresent()) {
+            throw new ResourceAlreadyExistsException("Utente", "email", request.email());
         }
 
         User newUser = userMapper.toUser(request);
-        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        newUser.setPassword(passwordEncoder.encode(request.password()));
 
-        assignProfessional(newUser, request.getSelectedPtId(), Role.PERSONAL_TRAINER);
-        assignProfessional(newUser, request.getSelectedNutritionistId(), Role.NUTRITIONIST);
+        assignProfessional(newUser, request.selectedPtId(), Role.PERSONAL_TRAINER);
+        assignProfessional(newUser, request.selectedNutritionistId(), Role.NUTRITIONIST);
 
         User savedUser = userRepository.save(newUser);
 
-        if (request.getSelectedPlanId() != null && request.getPaymentFrequency() != null) {
-            Plan selectedPlan = planRepository.findById(request.getSelectedPlanId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Piano", request.getSelectedPlanId()));
+        if (request.selectedPlanId() != null && request.paymentFrequency() != null) {
+            Plan selectedPlan = planRepository.findById(request.selectedPlanId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Piano", request.selectedPlanId()));
 
             Subscription subscription = subscriptionMapper.toSubscription(request, savedUser, selectedPlan);
             subscriptionRepository.save(subscription);
@@ -249,10 +249,12 @@ public class UserServiceImpl implements UserService {
                 }
 
                 Optional<User> existing = findExistingOperatorConversation(actor.getId(), moderators);
-                User selected = existing.orElseGet(() -> {
-                    int index = ThreadLocalRandom.current().nextInt(moderators.size());
-                    return moderators.get(index);
-                });
+                User selected = existing.orElseGet(() ->
+                    moderators.stream()
+                        .min(Comparator.comparingLong(m ->
+                            chatRepository.countOpenChatsByModerator(m.getId())))
+                        .orElse(moderators.get(0))
+                );
                 return toBasicInfo(selected);
             }
 

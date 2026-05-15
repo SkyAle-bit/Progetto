@@ -48,6 +48,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsByUserAndProfessional(User user, User professional);
 
     /**
+     * Verifica per ID se esiste almeno una prenotazione storica tra cliente e professionista.
+     * Usato dalla logica recensioni per verificare la relazione formale senza caricare le entità.
+     *
+     * @param userId         ID del cliente
+     * @param professionalId ID del professionista
+     * @return {@code true} se esiste almeno una prenotazione
+     */
+    boolean existsByUserIdAndProfessionalId(Long userId, Long professionalId);
+
+    /**
      * Restituisce le prenotazioni future di un cliente, ordinate per data di inizio slot crescente.
      *
      * @param user  il cliente

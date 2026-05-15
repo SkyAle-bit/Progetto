@@ -1,10 +1,13 @@
 package com.project.tesi.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,15 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-import lombok.extern.slf4j.Slf4j;
-
-/**
- * Filtro JWT custom, eseguito per ogni singola richiesta HTTP (ecco perché OncePerRequestFilter).
- * 
- * Qui controlliamo se c'è un header "Authorization: Bearer <token>". 
- * Se c'è, lo validiamo ed estraiamo l'utente, mettendolo nel SecurityContextHolder.
- * In questo modo Spring Security sa chi è l'utente e i controller possono recuperarlo.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -36,18 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
+        final String jwt = authHeader.substring(7);
 
         try {
-            userEmail = jwtUtil.extractUsername(jwt);
+            final String userEmail = jwtUtil.extractUsername(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
@@ -57,10 +49,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             userDetails, null, userDetails.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+        } catch (ExpiredJwtException e) {
+            log.warn("Token JWT scaduto: {}", e.getMessage());
+        } catch (SignatureException e) {
+            log.warn("Firma JWT non valida: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Errore validazione JWT: {}", e.getMessage());
         }

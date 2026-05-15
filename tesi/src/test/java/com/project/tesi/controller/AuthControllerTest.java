@@ -33,8 +33,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("register — restituisce 200 con il profilo creato")
     void register() {
-        RegisterRequest req = new RegisterRequest();
-        req.setEmail("mario@test.com");
+        RegisterRequest req = new RegisterRequest(null, null, "mario@test.com", null, null, null, null, null, null);
         UserResponse userResp = UserResponse.builder().id(1L).email("mario@test.com").role(Role.CLIENT).build();
         when(authService.register(req)).thenReturn(userResp);
 
@@ -47,9 +46,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("login — restituisce 200 con token JWT")
     void login() {
-        LoginRequest req = new LoginRequest();
-        req.setEmail("mario@test.com");
-        req.setPassword("password");
+        LoginRequest req = new LoginRequest("mario@test.com", "password");
         AuthResponse authResp = AuthResponse.builder().token("jwt-123").id(1L).build();
         when(authService.login(req)).thenReturn(authResp);
 

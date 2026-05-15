@@ -1,5 +1,6 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.dto.response.ActivityFeedItemResponse;
 import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.DocumentType;
 import com.project.tesi.enums.Role;
@@ -18,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -38,8 +38,8 @@ class ActivityFeedServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pt = User.builder().email("pt@test.com").password("pass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
-        client = User.builder().email("mario@test.com").password("pass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
+        pt = User.builder().email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).id(2L).firstName("Luca").lastName("Bianchi").build();
+        client = User.builder().email("mario@test.com").password("testpass").role(Role.CLIENT).id(1L).firstName("Mario").lastName("Rossi").build();
     }
 
     @Test @DisplayName("getActivityFeed — CLIENT con prenotazioni e documenti")
@@ -48,18 +48,18 @@ class ActivityFeedServiceImplTest {
 
         Slot slot = Slot.builder().professional(pt).startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
         Booking booking = Booking.builder().id(1L).user(client).professional(pt).slot(slot)
-                .status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusHours(2)).build();
+                .status(BookingStatus.CONFIRMED).meetingLink("https://meet.jit.si/test-room").bookedAt(LocalDateTime.now().minusHours(2)).build();
         when(bookingRepository.findRecentByUser(eq(client), any())).thenReturn(List.of(booking));
 
         Document doc = Document.builder().id(1L).fileName("scheda.pdf").type(DocumentType.WORKOUT_PLAN)
                 .owner(client).uploadedBy(pt).uploadDate(LocalDateTime.now().minusHours(1)).build();
         when(documentRepository.findRecentByOwner(eq(client), any())).thenReturn(List.of(doc));
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(1L, 14, 15);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(1L, 14, 15);
         assertThat(result).hasSize(2);
         // Il documento è più recente, deve essere primo
-        assertThat(result.get(0).get("type")).isEqualTo("document");
-        assertThat(result.get(1).get("type")).isEqualTo("booking");
+        assertThat(result.get(0).type()).isEqualTo("document");
+        assertThat(result.get(1).type()).isEqualTo("booking");
     }
 
     @Test @DisplayName("getActivityFeed — professionista con prenotazioni e documenti")
@@ -68,14 +68,14 @@ class ActivityFeedServiceImplTest {
 
         Slot slot = Slot.builder().professional(pt).startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
         Booking booking = Booking.builder().id(1L).user(client).professional(pt).slot(slot)
-                .status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusMinutes(30)).build();
+                .status(BookingStatus.CONFIRMED).meetingLink("https://meet.jit.si/test-room").bookedAt(LocalDateTime.now().minusMinutes(30)).build();
         when(bookingRepository.findRecentByProfessional(eq(pt), any())).thenReturn(List.of(booking));
 
         Document doc = Document.builder().id(1L).fileName("dieta.pdf").type(DocumentType.DIET_PLAN)
                 .owner(client).uploadedBy(pt).uploadDate(LocalDateTime.now().minusMinutes(10)).build();
         when(documentRepository.findRecentByUploader(eq(pt), any())).thenReturn(List.of(doc));
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(2L, 14, 15);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(2L, 14, 15);
         assertThat(result).hasSize(2);
     }
 
@@ -92,7 +92,7 @@ class ActivityFeedServiceImplTest {
         when(bookingRepository.findRecentByUser(eq(client), any())).thenReturn(List.of());
         when(documentRepository.findRecentByOwner(eq(client), any())).thenReturn(List.of());
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(1L, 14, 15);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(1L, 14, 15);
         assertThat(result).isEmpty();
     }
 
@@ -101,12 +101,12 @@ class ActivityFeedServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(client));
 
         Slot slot = Slot.builder().professional(pt).startTime(LocalDateTime.now().plusDays(1)).endTime(LocalDateTime.now().plusDays(1).plusMinutes(30)).build();
-        Booking b1 = Booking.builder().id(1L).user(client).professional(pt).slot(slot).status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusHours(1)).build();
-        Booking b2 = Booking.builder().id(2L).user(client).professional(pt).slot(slot).status(BookingStatus.CONFIRMED).meetingLink("link").bookedAt(LocalDateTime.now().minusHours(2)).build();
+        Booking b1 = Booking.builder().id(1L).user(client).professional(pt).slot(slot).status(BookingStatus.CONFIRMED).meetingLink("https://meet.jit.si/test-room").bookedAt(LocalDateTime.now().minusHours(1)).build();
+        Booking b2 = Booking.builder().id(2L).user(client).professional(pt).slot(slot).status(BookingStatus.CONFIRMED).meetingLink("https://meet.jit.si/test-room").bookedAt(LocalDateTime.now().minusHours(2)).build();
         when(bookingRepository.findRecentByUser(eq(client), any())).thenReturn(List.of(b1, b2));
         when(documentRepository.findRecentByOwner(eq(client), any())).thenReturn(List.of());
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(1L, 14, 1);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(1L, 14, 1);
         assertThat(result).hasSize(1); // limitato a 1
     }
 
@@ -121,7 +121,7 @@ class ActivityFeedServiceImplTest {
                 .owner(client).uploadedBy(pt).uploadDate(LocalDateTime.now().minusMinutes(30)).build();
         when(documentRepository.findRecentByOwner(eq(client), any())).thenReturn(List.of(police, cert));
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(1L, 14, 15);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(1L, 14, 15);
         assertThat(result).hasSize(2);
     }
 
@@ -134,18 +134,17 @@ class ActivityFeedServiceImplTest {
                 .owner(null).uploadedBy(pt).uploadDate(LocalDateTime.now().minusMinutes(5)).build();
         when(documentRepository.findRecentByUploader(eq(pt), any())).thenReturn(List.of(doc));
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(2L, 14, 15);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(2L, 14, 15);
         assertThat(result).hasSize(1);
-        assertThat(((String) result.get(0).get("text"))).contains("—");
+        assertThat(result.get(0).text()).contains("—");
     }
 
     @Test @DisplayName("getActivityFeed — ADMIN restituisce lista vuota (nessun feed)")
     void getActivityFeed_admin() {
-        User admin = User.builder().email("test@test.com").password("pass").role(com.project.tesi.enums.Role.CLIENT).id(99L).role(Role.ADMIN).build();
+        User admin = User.builder().email("test@test.com").password("testpass").role(com.project.tesi.enums.Role.CLIENT).id(99L).role(Role.ADMIN).build();
         when(userRepository.findById(99L)).thenReturn(Optional.of(admin));
 
-        List<Map<String, Object>> result = activityFeedService.getActivityFeed(99L, 14, 15);
+        List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(99L, 14, 15);
         assertThat(result).isEmpty();
     }
 }
-

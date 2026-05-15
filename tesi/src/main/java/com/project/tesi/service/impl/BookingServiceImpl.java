@@ -18,13 +18,14 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
+import com.project.tesi.event.BookingCancelledEvent;
+import com.project.tesi.event.BookingCreatedEvent;
 import com.project.tesi.service.BookingService;
 import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
-import com.project.tesi.enums.EventType;
-import com.project.tesi.observer.manager.EventManager;
 import com.project.tesi.builder.BookingDirector;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +54,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final List<BookingStrategy> strategies;
     private final VideoConferenceService videoConferenceService;
-    private final EventManager eventManager;
+    private final ApplicationEventPublisher publisher;
     private final BookingDirector bookingDirector;
 
     private static class LockReference {
@@ -73,9 +74,9 @@ public class BookingServiceImpl implements BookingService {
 
     // Costruttore esplicito — pattern Strategy (e Facade accessibile)
     public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository,
-                              UserRepository userRepository, SubscriptionRepository subscriptionRepository, 
-                              BookingMapper bookingMapper, List<BookingStrategy> strategies, 
-                              VideoConferenceService videoConferenceService, EventManager eventManager,
+                              UserRepository userRepository, SubscriptionRepository subscriptionRepository,
+                              BookingMapper bookingMapper, List<BookingStrategy> strategies,
+                              VideoConferenceService videoConferenceService, ApplicationEventPublisher publisher,
                               BookingDirector bookingDirector) {
         this.bookingRepository = bookingRepository;
         this.slotRepository = slotRepository;
@@ -84,7 +85,7 @@ public class BookingServiceImpl implements BookingService {
         this.bookingMapper = bookingMapper;
         this.strategies = strategies;
         this.videoConferenceService = videoConferenceService;
-        this.eventManager = eventManager;
+        this.publisher = publisher;
         this.bookingDirector = bookingDirector;
     }
 
@@ -98,8 +99,8 @@ public class BookingServiceImpl implements BookingService {
      */
     @Override
     @Transactional
-    public BookingResponse createBooking(BookingRequest request) {
-        Long slotId = request.getSlotId();
+    public BookingResponse createBooking(BookingRequest request, Long userId) {
+        Long slotId = request.slotId();
         LockReference ref;
         synchronized (slotLocks) {
             ref = slotLocks.computeIfAbsent(slotId, k -> new LockReference());
@@ -107,13 +108,13 @@ public class BookingServiceImpl implements BookingService {
         }
         ref.lock.lock();
         try {
-            User user = userRepository.findById(request.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Utente", request.getUserId()));
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
 
-            Slot slot = slotRepository.findById(request.getSlotId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Slot", request.getSlotId()));
+            Slot slot = slotRepository.findByIdWithLock(request.slotId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Slot", request.slotId()));
 
-            if (slot.isBooked()) {
+            if (slot.getBookedBy() != null) {
                 throw new SlotAlreadyBookedException("Slot non più disponibile");
             }
 
@@ -152,7 +153,7 @@ public class BookingServiceImpl implements BookingService {
             strategy.consumeCredits(sub);
             subscriptionRepository.save(sub);
 
-            slot.setBooked(true);
+            slot.setBookedBy(user);
             slotRepository.save(slot);
 
             String meetLink = videoConferenceService.generateMeetingLink(user, professional, slot);
@@ -161,7 +162,7 @@ public class BookingServiceImpl implements BookingService {
 
             Booking saved = bookingRepository.save(booking);
 
-            eventManager.notifyListeners(EventType.BOOKING_CREATED, saved);
+            publisher.publishEvent(new BookingCreatedEvent(this, saved));
 
             return bookingMapper.toResponse(saved);
         } finally {
@@ -214,12 +215,12 @@ public class BookingServiceImpl implements BookingService {
             log.warn("Nessun abbonamento attivo trovato per l'utente ID {}: impossibile elaborare il rimborso (prenotazione ID {}).", booking.getUser().getId(), bookingId);
         }
 
-        slot.setBooked(false);
+        slot.setBookedBy(null);
         slotRepository.save(slot);
 
         booking.setStatus(BookingStatus.CANCELED);
         Booking saved = bookingRepository.save(booking);
 
-        eventManager.notifyListeners(EventType.BOOKING_CANCELLED, saved);
+        publisher.publishEvent(new BookingCancelledEvent(this, saved));
     }
 }

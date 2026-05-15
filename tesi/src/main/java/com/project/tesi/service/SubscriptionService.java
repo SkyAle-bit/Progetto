@@ -15,7 +15,7 @@ import com.project.tesi.model.Booking;
 public interface SubscriptionService {
 
     /** Attiva un nuovo abbonamento per il cliente. */
-    SubscriptionResponse activateSubscription(PlanRequest request);
+    SubscriptionResponse activateSubscription(PlanRequest request, Long userId);
 
     /** Restituisce lo stato dell'abbonamento attivo (crediti, scadenza, piano). */
     SubscriptionResponse getSubscriptionStatus(Long userId);

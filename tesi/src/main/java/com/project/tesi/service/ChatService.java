@@ -17,7 +17,7 @@ public interface ChatService {
     Long createChat(Long senderId, Long receiverId);
 
     /** Invia un messaggio tramite endpoint REST (con validazione permessi). */
-    ChatMessageResponse sendMessage(SendMessageRequest request);
+    ChatMessageResponse sendMessage(SendMessageRequest request, Long senderId);
 
     /**
      * Salva direttamente un messaggio (usato dal WebSocket controller).
@@ -52,4 +52,7 @@ public interface ChatService {
 
 
     com.project.tesi.model.Chat getChatEntity(Long chatId);
+
+    /** Chiude formalmente una sessione di chat (solo moderatori). */
+    void closeChat(Long chatId, Long moderatorId);
 }

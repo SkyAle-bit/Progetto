@@ -1,11 +1,14 @@
 package com.project.tesi.config;
 
+import com.project.tesi.model.User;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,14 +31,15 @@ public class WebSocketEventListener {
     /** Mappa sessionId → insieme delle stanze chat in cui la sessione è attualmente presente. */
     private final Map<String, Set<String>> sessionRooms = new ConcurrentHashMap<>();
 
-    // Estrae l'header userId al momento della connessione e registra la sessione
+    // Estrae il Principal JWT al momento della connessione e registra la sessione
     @EventListener
     public void handleConnect(SessionConnectEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = accessor.getSessionId();
-        String userIdHeader = accessor.getFirstNativeHeader("userId");
-        if (sessionId != null && userIdHeader != null) {
-            Long userId = Long.parseLong(userIdHeader);
+        Principal principal = accessor.getUser();
+        if (sessionId != null && principal instanceof UsernamePasswordAuthenticationToken auth
+                && auth.getPrincipal() instanceof User user) {
+            Long userId = user.getId();
             sessionUser.put(sessionId, userId);
             userSessions.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
             sessionRooms.put(sessionId, ConcurrentHashMap.newKeySet());

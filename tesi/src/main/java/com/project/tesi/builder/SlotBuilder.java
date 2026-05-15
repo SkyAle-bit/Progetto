@@ -1,15 +1,16 @@
 package com.project.tesi.builder;
 
-import java.time.LocalDateTime;
-import com.project.tesi.model.*;
+import com.project.tesi.model.Slot;
+import com.project.tesi.model.User;
 
+import java.time.LocalDateTime;
 
 public interface SlotBuilder {
     SlotBuilder id(Long id);
     SlotBuilder professional(User professional);
     SlotBuilder startTime(LocalDateTime startTime);
     SlotBuilder endTime(LocalDateTime endTime);
-    SlotBuilder isBooked(boolean isBooked);
+    SlotBuilder bookedBy(User bookedBy);
     SlotBuilder version(Integer version);
     Slot build();
 }
