@@ -1,8 +1,10 @@
 package com.project.tesi.security;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
@@ -12,11 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
-/**
- * Interceptor che valida il JWT sul frame STOMP CONNECT.
- * Imposta il Principal autenticato sulla sessione WebSocket, eliminando
- * la necessità di passare userId nel payload dei messaggi successivi.
- */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class WebSocketChannelInterceptor implements ChannelInterceptor {
@@ -29,22 +27,37 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor =
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            String authHeader = accessor.getFirstNativeHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String jwt = authHeader.substring(7);
-                try {
-                    String email = jwtUtil.extractUsername(jwt);
-                    UserDetails user = userDetailsService.loadUserByUsername(email);
-                    if (jwtUtil.isTokenValid(jwt, user)) {
-                        UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(
-                                        user, null, user.getAuthorities());
-                        accessor.setUser(auth);
-                    }
-                } catch (Exception ignored) { /* token non valido — sessione senza Principal */ }
-            }
+        if (accessor == null || !StompCommand.CONNECT.equals(accessor.getCommand())) {
+            return message;
         }
+
+        String sessionId = accessor.getSessionId();
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("[WS] CONNECT rifiutato (sessionId={}): header Authorization mancante o malformato.", sessionId);
+            throw new MessagingException("Missing or invalid Authorization header on STOMP CONNECT");
+        }
+
+        String jwt = authHeader.substring(7);
+        try {
+            String email = jwtUtil.extractUsername(jwt);
+            UserDetails user = userDetailsService.loadUserByUsername(email);
+            if (!jwtUtil.isTokenValid(jwt, user)) {
+                log.warn("[WS] CONNECT rifiutato (sessionId={}): JWT non valido per utente {}.", sessionId, email);
+                throw new MessagingException("Invalid JWT on STOMP CONNECT");
+            }
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            accessor.setUser(auth);
+            log.info("[WS] CONNECT accettato (sessionId={}, user={}).", sessionId, email);
+        } catch (MessagingException me) {
+            throw me;
+        } catch (Exception ex) {
+            log.warn("[WS] CONNECT rifiutato (sessionId={}): errore validazione JWT — {}", sessionId, ex.getMessage());
+            throw new MessagingException("JWT validation failed on STOMP CONNECT", ex);
+        }
+
         return message;
     }
 }

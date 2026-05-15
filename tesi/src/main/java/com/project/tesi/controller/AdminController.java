@@ -1,5 +1,6 @@
 package com.project.tesi.controller;
 
+import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.SubscriptionCreditsUpdateDTO;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
@@ -41,6 +42,11 @@ public class AdminController {
         return ResponseEntity.ok(adminFacade.createUser(request));
     }
 
+    @PutMapping("/users/{id}")
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @RequestBody ModeratorUserUpdateRequest request) {
+        return ResponseEntity.ok(adminFacade.updateUser(id, request));
+    }
+
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
         adminFacade.deleteUser(id);
@@ -64,6 +70,11 @@ public class AdminController {
     @PostMapping("/plans")
     public ResponseEntity<PlanResponseDTO> createPlan(@RequestBody PlanCreateRequestDTO request) {
         return ResponseEntity.ok(adminFacade.createPlan(request));
+    }
+
+    @PutMapping("/plans/{id}")
+    public ResponseEntity<PlanResponseDTO> updatePlan(@PathVariable Long id, @RequestBody PlanCreateRequestDTO request) {
+        return ResponseEntity.ok(adminFacade.updatePlan(id, request));
     }
 
     @DeleteMapping("/plans/{id}")

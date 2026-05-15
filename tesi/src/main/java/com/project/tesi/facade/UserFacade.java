@@ -7,6 +7,7 @@ import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ActivityFeedItemResponse;
 import com.project.tesi.dto.response.BookingResponse;
 import com.project.tesi.dto.response.ClientBasicInfoResponse;
+import com.project.tesi.dto.response.UserResponse;
 import com.project.tesi.dto.response.ClientDashboardResponse;
 import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.response.ReviewResponse;
@@ -60,6 +61,10 @@ public class UserFacade {
 
     public ClientDashboardResponse getClientDashboard(Long userId) {
         return userService.getClientDashboard(userId);
+    }
+
+    public ClientBasicInfoResponse getAdmin() {
+        return userService.getAdmin();
     }
 
 

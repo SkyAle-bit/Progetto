@@ -51,6 +51,12 @@ public interface AdminService {
     /** Crea un nuovo piano commerciale. */
     Plan createPlan(PlanCreateRequestDTO request);
 
+    /** Aggiorna i dati di un piano commerciale esistente. */
+    Plan updatePlan(Long id, PlanCreateRequestDTO request);
+
     /** Elimina un piano commerciale. */
     void deletePlan(Long id);
+
+    /** Aggiorna un utente come amministratore (senza restrizioni di ruolo). */
+    User updateUser(Long id, ModeratorUserUpdateRequest request);
 }

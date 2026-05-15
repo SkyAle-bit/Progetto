@@ -125,6 +125,12 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    public User updateUser(Long id, ModeratorUserUpdateRequest request) {
+        return updateUserInternal(id, request, null);
+    }
+
+    @Override
+    @Transactional
     public void deleteUserAsModerator(Long id) {
         User actor = getAuthenticatedActor();
         ensureRole(actor, Role.MODERATOR);
@@ -195,6 +201,33 @@ public class AdminServiceImpl implements AdminService {
                 .monthlyCreditsPT(monthlyCreditsPT)
                 .monthlyCreditsNutri(monthlyCreditsNutri)
                 .build());
+    }
+
+    @Override
+    @Transactional
+    public Plan updatePlan(Long id, PlanCreateRequestDTO request) {
+        Plan plan = planRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Piano", id));
+
+        if (request.name() != null && !request.name().isBlank() && !request.name().equals(plan.getName())) {
+            planRepository.findByName(request.name()).ifPresent(existing -> {
+                throw new ResourceAlreadyExistsException("Piano", "name", request.name());
+            });
+            plan.setName(request.name());
+        }
+        if (request.duration() != null && !request.duration().isBlank()) {
+            try {
+                plan.setDuration(PlanDuration.valueOf(request.duration()));
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Durata non valida: " + request.duration());
+            }
+        }
+        if (request.fullPrice() != null) plan.setFullPrice(request.fullPrice());
+        if (request.monthlyInstallmentPrice() != null) plan.setMonthlyInstallmentPrice(request.monthlyInstallmentPrice());
+        if (request.monthlyCreditsPT() != null) plan.setMonthlyCreditsPT(request.monthlyCreditsPT());
+        if (request.monthlyCreditsNutri() != null) plan.setMonthlyCreditsNutri(request.monthlyCreditsNutri());
+
+        return planRepository.save(plan);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.project.tesi.facade;
 
+import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.PlanResponseDTO;
@@ -54,8 +55,16 @@ public class AdminFacade {
         return FacadeMapper.mapToSubscriptionResponse(adminService.updateSubscriptionCredits(id, pt, nutri));
     }
 
+    public UserResponseDTO updateUser(Long id, ModeratorUserUpdateRequest request) {
+        return FacadeMapper.mapToUserResponse(adminService.updateUser(id, request));
+    }
+
     public PlanResponseDTO createPlan(PlanCreateRequestDTO request) {
         return FacadeMapper.mapToPlanResponse(adminService.createPlan(request));
+    }
+
+    public PlanResponseDTO updatePlan(Long id, PlanCreateRequestDTO request) {
+        return FacadeMapper.mapToPlanResponse(adminService.updatePlan(id, request));
     }
 
     public void deletePlan(Long id) {

@@ -14,6 +14,7 @@ import com.project.tesi.model.User;
 import com.project.tesi.service.ChatAsyncService;
 import com.project.tesi.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -24,11 +25,7 @@ import org.springframework.stereotype.Controller;
 import java.security.Principal;
 import java.time.LocalDateTime;
 
-/**
- * Controller WebSocket (STOMP) per la chat in tempo reale.
- * L'identità del mittente è estratta dal JWT tramite il Principal iniettato da
- * WebSocketChannelInterceptor — mai dal payload del messaggio.
- */
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ChatWebSocketController {
@@ -58,12 +55,18 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload WsSendMessageRequest request, Principal principal) {
         User sender = extractUser(principal);
-        if (sender == null) return;
+        if (sender == null) {
+            log.warn("[WS] /chat.send rifiutato: Principal mancante o non valido.");
+            return;
+        }
 
         Long senderId = sender.getId();
         Long chatId = request.chatId();
         String content = request.content();
         String roomId = String.valueOf(chatId);
+
+        log.info("[WS] /chat.send ricevuto: senderId={}, chatId={}, contentLen={}",
+                senderId, chatId, content != null ? content.length() : 0);
 
         WsMessageResponse msg = WsMessageResponse.builder()
                 .id(System.currentTimeMillis())
@@ -77,12 +80,17 @@ public class ChatWebSocketController {
                 .build();
 
         Long receiverId = null;
+        String receiverEmail = null;
         try {
             Chat chat = chatService.getChatEntity(chatId);
-            if (chat != null) {
-                receiverId = chat.getUser1().getId().equals(senderId)
-                        ? chat.getUser2().getId()
-                        : chat.getUser1().getId();
+            if (chat == null) {
+                log.warn("[WS] /chat.send: chat {} non trovata.", chatId);
+            } else {
+                User receiver = chat.getUser1().getId().equals(senderId)
+                        ? chat.getUser2()
+                        : chat.getUser1();
+                receiverId = receiver.getId();
+                receiverEmail = receiver.getEmail();
                 msg = WsMessageResponse.builder()
                         .id(msg.getId())
                         .senderId(msg.getSenderId())
@@ -96,37 +104,46 @@ public class ChatWebSocketController {
                         .receiverName(chatService.getUserFullName(receiverId))
                         .build();
             }
-        } catch (Exception e) { /* chat non trovata — messaggio senza receiverId */ }
+        } catch (Exception e) {
+            log.warn("[WS] /chat.send: errore nel recupero chat {} — {}", chatId, e.getMessage());
+        }
 
         messagingTemplate.convertAndSend("/topic/chat/" + roomId, msg);
 
         chatMessagePublisher.publish(chatId, senderId, content);
 
-        if (receiverId != null) {
+        if (receiverEmail != null) {
             try {
-                messagingTemplate.convertAndSend(
-                        "/user/" + receiverId + "/queue/notifications",
+                messagingTemplate.convertAndSendToUser(
+                        receiverEmail, "/queue/notifications",
                         new WsNotificationResponse("NEW_MESSAGE", msg));
-            } catch (Exception e) { /* ignore */ }
-            sendUnreadUpdate(receiverId);
+            } catch (Exception e) {
+                log.warn("[WS] notifica NEW_MESSAGE non recapitata a {}: {}", receiverEmail, e.getMessage());
+            }
+            sendUnreadUpdate(receiverId, receiverEmail);
         }
     }
 
     @MessageMapping("/chat.read")
     public void markAsRead(@Payload WsMarkReadRequest request, Principal principal) {
         User user = extractUser(principal);
-        if (user == null) return;
+        if (user == null) {
+            log.warn("[WS] /chat.read rifiutato: Principal mancante o non valido.");
+            return;
+        }
         chatAsyncService.markAsReadAsync(request.chatId(), user.getId());
-        sendUnreadUpdate(user.getId());
+        sendUnreadUpdate(user.getId(), user.getEmail());
     }
 
-    private void sendUnreadUpdate(Long userId) {
+    private void sendUnreadUpdate(Long userId, String userEmail) {
         try {
             int count = chatService.getTotalUnreadCount(userId);
-            messagingTemplate.convertAndSend(
-                    "/user/" + userId + "/queue/notifications",
+            messagingTemplate.convertAndSendToUser(
+                    userEmail, "/queue/notifications",
                     new WsUnreadUpdateResponse("UNREAD_UPDATE", userId, count));
-        } catch (Exception e) { /* ignore */ }
+        } catch (Exception e) {
+            log.warn("[WS] UNREAD_UPDATE non recapitata a {}: {}", userEmail, e.getMessage());
+        }
     }
 
     private User extractUser(Principal principal) {

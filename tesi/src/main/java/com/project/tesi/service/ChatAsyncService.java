@@ -1,14 +1,11 @@
 package com.project.tesi.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-/**
- * Servizio dedicato alle operazioni asincrone della chat.
- * L'estrazione in un @Service separato garantisce che le chiamate passino
- * attraverso il proxy di Spring, facendo funzionare correttamente @Async.
- */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatAsyncService {
@@ -20,7 +17,7 @@ public class ChatAsyncService {
         try {
             chatService.sendMessageDirect(chatId, senderId, content);
         } catch (Exception e) {
-            System.err.println("[WS] Save error: " + e.getMessage());
+            log.error("[WS] Save error chatId={} senderId={}: {}", chatId, senderId, e.getMessage(), e);
         }
     }
 
@@ -29,7 +26,7 @@ public class ChatAsyncService {
         try {
             chatService.markAsRead(chatId, userId);
         } catch (Exception e) {
-            System.err.println("[WS] MarkAsRead error: " + e.getMessage());
+            log.error("[WS] MarkAsRead error chatId={} userId={}: {}", chatId, userId, e.getMessage(), e);
         }
     }
 }

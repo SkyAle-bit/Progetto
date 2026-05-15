@@ -16,6 +16,7 @@ import com.project.tesi.repository.MessageRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
@@ -88,11 +90,22 @@ public class ChatServiceImpl implements ChatService {
     public void sendMessageDirect(Long chatId, Long senderId, String content) {
         Chat chat = chatRepository.findById(chatId).orElse(null);
         User sender = userRepository.findById(senderId).orElse(null);
-        if (chat == null || sender == null) return;
+        if (chat == null) {
+            log.warn("[Chat] sendMessageDirect: chat {} non trovata.", chatId);
+            return;
+        }
+        if (sender == null) {
+            log.warn("[Chat] sendMessageDirect: sender {} non trovato.", senderId);
+            return;
+        }
 
-        if (chat.getStatus() == ChatStatus.CLOSED) return;
+        if (chat.getStatus() == ChatStatus.CLOSED) {
+            log.warn("[Chat] sendMessageDirect: chat {} è CLOSED, save annullato.", chatId);
+            return;
+        }
 
         if (!chat.getUser1().getId().equals(sender.getId()) && !chat.getUser2().getId().equals(sender.getId())) {
+            log.warn("[Chat] sendMessageDirect: utente {} non è parte della chat {}.", senderId, chatId);
             return;
         }
 
@@ -106,7 +119,8 @@ public class ChatServiceImpl implements ChatService {
                 .isRead(false)
                 .build();
 
-        messageRepository.save(message);
+        Message saved = messageRepository.save(message);
+        log.info("[Chat] Messaggio persistito id={} chatId={} senderId={}", saved.getId(), chatId, senderId);
     }
 
     @Override
