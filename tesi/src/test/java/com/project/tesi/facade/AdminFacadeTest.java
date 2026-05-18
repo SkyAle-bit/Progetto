@@ -9,6 +9,7 @@ import com.project.tesi.dto.response.stats.AdminStatsResponse;
 import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
+import com.project.tesi.facade.impl.AdminFacadeImpl;
 import com.project.tesi.service.AdminService;
 import com.project.tesi.service.AdminStatsService;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -30,9 +32,10 @@ class AdminFacadeTest {
 
     @Mock private AdminService adminService;
     @Mock private AdminStatsService adminStatsService;
+    @Spy FacadeMapper facadeMapper = new FacadeMapper();
 
     @InjectMocks
-    private AdminFacade adminFacade;
+    private AdminFacadeImpl adminFacade;
 
     @Test
     @DisplayName("getAllUsers")

@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.response.SlotDTO;
 import java.time.LocalDate;
 import java.util.List;
@@ -8,6 +10,7 @@ import java.util.List;
  * Interfaccia del servizio per la gestione degli slot del calendario dei professionisti.
  * Permette la creazione, il recupero e l'eliminazione degli slot disponibili.
  */
+@Validated
 public interface SlotService {
 
     /** Crea nuovi slot nel calendario di un professionista. */
@@ -18,6 +21,9 @@ public interface SlotService {
 
     /** Elimina uno slot dal calendario. */
     void deleteSlot(Long slotId);
+
+    /** Elimina uno slot dal calendario verificando che il richiedente sia il proprietario. */
+    void deleteSlot(Long slotId, Long requesterId);
 
     /**
      * Genera automaticamente gli slot di un professionista in base al suo

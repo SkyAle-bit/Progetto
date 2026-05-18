@@ -136,7 +136,7 @@ class ActivityFeedServiceImplTest {
 
         List<ActivityFeedItemResponse> result = activityFeedService.getActivityFeed(2L, 14, 15);
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).text()).contains("—");
+        assertThat(result.get(0).text()).contains("scheda di allenamento");
     }
 
     @Test @DisplayName("getActivityFeed — ADMIN restituisce lista vuota (nessun feed)")

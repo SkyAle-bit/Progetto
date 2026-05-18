@@ -49,8 +49,9 @@ Controllers → Facades → Services → Builders → Repositories → PostgreSQ
 ### Key Design Patterns
 
 - **Strategy** — `BookingStrategy` interface with `PTBookingStrategy` and `NutritionistBookingStrategy`; the facade selects the right strategy at runtime.
-- **Observer** — `EventManager` dispatches booking/cancellation events to `ActivityFeedUpdateListener` and email notification listeners.
-- **Optimistic Locking + Fine-Grained Locking** — `Slot` carries `@Version`; a `ConcurrentHashMap<Long, ReentrantLock>` in `BookingServiceImpl` prevents duplicate booking under concurrent requests.
+- **Observer** — Spring's `ApplicationEventPublisher` publishes `BookingCreatedEvent` / `BookingCancelledEvent`; listeners in `observer/listener/impl/` handle activity feed updates and email notifications.
+- **Optimistic Locking + Fine-Grained Locking** — `@Version` on `Slot`, `User`, and `Booking` entities; a `ConcurrentHashMap<Long, ReentrantLock>` in `BookingServiceImpl` prevents duplicate booking under concurrent requests.
+- **Facade interfaces** — Facade contracts follow the `I<Name>Facade` convention (e.g., `IUserFacade`, `IAdminFacade`); implementations live in `facade/impl/`.
 
 ### Domain Overview
 
@@ -70,9 +71,13 @@ Controllers → Facades → Services → Builders → Repositories → PostgreSQ
 ### Background Jobs
 
 - `SubscriptionScheduler` — runs daily at midnight; resets monthly credits and processes installment charges.
-- `BookingReminderScheduler` — sends reminder emails before upcoming appointments.
+- `BookingReminderScheduler` — runs every 5 minutes; queries upcoming bookings and sets a `reminderSent` flag after sending to prevent duplicate emails.
 
 Both are disabled automatically during tests via Spring test profile configuration.
+
+### Async Messaging
+
+RabbitMQ handles async chat delivery: `ChatMessagePublisher` enqueues messages, `ChatMessageConsumer` processes them. Thread pools are configured in `AsyncConfig`.
 
 ## Profiles & Configuration
 
@@ -82,6 +87,8 @@ Both are disabled automatically during tests via Spring test profile configurati
 | `prod` (default) | Supabase via Transaction Pooler | Disabled |
 
 Secrets come from environment variables: `JWT_SECRET`, `MAIL_FROM`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`.
+
+CORS allowed origin is set via `cors.allowed-origins` (dev default: `http://localhost:4200`).
 
 ## Testing
 
@@ -93,6 +100,18 @@ Pattern used throughout:
 - `@DisplayName` on every test method for readable output
 
 Tests mirror the source tree under `src/test/java/com/project/tesi/`.
+
+## Exception Handling
+
+All domain exceptions extend `BaseException` (which carries an HTTP status) and are organized by module under `exception/auth/`, `exception/booking/`, `exception/subscription/`, `exception/document/`. `GlobalExceptionHandler` (@RestControllerAdvice) maps them all centrally.
+
+## Non-Obvious Constraints
+
+- **Email as username** — `UserDetails.getUsername()` returns the user's email address; there is no separate username field.
+- **Dual JWT lifetimes** — auth tokens expire in 24 h; password-reset tokens expire in 30 min (both in `JwtUtil`).
+- **IPv4 for SMTP** — `TesiApplication` sets `java.net.preferIPv4Stack=true` at startup to prevent IPv6-related SMTP hangs.
+- **WebSocket JWT validation** — `WebSocketChannelInterceptor` validates the JWT token on the STOMP CONNECT frame before allowing any subscription.
+- **Audit trail** — `AuditLog` entity + `AuditInterceptor` records all user actions; add new auditable operations there.
 
 ## API Documentation
 

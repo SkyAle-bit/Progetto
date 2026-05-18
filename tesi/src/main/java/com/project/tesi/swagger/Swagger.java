@@ -2,6 +2,8 @@ package com.project.tesi.swagger;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
@@ -33,6 +35,13 @@ public class Swagger {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
+                .info(new Info()
+                        .title("Kore API")
+                        .version("1.0")
+                        .description("Backend REST del progetto Kore — piattaforma per la gestione di sessioni con Personal Trainer e Nutrizionisti.")
+                        .contact(new Contact()
+                                .name("Alessandro Maltese")
+                                .email("alessandromaltese101@gmail.com")))
                 .addSecurityItem(
                         new SecurityRequirement().addList("Bearer Authentication")
                 )
@@ -40,9 +49,7 @@ public class Swagger {
                         new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme())
                 )
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Production Server"),
-                        new Server().url("http://localhost:8080").description("Development Server")
-                ));
+                        new Server().url("http://localhost:8080").description("Development Server")));
     }
 
     /**

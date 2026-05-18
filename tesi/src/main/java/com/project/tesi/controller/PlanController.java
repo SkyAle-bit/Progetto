@@ -1,8 +1,9 @@
 package com.project.tesi.controller;
 
-import com.project.tesi.facade.PlanFacade;
+import com.project.tesi.facade.IPlanFacade;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.project.tesi.model.Plan;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,10 +16,14 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/plans")
-@RequiredArgsConstructor
+@Tag(name = "Plans", description = "Piani di abbonamento disponibili (endpoint pubblico)")
 public class PlanController {
 
-    private final PlanFacade planFacade;
+    private final IPlanFacade planFacade;
+
+    public PlanController(IPlanFacade planFacade) {
+        this.planFacade = planFacade;
+    }
 
     /** Restituisce la lista di tutti i piani di abbonamento disponibili. */
     @GetMapping

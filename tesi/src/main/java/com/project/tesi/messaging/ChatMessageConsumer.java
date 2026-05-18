@@ -2,17 +2,19 @@ package com.project.tesi.messaging;
 
 import com.project.tesi.config.RabbitMQConfig;
 import com.project.tesi.service.ChatService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ChatMessageConsumer {
 
     private final ChatService chatService;
+
+    public ChatMessageConsumer(ChatService chatService) {
+        this.chatService = chatService;
+    }
 
     @RabbitListener(queues = RabbitMQConfig.CHAT_QUEUE)
     public void consume(ChatMessagePayload payload) {

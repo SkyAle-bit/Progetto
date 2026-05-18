@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
@@ -16,6 +18,7 @@ import java.util.List;
  * I metodi restituiscono entità di dominio tipizzate (User, Subscription, Plan)
  * anziché Map&lt;String, Object&gt; per garantire type-safety a compile-time.
  */
+@Validated
 public interface AdminService {
 
     /** Restituisce la lista di tutti gli utenti registrati. */

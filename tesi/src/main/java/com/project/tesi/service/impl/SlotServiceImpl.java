@@ -3,6 +3,7 @@ package com.project.tesi.service.impl;
 import com.project.tesi.dto.response.SlotDTO;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.exception.common.UnauthorizedAccessException;
 import com.project.tesi.model.Slot;
 import com.project.tesi.model.User;
 import com.project.tesi.model.WeeklySchedule;
@@ -10,7 +11,6 @@ import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.repository.WeeklyScheduleRepository;
 import com.project.tesi.service.SlotService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,12 +35,19 @@ import java.util.stream.Collectors;
  * Include uno scheduler {@code @Scheduled} per la generazione automatica ogni domenica.
  */
 @Service
-@RequiredArgsConstructor
 public class SlotServiceImpl implements SlotService {
 
     private final SlotRepository slotRepository;
     private final UserRepository userRepository;
-    private final WeeklyScheduleRepository weeklyScheduleRepository; // Necessario per le regole orarie
+    private final WeeklyScheduleRepository weeklyScheduleRepository;
+
+    public SlotServiceImpl(SlotRepository slotRepository,
+                           UserRepository userRepository,
+                           WeeklyScheduleRepository weeklyScheduleRepository) {
+        this.slotRepository = slotRepository;
+        this.userRepository = userRepository;
+        this.weeklyScheduleRepository = weeklyScheduleRepository;
+    }
 
     @Override
     @Transactional
@@ -137,6 +144,17 @@ public class SlotServiceImpl implements SlotService {
     @Override
     @Transactional
     public void deleteSlot(Long slotId) {
+        slotRepository.deleteById(slotId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteSlot(Long slotId, Long requesterId) {
+        Slot slot = slotRepository.findById(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Slot", slotId));
+        if (!slot.getProfessional().getId().equals(requesterId)) {
+            throw new UnauthorizedAccessException("Non sei autorizzato a eliminare questo slot");
+        }
         slotRepository.deleteById(slotId);
     }
 

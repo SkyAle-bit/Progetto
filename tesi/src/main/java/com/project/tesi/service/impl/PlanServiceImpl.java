@@ -1,26 +1,60 @@
 package com.project.tesi.service.impl;
 
+import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.model.Plan;
 import com.project.tesi.repository.PlanRepository;
 import com.project.tesi.service.PlanService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Implementazione del servizio per la gestione dei piani di abbonamento.
- * Fornisce la lista di tutti i piani disponibili per la consultazione pubblica.
- */
 @Service
-@RequiredArgsConstructor
 public class PlanServiceImpl implements PlanService {
 
     private final PlanRepository planRepository;
 
+    public PlanServiceImpl(PlanRepository planRepository) {
+        this.planRepository = planRepository;
+    }
+
     @Override
     public List<Plan> getAllPlans() {
-        // Restituisce tutti i piani salvati nel database
         return planRepository.findAll();
+    }
+
+    @Override
+    public Plan getPlanById(Long id) {
+        return planRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Piano", id));
+    }
+
+    @Override
+    @Transactional
+    public Plan createPlan(Plan plan) {
+        return planRepository.save(plan);
+    }
+
+    @Override
+    @Transactional
+    public Plan updatePlan(Long id, Plan updated) {
+        Plan existing = getPlanById(id);
+        existing.setName(updated.getName());
+        existing.setDuration(updated.getDuration());
+        existing.setFullPrice(updated.getFullPrice());
+        existing.setMonthlyInstallmentPrice(updated.getMonthlyInstallmentPrice());
+        existing.setMonthlyCreditsPT(updated.getMonthlyCreditsPT());
+        existing.setMonthlyCreditsNutri(updated.getMonthlyCreditsNutri());
+        existing.setInsuranceCoverageDetails(updated.getInsuranceCoverageDetails());
+        return planRepository.save(existing);
+    }
+
+    @Override
+    @Transactional
+    public void deletePlan(Long id) {
+        if (!planRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Piano", id);
+        }
+        planRepository.deleteById(id);
     }
 }

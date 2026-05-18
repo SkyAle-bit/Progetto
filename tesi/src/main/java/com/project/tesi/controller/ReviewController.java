@@ -2,9 +2,12 @@ package com.project.tesi.controller;
 
 import com.project.tesi.dto.request.ReviewRequest;
 import com.project.tesi.dto.response.ReviewResponse;
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.project.tesi.model.User;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,12 +28,21 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/reviews")
-@RequiredArgsConstructor
+@Tag(name = "Reviews", description = "Recensioni dei clienti verso i professionisti")
 public class ReviewController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
-    /** Il cliente autenticato lascia una recensione a un professionista (voto 1-5 + commento). */
+    public ReviewController(IUserFacade userFacade) {
+        this.userFacade = userFacade;
+    }
+
+    @Operation(summary = "Aggiungi recensione", description = "Il cliente lascia una recensione (1-5 stelle) a un professionista con cui ha avuto almeno un appuntamento.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Recensione aggiunta"),
+        @ApiResponse(responseCode = "400", description = "Recensione già presente o nessun appuntamento effettuato"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato")
+    })
     @PostMapping
     public ResponseEntity<ReviewResponse> addReview(@RequestBody ReviewRequest request,
                                                      @AuthenticationPrincipal User user) {
@@ -38,16 +50,21 @@ public class ReviewController {
         return ResponseEntity.ok(userFacade.addReview(request, user.getId()));
     }
 
-    /** Restituisce tutte le recensioni ricevute da un professionista. */
+    @Operation(summary = "Recensioni professionista", description = "Restituisce tutte le recensioni ricevute dal professionista specificato.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista recensioni"),
+        @ApiResponse(responseCode = "404", description = "Professionista non trovato")
+    })
     @GetMapping("/professional/{professionalId}")
     public ResponseEntity<List<ReviewResponse>> getReviewsForProfessional(@PathVariable Long professionalId) {
         return ResponseEntity.ok(userFacade.getReviewsForProfessional(professionalId));
     }
 
-    /**
-     * Verifica se l'utente autenticato può recensire un professionista.
-     * Restituisce {@code canReview} (true se può) e {@code hasReviewed} (true se ha già recensito).
-     */
+    @Operation(summary = "Verifica possibilità di recensire", description = "Indica se il cliente può ancora recensire il professionista (canReview) e se lo ha già fatto (hasReviewed).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Verifica completata"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato")
+    })
     @GetMapping("/can-review")
     public ResponseEntity<Map<String, Object>> canReview(@AuthenticationPrincipal User user,
                                                           @RequestParam Long professionalId) {

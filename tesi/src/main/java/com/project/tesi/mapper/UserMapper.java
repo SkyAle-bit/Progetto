@@ -6,7 +6,6 @@ import com.project.tesi.enums.Role;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,11 +20,15 @@ import org.springframework.stereotype.Component;
  * e il conteggio clienti attivi (dal {@link UserRepository}).
  */
 @Component
-@RequiredArgsConstructor
 public class UserMapper {
 
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
+
+    public UserMapper(UserRepository userRepository, ReviewRepository reviewRepository) {
+        this.userRepository = userRepository;
+        this.reviewRepository = reviewRepository;
+    }
 
     /**
      * Converte un'entità User nel DTO di risposta, arricchendo i dati:

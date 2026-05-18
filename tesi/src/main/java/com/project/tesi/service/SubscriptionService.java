@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.response.SubscriptionResponse;
 import com.project.tesi.model.Booking;
@@ -12,6 +14,7 @@ import com.project.tesi.model.Booking;
  * per incapsulare la logica di consumo e rimborso dei crediti, evitando che i listener
  * del pattern Observer accedano direttamente al repository (violazione del layer).</p>
  */
+@Validated
 public interface SubscriptionService {
 
     /** Attiva un nuovo abbonamento per il cliente. */

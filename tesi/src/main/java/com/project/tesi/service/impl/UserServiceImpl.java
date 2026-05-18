@@ -27,7 +27,6 @@ import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.EmailService;
 import com.project.tesi.service.UserService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -47,11 +46,10 @@ import java.util.stream.Collectors;
  * Gestisce la logica di business legata al profilo utente e alle assegnazioni.
  */
 @Service
-@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
-    
+
     // Limite rigido: un professionista non può seguire più di 50 clienti attivi contemporaneamente.
     // Serve a garantire che la qualità del servizio (risposte in chat, schede) non degradi.
     private static final int MAX_CLIENTS_PER_PROFESSIONAL = 50;
@@ -67,6 +65,30 @@ public class UserServiceImpl implements UserService {
     private final BookingMapper bookingMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+
+    public UserServiceImpl(UserRepository userRepository,
+                           BookingRepository bookingRepository,
+                           ChatRepository chatRepository,
+                           ReviewRepository reviewRepository,
+                           PlanRepository planRepository,
+                           SubscriptionRepository subscriptionRepository,
+                           UserMapper userMapper,
+                           SubscriptionMapper subscriptionMapper,
+                           BookingMapper bookingMapper,
+                           PasswordEncoder passwordEncoder,
+                           EmailService emailService) {
+        this.userRepository = userRepository;
+        this.bookingRepository = bookingRepository;
+        this.chatRepository = chatRepository;
+        this.reviewRepository = reviewRepository;
+        this.planRepository = planRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.userMapper = userMapper;
+        this.subscriptionMapper = subscriptionMapper;
+        this.bookingMapper = bookingMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
 
     @Override
     @Transactional

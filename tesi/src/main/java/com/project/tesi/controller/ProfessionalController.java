@@ -3,9 +3,12 @@ package com.project.tesi.controller;
 import com.project.tesi.dto.response.ProfessionalSummaryDTO;
 import com.project.tesi.dto.response.SlotDTO;
 import com.project.tesi.enums.Role;
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.project.tesi.model.User;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,34 +27,58 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/professionals")
-@RequiredArgsConstructor
+@Tag(name = "Professionals", description = "Gestione slot e recupero professionisti disponibili")
 public class ProfessionalController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
-    /** Restituisce la lista dei professionisti di un certo ruolo (PT o Nutrizionista). */
+    public ProfessionalController(IUserFacade userFacade) {
+        this.userFacade = userFacade;
+    }
+
+    @Operation(summary = "Lista professionisti", description = "Restituisce i professionisti disponibili filtrati per ruolo (PERSONAL_TRAINER o NUTRITIONIST).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista restituita"),
+        @ApiResponse(responseCode = "400", description = "Ruolo non valido")
+    })
     @GetMapping
     public ResponseEntity<List<ProfessionalSummaryDTO>> getProfessionals(@RequestParam Role role) {
         return ResponseEntity.ok(userFacade.findAvailableProfessionals(role));
     }
 
-    /** Restituisce gli slot liberi di un professionista (per il calendario prenotazioni). */
+    @Operation(summary = "Slot disponibili", description = "Restituisce gli slot liberi di un professionista per il calendario di prenotazione.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista slot"),
+        @ApiResponse(responseCode = "404", description = "Professionista non trovato")
+    })
     @GetMapping("/{id}/slots")
     public ResponseEntity<List<SlotDTO>> getProfessionalSlots(@PathVariable Long id) {
         return ResponseEntity.ok(userFacade.getAvailableSlots(id));
     }
 
-    /** Crea nuovi slot nel calendario del professionista autenticato. */
+    @Operation(summary = "Crea slot", description = "Aggiunge nuovi slot disponibili al calendario del professionista autenticato.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Slot creati"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato"),
+        @ApiResponse(responseCode = "403", description = "Solo i professionisti possono creare slot")
+    })
     @PostMapping("/slots")
     public ResponseEntity<List<SlotDTO>> createSlots(@AuthenticationPrincipal User user,
                                                       @RequestBody List<SlotDTO> slots) {
         return ResponseEntity.ok(userFacade.createSlots(user.getId(), slots));
     }
 
-    /** Elimina uno slot specifico dal calendario del professionista autenticato. */
+    @Operation(summary = "Elimina slot", description = "Rimuove uno slot dal calendario del professionista autenticato.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Slot eliminato"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato"),
+        @ApiResponse(responseCode = "403", description = "Lo slot non appartiene al professionista autenticato"),
+        @ApiResponse(responseCode = "404", description = "Slot non trovato")
+    })
     @DeleteMapping("/slots/{slotId}")
-    public ResponseEntity<Void> deleteSlot(@PathVariable Long slotId) {
-        userFacade.deleteSlot(slotId);
+    public ResponseEntity<Void> deleteSlot(@PathVariable Long slotId,
+                                            @AuthenticationPrincipal User user) {
+        userFacade.deleteSlot(slotId, user.getId());
         return ResponseEntity.noContent().build();
     }
 }

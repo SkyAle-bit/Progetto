@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
 
@@ -7,6 +9,7 @@ import com.project.tesi.dto.response.BookingResponse;
  * Interfaccia del servizio per la gestione delle prenotazioni.
  * Verifica crediti, assegnazione e disponibilità dello slot prima di creare la prenotazione.
  */
+@Validated
 public interface BookingService {
 
     /** Crea una nuova prenotazione verificando tutti i vincoli di business. */
@@ -14,4 +17,4 @@ public interface BookingService {
 
     /** Annulla una prenotazione esistente, liberando lo slot e riaccreditando il credito. */
     void cancelBooking(Long bookingId, Long userId);
-}
+}

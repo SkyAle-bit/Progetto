@@ -9,6 +9,7 @@ import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
 import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.Role;
+import com.project.tesi.facade.impl.UserFacadeImpl;
 import com.project.tesi.service.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,9 +23,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-/**
- * Test unitari per {@link UserFacade}.
- */
 @ExtendWith(MockitoExtension.class)
 class UserFacadeTest {
 
@@ -37,7 +35,7 @@ class UserFacadeTest {
     @Mock private SlotService slotService;
 
     @InjectMocks
-    private UserFacade userFacade;
+    private UserFacadeImpl userFacade;
 
     @Test
     @DisplayName("getClientDashboard — delega al UserService")
@@ -149,10 +147,10 @@ class UserFacadeTest {
     }
 
     @Test
-    @DisplayName("deleteSlot — delega al SlotService")
+    @DisplayName("deleteSlot — delega al SlotService con requesterId")
     void deleteSlot() {
-        userFacade.deleteSlot(10L);
-        verify(slotService).deleteSlot(10L);
+        userFacade.deleteSlot(10L, 2L);
+        verify(slotService).deleteSlot(10L, 2L);
     }
 
     @Test

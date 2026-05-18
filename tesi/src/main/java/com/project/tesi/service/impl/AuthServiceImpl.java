@@ -12,7 +12,6 @@ import com.project.tesi.security.JwtUtil;
 import com.project.tesi.service.AuthService;
 import com.project.tesi.service.EmailService;
 import com.project.tesi.service.UserService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
@@ -35,6 +33,22 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+
+    public AuthServiceImpl(UserService userService,
+                           AuthenticationManager authenticationManager,
+                           CustomUserDetailsService userDetailsService,
+                           JwtUtil jwtUtil,
+                           UserRepository userRepository,
+                           EmailService emailService,
+                           PasswordEncoder passwordEncoder) {
+        this.userService = userService;
+        this.authenticationManager = authenticationManager;
+        this.userDetailsService = userDetailsService;
+        this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public UserResponse register(RegisterRequest request) {

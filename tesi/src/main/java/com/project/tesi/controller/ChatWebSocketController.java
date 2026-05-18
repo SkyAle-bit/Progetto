@@ -13,7 +13,6 @@ import com.project.tesi.model.Chat;
 import com.project.tesi.model.User;
 import com.project.tesi.service.ChatAsyncService;
 import com.project.tesi.service.ChatService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -27,7 +26,6 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Controller
-@RequiredArgsConstructor
 public class ChatWebSocketController {
 
     private final SimpMessageSendingOperations messagingTemplate;
@@ -35,6 +33,18 @@ public class ChatWebSocketController {
     private final ChatService chatService;
     private final ChatAsyncService chatAsyncService;
     private final ChatMessagePublisher chatMessagePublisher;
+
+    public ChatWebSocketController(SimpMessageSendingOperations messagingTemplate,
+                                   WebSocketEventListener eventListener,
+                                   ChatService chatService,
+                                   ChatAsyncService chatAsyncService,
+                                   ChatMessagePublisher chatMessagePublisher) {
+        this.messagingTemplate = messagingTemplate;
+        this.eventListener = eventListener;
+        this.chatService = chatService;
+        this.chatAsyncService = chatAsyncService;
+        this.chatMessagePublisher = chatMessagePublisher;
+    }
 
     @MessageMapping("/chat.join")
     public void joinRoom(@Payload JoinRoomRequest request, SimpMessageHeaderAccessor ha) {

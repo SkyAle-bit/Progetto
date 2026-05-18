@@ -15,7 +15,6 @@ import com.project.tesi.repository.ChatRepository;
 import com.project.tesi.repository.MessageRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ChatService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -27,12 +26,19 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
     private final ChatRepository chatRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+
+    public ChatServiceImpl(ChatRepository chatRepository,
+                           MessageRepository messageRepository,
+                           UserRepository userRepository) {
+        this.chatRepository = chatRepository;
+        this.messageRepository = messageRepository;
+        this.userRepository = userRepository;
+    }
 
     @Override
     @Transactional

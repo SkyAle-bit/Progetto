@@ -14,7 +14,6 @@ import com.project.tesi.model.User;
 import com.project.tesi.repository.DocumentRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.DocumentService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +42,6 @@ import java.util.stream.Collectors;
  * I file vengono salvati nella directory configurata tramite {@code file.upload-dir}.
  */
 @Service
-@RequiredArgsConstructor
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
@@ -51,6 +49,11 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
+
+    public DocumentServiceImpl(DocumentRepository documentRepository, UserRepository userRepository) {
+        this.documentRepository = documentRepository;
+        this.userRepository = userRepository;
+    }
 
 
     @Override

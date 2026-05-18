@@ -4,7 +4,7 @@ import com.project.tesi.dto.request.UpdateNotesRequest;
 import com.project.tesi.dto.response.DocumentResponse;
 import com.project.tesi.dto.response.DocumentUploadResponse;
 import com.project.tesi.dto.response.UpdatedNotesResponse;
-import com.project.tesi.facade.DocumentFacade;
+import com.project.tesi.facade.IDocumentFacade;
 import com.project.tesi.model.Document;
 import com.project.tesi.model.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,9 +34,9 @@ import java.util.List;
 @Tag(name = "Documents", description = "API per la gestione sicura dei documenti")
 public class DocumentController {
 
-    private final DocumentFacade documentFacade;
+    private final IDocumentFacade documentFacade;
 
-    public DocumentController(DocumentFacade documentFacade) {
+    public DocumentController(IDocumentFacade documentFacade) {
         this.documentFacade = documentFacade;
     }
 
@@ -52,9 +52,10 @@ public class DocumentController {
 
     /** Scarica il contenuto binario di un documento per la visualizzazione inline nel browser. */
     @GetMapping("/download/{id}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable Long id) {
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long id,
+                                               @AuthenticationPrincipal User caller) {
         Document doc = documentFacade.getDocumentById(id);
-        byte[] data = documentFacade.downloadDocument(id);
+        byte[] data = documentFacade.downloadDocumentSecure(id, caller.getId());
         String contentType = doc.getContentType() != null ? doc.getContentType() : "application/octet-stream";
 
         return ResponseEntity.ok()
@@ -65,29 +66,33 @@ public class DocumentController {
 
     /** Restituisce tutti i documenti di un utente (qualsiasi tipo). */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<DocumentResponse>> getUserDocuments(@PathVariable Long userId) {
-        return ResponseEntity.ok(documentFacade.getUserDocumentsDto(userId));
+    public ResponseEntity<List<DocumentResponse>> getUserDocuments(@PathVariable Long userId,
+                                                                    @AuthenticationPrincipal User caller) {
+        return ResponseEntity.ok(documentFacade.getUserDocumentsDtoSecure(userId, caller.getId()));
     }
 
     /** Restituisce i documenti di un utente filtrati per tipologia. */
     @GetMapping("/user/{userId}/type/{type}")
     public ResponseEntity<List<DocumentResponse>> getUserDocumentsByType(
-            @PathVariable Long userId, @PathVariable String type) {
-        return ResponseEntity.ok(documentFacade.getUserDocumentsByTypeDto(userId, type));
+            @PathVariable Long userId, @PathVariable String type,
+            @AuthenticationPrincipal User caller) {
+        return ResponseEntity.ok(documentFacade.getUserDocumentsByTypeDtoSecure(userId, type, caller.getId()));
     }
 
     /** Elimina un documento dal database e dal filesystem. */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
-        documentFacade.deleteDocument(id);
+    public ResponseEntity<Void> deleteDocument(@PathVariable Long id,
+                                               @AuthenticationPrincipal User caller) {
+        documentFacade.deleteDocument(id, caller.getId());
         return ResponseEntity.noContent().build();
     }
 
-    /** Aggiorna le note testuali associate a un documento. */
+    /** Aggiorna le note testuali associate a un documento. Solo proprietario, uploader o admin/moderatore. */
     @PutMapping("/{id}/notes")
     public ResponseEntity<UpdatedNotesResponse> updateNotes(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateNotesRequest body) {
-        return ResponseEntity.ok(documentFacade.updateNotes(id, body.notes()));
+            @Valid @RequestBody UpdateNotesRequest body,
+            @AuthenticationPrincipal User caller) {
+        return ResponseEntity.ok(documentFacade.updateNotes(id, body.notes(), caller.getId()));
     }
 }

@@ -12,7 +12,6 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.ReviewRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ReviewService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +30,19 @@ import java.util.stream.Collectors;
  * </ul>
  */
 @Service
-@RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+
+    public ReviewServiceImpl(ReviewRepository reviewRepository,
+                             UserRepository userRepository,
+                             BookingRepository bookingRepository) {
+        this.reviewRepository = reviewRepository;
+        this.userRepository = userRepository;
+        this.bookingRepository = bookingRepository;
+    }
 
     @Override
     @Transactional

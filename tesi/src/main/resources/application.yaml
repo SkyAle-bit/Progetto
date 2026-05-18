@@ -26,3 +26,9 @@ jwt:
 
 cors:
   allowed-origins: http://localhost:4200
+
+
+schedule:
+  time:
+    subscription: 0 0 0 * * ? # Ogni giorno a mezzanotte
+    bookings: 0 */5 * * * ? # Ogni 5 minuti

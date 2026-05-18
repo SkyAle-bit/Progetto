@@ -1,15 +1,17 @@
 package com.project.tesi.messaging;
 
 import com.project.tesi.config.RabbitMQConfig;
-import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class ChatMessagePublisher {
 
     private final RabbitTemplate rabbitTemplate;
+
+    public ChatMessagePublisher(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
 
     public void publish(Long chatId, Long senderId, String content) {
         rabbitTemplate.convertAndSend(

@@ -27,7 +27,7 @@ public class SubscriptionScheduler {
         this.subscriptionRepository = subscriptionRepository;
     }
 
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "${schedule.time.subscription}")
     @Transactional
     public void renewCredits() {
         List<Subscription> activeSubs = subscriptionRepository.findByActiveTrue();

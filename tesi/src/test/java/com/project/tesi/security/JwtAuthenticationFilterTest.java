@@ -3,6 +3,7 @@ package com.project.tesi.security;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -98,14 +99,17 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("doFilterInternal — eccezione JWT, passa comunque senza autenticazione")
+    @DisplayName("doFilterInternal — eccezione JWT, risponde 401 senza autenticazione")
     void jwtException() throws Exception {
+        PrintWriter writer = mock(PrintWriter.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer malformed-token");
         when(jwtUtil.extractUsername("malformed-token")).thenThrow(new RuntimeException("JWT malformato"));
+        when(response.getWriter()).thenReturn(writer);
 
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, never()).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 

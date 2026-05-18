@@ -1,7 +1,6 @@
 package com.project.tesi.config;
 
 import com.project.tesi.security.WebSocketChannelInterceptor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -16,10 +15,13 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
  */
 @Configuration
 @EnableWebSocketMessageBroker
-@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketChannelInterceptor webSocketChannelInterceptor;
+
+    public WebSocketConfig(WebSocketChannelInterceptor webSocketChannelInterceptor) {
+        this.webSocketChannelInterceptor = webSocketChannelInterceptor;
+    }
 
     // Configura il broker in-memory e i prefissi per l'instradamento dei messaggi
     @Override

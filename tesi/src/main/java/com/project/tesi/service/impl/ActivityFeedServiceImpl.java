@@ -17,11 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +45,6 @@ public class ActivityFeedServiceImpl implements ActivityFeedService {
     private record SortableItem(ActivityFeedItemResponse item, LocalDateTime sortKey) {}
 
     @Override
-    @Transactional(readOnly = true)
     public List<ActivityFeedItemResponse> getActivityFeed(Long userId, int days, int limit) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente", userId));
@@ -69,61 +66,41 @@ public class ActivityFeedServiceImpl implements ActivityFeedService {
     }
 
     private void collectClientFeed(User client, LocalDateTime since, List<SortableItem> out) {
-        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd MMM", Locale.ITALIAN);
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-
         for (Booking b : bookingRepository.findRecentByUser(client, since)) {
             String proName = b.getProfessional().getFirstName();
             String proRole = b.getProfessional().getRole() == Role.PERSONAL_TRAINER ? "PT" : "Nutrizionista";
-            String slotDate = b.getSlot().getStartTime().format(dateFmt);
-            String slotTime = b.getSlot().getStartTime().format(timeFmt);
-            out.add(toSortable("booking", "📅",
-                    "Appuntamento prenotato con " + proRole + " " + proName + " per il " + slotDate + " alle " + slotTime,
+            out.add(toSortable("booking",
+                    "Appuntamento prenotato con " + proRole + " " + proName,
                     b.getBookedAt()));
         }
 
         for (Document d : documentRepository.findRecentByOwner(client, since)) {
             String uploaderName = d.getUploadedBy() != null ? d.getUploadedBy().getFirstName() : "Sistema";
-            out.add(toSortable("document", docIcon(d.getType()),
-                    "Nuova " + getDocTypeLabel(d.getType()) + " caricata da " + uploaderName,
+            out.add(toSortable("document",
+                    getDocTypeLabel(d.getType()) + " caricata da " + uploaderName,
                     d.getUploadDate()));
         }
     }
 
     private void collectProfessionalFeed(User professional, LocalDateTime since, List<SortableItem> out) {
-        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd MMM", Locale.ITALIAN);
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-
         for (Booking b : bookingRepository.findRecentByProfessional(professional, since)) {
             String clientName = b.getUser().getFirstName() + " " + b.getUser().getLastName();
-            String slotDate = b.getSlot().getStartTime().format(dateFmt);
-            String slotTime = b.getSlot().getStartTime().format(timeFmt);
-            out.add(toSortable("booking", "📅",
-                    clientName + " ha prenotato un appuntamento per il " + slotDate + " alle " + slotTime,
+            out.add(toSortable("booking",
+                    clientName + " ha prenotato un appuntamento",
                     b.getBookedAt()));
         }
 
         for (Document d : documentRepository.findRecentByUploader(professional, since)) {
             String clientName = d.getOwner() != null
-                    ? d.getOwner().getFirstName() + " " + d.getOwner().getLastName() : "—";
-            out.add(toSortable("document", docIcon(d.getType()),
+                    ? d.getOwner().getFirstName() + " " + d.getOwner().getLastName() : "";
+            out.add(toSortable("document",
                     getDocTypeLabel(d.getType()) + " caricata per " + clientName,
                     d.getUploadDate()));
         }
     }
 
-    private SortableItem toSortable(String type, String icon, String text, LocalDateTime ts) {
-        return new SortableItem(
-                new ActivityFeedItemResponse(type, icon, text, ts.toString(), getTimeAgo(ts)),
-                ts);
-    }
-
-    private String docIcon(DocumentType type) {
-        return switch (type) {
-            case WORKOUT_PLAN -> "💪";
-            case DIET_PLAN -> "🥗";
-            default -> "📄";
-        };
+    private SortableItem toSortable(String type, String text, LocalDateTime ts) {
+        return new SortableItem(new ActivityFeedItemResponse(type, text, ts), ts);
     }
 
     private String getDocTypeLabel(DocumentType type) {
@@ -135,18 +112,7 @@ public class ActivityFeedServiceImpl implements ActivityFeedService {
         };
     }
 
-    private String getTimeAgo(LocalDateTime dateTime) {
-        long minutes = java.time.Duration.between(dateTime, LocalDateTime.now()).toMinutes();
-        if (minutes < 1) return "adesso";
-        if (minutes < 60) return minutes + " min fa";
-        long hours = minutes / 60;
-        if (hours < 24) return hours + " or" + (hours == 1 ? "a" : "e") + " fa";
-        long days = hours / 24;
-        if (days == 1) return "ieri";
-        if (days < 7) return days + " giorni fa";
-        long weeks = days / 7;
-        return weeks + " settiman" + (weeks == 1 ? "a" : "e") + " fa";
-    }
+
 
     @Override
     @Transactional
@@ -162,7 +128,8 @@ public class ActivityFeedServiceImpl implements ActivityFeedService {
     }
 
     @Override
+    @org.springframework.scheduling.annotation.Async("emailTaskExecutor")
     public void logDocumentUploaded(Long clientId, Long uploaderId, String type) {
-        log.info("ActivityFeed [Facade Orchestration]: upload documento tipo {} per clientId={} da uploaderId={}", type, clientId, uploaderId);
+        log.info("ActivityFeed: upload documento tipo={} per clientId={} da uploaderId={}", type, clientId, uploaderId);
     }
 }

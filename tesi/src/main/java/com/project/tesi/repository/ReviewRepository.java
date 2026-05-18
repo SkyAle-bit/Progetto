@@ -28,14 +28,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByClientIdAndProfessionalId(Long clientId, Long professionalId);
 
     /**
-     * Restituisce tutte le recensioni ricevute da un professionista (per ID).
-     *
-     * @param professionalId ID del professionista
-     * @return lista delle recensioni
-     */
-    List<Review> findByProfessionalId(Long professionalId);
-
-    /**
      * Calcola la media dei voti (rating) di un professionista direttamente nel database.
      * Restituisce {@code null} se il professionista non ha ancora ricevuto recensioni.
      *

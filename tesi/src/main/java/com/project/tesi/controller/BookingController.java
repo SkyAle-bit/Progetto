@@ -2,10 +2,13 @@ package com.project.tesi.controller;
 
 import com.project.tesi.dto.request.BookingRequest;
 import com.project.tesi.dto.response.BookingResponse;
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.project.tesi.model.User;
 import com.project.tesi.service.DatabaseInitializerService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,13 +28,24 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/bookings")
-@RequiredArgsConstructor
+@Tag(name = "Bookings", description = "Creazione e cancellazione prenotazioni")
 public class BookingController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
     private final DatabaseInitializerService databaseInitializerService;
 
-    /** Crea una nuova prenotazione per lo slot indicato. L'ID cliente viene estratto dal token JWT. */
+    public BookingController(IUserFacade userFacade, DatabaseInitializerService databaseInitializerService) {
+        this.userFacade = userFacade;
+        this.databaseInitializerService = databaseInitializerService;
+    }
+
+    @Operation(summary = "Crea prenotazione", description = "Prenota uno slot. Deduce i crediti dall'abbonamento attivo. Usa locking per evitare double-booking.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Prenotazione confermata"),
+        @ApiResponse(responseCode = "400", description = "Slot non disponibile o crediti insufficienti"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato"),
+        @ApiResponse(responseCode = "404", description = "Slot o utente non trovato")
+    })
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest request,
                                                           @AuthenticationPrincipal User user) {
@@ -41,7 +55,13 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
-    /** Annulla una prenotazione esistente, liberando lo slot e riaccreditando il credito. */
+    @Operation(summary = "Annulla prenotazione", description = "Annulla una prenotazione propria. Il credito viene restituito solo se mancano più di 24 ore.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Prenotazione annullata"),
+        @ApiResponse(responseCode = "400", description = "Annullamento non consentito (stato errato o meno di 24 ore)"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato"),
+        @ApiResponse(responseCode = "403", description = "La prenotazione non appartiene all'utente")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> cancelBooking(@PathVariable Long id,
                                                               @AuthenticationPrincipal User user) {
@@ -50,7 +70,8 @@ public class BookingController {
         return ResponseEntity.ok(Map.of("message", "Prenotazione annullata con successo. Lo slot è stato liberato e il credito riaccreditato."));
     }
 
-    /** Svuota e ripopola il database con i dati di test (solo per sviluppo). */
+    @Operation(summary = "Reset database (dev)", description = "Svuota e ripopola il database con i dati di test. Solo per sviluppo locale.")
+    @ApiResponse(responseCode = "200", description = "Database resettato")
     @GetMapping("/reset-database")
     public ResponseEntity<Map<String, String>> resetDatabase() {
         databaseInitializerService.initialize();

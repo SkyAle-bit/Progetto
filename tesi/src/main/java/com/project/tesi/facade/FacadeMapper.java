@@ -7,20 +7,18 @@ import com.project.tesi.model.Plan;
 import com.project.tesi.model.Subscription;
 import com.project.tesi.model.User;
 
+import org.springframework.stereotype.Component;
+
 /**
  * Mapper condiviso per convertire le entity di dominio in DTO tipizzati
  * da restituire tramite i controller amministrativi/moderatori.
- *
- * Sostituisce le precedenti conversioni Map&lt;String, Object&gt; → DTO,
- * eliminando cast non sicuri a runtime e garantendo type-safety a compile-time.
  */
+@Component
 public class FacadeMapper {
 
-    private FacadeMapper() {
-        // Utility class — non istanziabile
-    }
+    public FacadeMapper() {}
 
-    public static UserResponseDTO mapToUserResponse(User user) {
+    public UserResponseDTO mapToUserResponse(User user) {
         if (user == null) return null;
 
         String assignedPTName = null;
@@ -47,7 +45,7 @@ public class FacadeMapper {
         );
     }
 
-    public static SubscriptionResponseDTO mapToSubscriptionResponse(Subscription s) {
+    public SubscriptionResponseDTO mapToSubscriptionResponse(Subscription s) {
         if (s == null) return null;
         return new SubscriptionResponseDTO(
                 s.getId(),
@@ -63,7 +61,7 @@ public class FacadeMapper {
         );
     }
 
-    public static PlanResponseDTO mapToPlanResponse(Plan p) {
+    public PlanResponseDTO mapToPlanResponse(Plan p) {
         if (p == null) return null;
         return new PlanResponseDTO(
                 p.getId(),

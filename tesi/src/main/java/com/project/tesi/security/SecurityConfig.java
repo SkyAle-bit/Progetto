@@ -1,5 +1,6 @@
 package com.project.tesi.security;
 
+import com.project.tesi.enums.Role;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,15 +58,15 @@ public class SecurityConfig {
                                     "/swagger-resources/**",
                                     "/webjars/**")
                             .permitAll()
-                            .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
-                            .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasRole("MODERATOR")
+                            .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole(Role.ADMIN.name())
+                            .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasRole(Role.MODERATOR.name())
                             .requestMatchers(
                                     "/api/admin/plans", "/api/admin/plans/**",
                                     "/api/admin/subscriptions", "/api/admin/subscriptions/**",
                                     "/api/admin/stats", "/api/admin/stats/**",
                                     "/api/bookings/migrate-meet",
                                     "/api/bookings/reset-database")
-                            .hasRole("ADMIN")
+                            .hasRole(Role.ADMIN.name())
                             .anyRequest().authenticated())
                     .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                     .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

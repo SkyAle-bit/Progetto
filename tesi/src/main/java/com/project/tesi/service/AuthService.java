@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.request.LoginRequest;
 import com.project.tesi.dto.request.RegisterRequest;
 import com.project.tesi.dto.response.AuthResponse;
@@ -10,6 +12,7 @@ import com.project.tesi.dto.response.UserResponse;
  * Gestisce la registrazione di nuovi clienti, il login con generazione JWT
  * e il recupero password tramite token via email.
  */
+@Validated
 public interface AuthService {
 
     /** Registra un nuovo cliente e restituisce il profilo creato. */

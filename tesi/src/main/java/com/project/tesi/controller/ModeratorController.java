@@ -5,7 +5,7 @@ import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
-import com.project.tesi.facade.ModeratorFacade;
+import com.project.tesi.facade.IModeratorFacade;
 import com.project.tesi.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,9 +32,9 @@ import java.util.Map;
 @Tag(name = "Moderator", description = "API per i moderatori")
 public class ModeratorController {
 
-    private final ModeratorFacade moderatorFacade;
+    private final IModeratorFacade moderatorFacade;
 
-    public ModeratorController(ModeratorFacade moderatorFacade) {
+    public ModeratorController(IModeratorFacade moderatorFacade) {
         this.moderatorFacade = moderatorFacade;
     }
 

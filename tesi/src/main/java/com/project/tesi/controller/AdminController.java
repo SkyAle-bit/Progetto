@@ -7,8 +7,9 @@ import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.response.PlanResponseDTO;
 import com.project.tesi.dto.response.SubscriptionResponseDTO;
 import com.project.tesi.dto.response.UserResponseDTO;
-import com.project.tesi.facade.AdminFacade;
-import lombok.RequiredArgsConstructor;
+import com.project.tesi.facade.IAdminFacade;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,26 +28,32 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin")
-@RequiredArgsConstructor
+@Tag(name = "Admin", description = "API di amministrazione per utenti, abbonamenti e piani")
 public class AdminController {
 
-    private final AdminFacade adminFacade;
+    private final IAdminFacade adminFacade;
 
+    public AdminController(IAdminFacade adminFacade) {
+        this.adminFacade = adminFacade;
+    }
+
+    @Operation(summary = "Recupera tutti gli utenti registrati")
     @GetMapping("/users")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         return ResponseEntity.ok(adminFacade.getAllUsers());
     }
 
+    @Operation(summary = "Crea un nuovo utente")
     @PostMapping("/users")
     public ResponseEntity<UserResponseDTO> createUser(@RequestBody UserCreateRequestDTO request) {
         return ResponseEntity.ok(adminFacade.createUser(request));
     }
-
+//TODO togli sto cazzo di id
     @PutMapping("/users/{id}")
     public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @RequestBody ModeratorUserUpdateRequest request) {
         return ResponseEntity.ok(adminFacade.updateUser(id, request));
     }
-
+    //TODO togli sto cazzo di id
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
         adminFacade.deleteUser(id);
@@ -57,7 +64,7 @@ public class AdminController {
     public ResponseEntity<List<SubscriptionResponseDTO>> getAllSubscriptions() {
         return ResponseEntity.ok(adminFacade.getAllSubscriptions());
     }
-
+    //TODO togli sto cazzo di id
     @PutMapping("/subscriptions/{id}/credits")
     public ResponseEntity<SubscriptionResponseDTO> updateSubscriptionCredits(@PathVariable Long id, @RequestBody SubscriptionCreditsUpdateDTO request) {
         return ResponseEntity.ok(adminFacade.updateSubscriptionCredits(

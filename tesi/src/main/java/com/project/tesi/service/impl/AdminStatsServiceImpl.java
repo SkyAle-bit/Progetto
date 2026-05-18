@@ -15,7 +15,6 @@ import com.project.tesi.repository.PlanRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.AdminStatsService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,13 +31,22 @@ import java.util.stream.Collectors;
  * Implementazione del servizio per le statistiche del pannello Admin.
  */
 @Service
-@RequiredArgsConstructor
 public class AdminStatsServiceImpl implements AdminStatsService {
 
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final BookingRepository bookingRepository;
     private final PlanRepository planRepository;
+
+    public AdminStatsServiceImpl(UserRepository userRepository,
+                                  SubscriptionRepository subscriptionRepository,
+                                  BookingRepository bookingRepository,
+                                  PlanRepository planRepository) {
+        this.userRepository = userRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.bookingRepository = bookingRepository;
+        this.planRepository = planRepository;
+    }
 
     @Override
     @Transactional(readOnly = true)

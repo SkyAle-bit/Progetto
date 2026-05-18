@@ -1,11 +1,14 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.request.JobApplicationRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Interfaccia del servizio per l'invio di email tramite Resend API.
  */
+@Validated
 public interface EmailService {
 
     /** Invia una candidatura lavorativa via email all'admin con il CV allegato. */

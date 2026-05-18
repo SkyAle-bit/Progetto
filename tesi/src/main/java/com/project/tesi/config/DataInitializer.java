@@ -1,7 +1,6 @@
 package com.project.tesi.config;
 
 import com.project.tesi.service.DatabaseInitializerService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,10 +11,13 @@ import org.springframework.context.annotation.Configuration;
  * (utenti, piani, slot) senza dover ricreare tutto a mano ogni volta.
  */
 @Configuration
-@RequiredArgsConstructor
 public class DataInitializer {
 
     private final DatabaseInitializerService databaseInitializerService;
+
+    public DataInitializer(DatabaseInitializerService databaseInitializerService) {
+        this.databaseInitializerService = databaseInitializerService;
+    }
 
     // Lancia il popolamento dei dati di test al bootstrap
     @Bean

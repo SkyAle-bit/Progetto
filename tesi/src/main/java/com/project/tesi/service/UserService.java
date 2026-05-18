@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.response.ClientBasicInfoResponse;
 import com.project.tesi.dto.response.ClientDashboardResponse;
 import com.project.tesi.dto.response.ProfessionalSummaryDTO;
@@ -13,6 +15,7 @@ import java.util.List;
  * Interfaccia del servizio per la gestione degli utenti.
  * Gestisce registrazione, profilo, dashboard cliente e lista clienti per professionisti.
  */
+@Validated
 public interface UserService {
 
     /** Registra un nuovo utente cliente e restituisce il profilo creato. */

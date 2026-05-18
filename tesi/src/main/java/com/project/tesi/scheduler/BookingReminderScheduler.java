@@ -32,7 +32,7 @@ public class BookingReminderScheduler {
         this.emailService = emailService;
     }
 
-    @Scheduled(cron = "0 */5 * * * ?")
+    @Scheduled(cron = "${schedule.time.bookings}")
     @Transactional
     public void sendBookingReminders() {
         LocalDateTime now = LocalDateTime.now();

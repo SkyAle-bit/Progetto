@@ -5,7 +5,6 @@ import com.project.tesi.model.*;
 import com.project.tesi.repository.*;
 import com.project.tesi.builder.BookingDirector;
 import jakarta.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,6 @@ import java.util.UUID;
  * {@code GET /api/bookings/reset-database}.
  */
 @Service
-@RequiredArgsConstructor
 public class DatabaseInitializerService {
 
         private final PlanRepository planRepository;
@@ -46,6 +44,36 @@ public class DatabaseInitializerService {
         private final EntityManager entityManager;
         private final JdbcTemplate jdbcTemplate;
         private final BookingDirector bookingDirector;
+
+        public DatabaseInitializerService(PlanRepository planRepository,
+                                          UserRepository userRepository,
+                                          WeeklyScheduleRepository weeklyScheduleRepository,
+                                          SlotRepository slotRepository,
+                                          SubscriptionRepository subscriptionRepository,
+                                          BookingRepository bookingRepository,
+                                          ReviewRepository reviewRepository,
+                                          MessageRepository messageRepository,
+                                          ChatRepository chatRepository,
+                                          DocumentRepository documentRepository,
+                                          PasswordEncoder passwordEncoder,
+                                          EntityManager entityManager,
+                                          JdbcTemplate jdbcTemplate,
+                                          BookingDirector bookingDirector) {
+                this.planRepository = planRepository;
+                this.userRepository = userRepository;
+                this.weeklyScheduleRepository = weeklyScheduleRepository;
+                this.slotRepository = slotRepository;
+                this.subscriptionRepository = subscriptionRepository;
+                this.bookingRepository = bookingRepository;
+                this.reviewRepository = reviewRepository;
+                this.messageRepository = messageRepository;
+                this.chatRepository = chatRepository;
+                this.documentRepository = documentRepository;
+                this.passwordEncoder = passwordEncoder;
+                this.entityManager = entityManager;
+                this.jdbcTemplate = jdbcTemplate;
+                this.bookingDirector = bookingDirector;
+        }
 
         @Transactional
         public void initialize() {

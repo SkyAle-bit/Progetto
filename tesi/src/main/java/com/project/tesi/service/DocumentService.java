@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.response.DocumentResponse;
 import com.project.tesi.dto.response.DocumentUploadResponse;
 import com.project.tesi.dto.response.UpdatedNotesResponse;
@@ -13,6 +15,7 @@ import java.util.List;
  * Gestisce caricamento, download, eliminazione e aggiornamento note
  * di file associati ai clienti (schede, piani alimentari, certificati, ecc.).
  */
+@Validated
 public interface DocumentService {
 
     /** Carica un documento validando il ruolo dell'uploader rispetto al tipo di file. */

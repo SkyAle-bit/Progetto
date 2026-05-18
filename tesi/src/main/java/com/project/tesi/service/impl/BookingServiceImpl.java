@@ -18,14 +18,13 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
-import com.project.tesi.event.BookingCancelledEvent;
-import com.project.tesi.event.BookingCreatedEvent;
+import com.project.tesi.service.ActivityFeedService;
 import com.project.tesi.service.BookingService;
+import com.project.tesi.service.EmailService;
 import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.builder.BookingDirector;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,7 +53,8 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final List<BookingStrategy> strategies;
     private final VideoConferenceService videoConferenceService;
-    private final ApplicationEventPublisher publisher;
+    private final ActivityFeedService activityFeedService;
+    private final EmailService emailService;
     private final BookingDirector bookingDirector;
 
     private static class LockReference {
@@ -72,11 +72,11 @@ public class BookingServiceImpl implements BookingService {
      */
     private final Map<Long, LockReference> slotLocks = new ConcurrentHashMap<>();
 
-    // Costruttore esplicito — pattern Strategy (e Facade accessibile)
     public BookingServiceImpl(BookingRepository bookingRepository, SlotRepository slotRepository,
                               UserRepository userRepository, SubscriptionRepository subscriptionRepository,
                               BookingMapper bookingMapper, List<BookingStrategy> strategies,
-                              VideoConferenceService videoConferenceService, ApplicationEventPublisher publisher,
+                              VideoConferenceService videoConferenceService,
+                              ActivityFeedService activityFeedService, EmailService emailService,
                               BookingDirector bookingDirector) {
         this.bookingRepository = bookingRepository;
         this.slotRepository = slotRepository;
@@ -85,7 +85,8 @@ public class BookingServiceImpl implements BookingService {
         this.bookingMapper = bookingMapper;
         this.strategies = strategies;
         this.videoConferenceService = videoConferenceService;
-        this.publisher = publisher;
+        this.activityFeedService = activityFeedService;
+        this.emailService = emailService;
         this.bookingDirector = bookingDirector;
     }
 
@@ -162,7 +163,19 @@ public class BookingServiceImpl implements BookingService {
 
             Booking saved = bookingRepository.save(booking);
 
-            publisher.publishEvent(new BookingCreatedEvent(this, saved));
+            // Aggiorna il timestamp bookedAt dentro la stessa transazione
+            activityFeedService.logBookingCreated(saved);
+
+            // Estrai i dati dalle entità mentre siamo ancora dentro la transazione (lazy-load safe)
+            String clientEmail  = saved.getUser().getEmail();
+            String clientName   = saved.getUser().getFirstName();
+            String profEmail    = saved.getProfessional().getEmail();
+            String profName     = saved.getProfessional().getFirstName();
+            LocalDateTime start = saved.getSlot().getStartTime();
+
+            // Chiamate @Async: non bloccanti, girano su emailTaskExecutor
+            emailService.sendBookingConfirmationEmail(clientEmail, clientName, profName, start, meetLink);
+            emailService.sendBookingConfirmationEmail(profEmail, profName, clientName, start, meetLink);
 
             return bookingMapper.toResponse(saved);
         } finally {
@@ -221,6 +234,14 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CANCELED);
         Booking saved = bookingRepository.save(booking);
 
-        publisher.publishEvent(new BookingCancelledEvent(this, saved));
+        // Estrai dati dentro la transazione (lazy-load safe) e invia email async
+        String clientEmail  = saved.getUser().getEmail();
+        String clientName   = saved.getUser().getFirstName();
+        String profEmail    = saved.getProfessional().getEmail();
+        String profName     = saved.getProfessional().getFirstName();
+        LocalDateTime start = saved.getSlot().getStartTime();
+
+        emailService.sendBookingCancellationEmail(clientEmail, clientName, profName, start);
+        emailService.sendBookingCancellationEmail(profEmail, profName, clientName, start);
     }
 }

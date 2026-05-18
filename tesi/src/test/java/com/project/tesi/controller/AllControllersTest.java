@@ -10,10 +10,10 @@ import com.project.tesi.dto.response.stats.AdminStatsResponse;
 import com.project.tesi.dto.response.stats.ProfessionalStatsResponse;
 import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.Role;
-import com.project.tesi.facade.AdminFacade;
-import com.project.tesi.facade.ChatFacade;
-import com.project.tesi.facade.DocumentFacade;
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IAdminFacade;
+import com.project.tesi.facade.IChatFacade;
+import com.project.tesi.facade.IDocumentFacade;
+import com.project.tesi.facade.IUserFacade;
 import com.project.tesi.service.ChatService;
 import com.project.tesi.service.DocumentService;
 import com.project.tesi.service.EmailService;
@@ -43,7 +43,7 @@ class AllControllersTest {
 
     @Nested
     class AdminControllerTests {
-        @Mock private AdminFacade adminFacade;
+        @Mock private IAdminFacade adminFacade;
         @InjectMocks private AdminController adminController;
 
         @Test @DisplayName("getAllUsers")
@@ -92,7 +92,7 @@ class AllControllersTest {
 
     @Nested
     class AdminStatsControllerTests {
-        @Mock private AdminFacade adminFacade;
+        @Mock private IAdminFacade adminFacade;
         @InjectMocks private AdminStatsController adminStatsController;
 
         @Test @DisplayName("getStats")
@@ -107,7 +107,7 @@ class AllControllersTest {
 
     @Nested
     class UserControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private UserController userController;
 
         @Test @DisplayName("getDashboard")
@@ -137,7 +137,7 @@ class AllControllersTest {
 
     @Nested
     class SubscriptionControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private SubscriptionController subscriptionController;
 
         @Test @DisplayName("activateSubscription")
@@ -160,7 +160,7 @@ class AllControllersTest {
 
     @Nested
     class ProfessionalControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private ProfessionalController professionalController;
 
         @Test @DisplayName("getProfessionals")
@@ -185,15 +185,16 @@ class AllControllersTest {
 
         @Test @DisplayName("deleteSlot")
         void deleteSlot() {
-            ResponseEntity<Void> resp = professionalController.deleteSlot(10L);
-            verify(userFacade).deleteSlot(10L);
+            User mockUser = User.builder().id(2L).email("pt@test.com").password("testpass").role(Role.PERSONAL_TRAINER).build();
+            ResponseEntity<Void> resp = professionalController.deleteSlot(10L, mockUser);
+            verify(userFacade).deleteSlot(10L, 2L);
             assertThat(resp.getStatusCode().value()).isEqualTo(204);
         }
     }
 
     @Nested
     class ProfessionalStatsControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private IUserFacade userFacade;
         @InjectMocks private ProfessionalStatsController professionalStatsController;
 
         @Test @DisplayName("getStats")
@@ -207,14 +208,14 @@ class AllControllersTest {
 
     @Nested
     class ActivityFeedControllerTests {
-        @Mock private UserFacade userFacade;
+        @Mock private com.project.tesi.facade.IActivityFeedFacade activityFeedFacade;
         @InjectMocks private ActivityFeedController activityFeedController;
 
         @Test @DisplayName("getActivityFeed")
         void getActivityFeed() {
             User mockUser = User.builder().id(1L).email("test@test.com").password("testpass").role(Role.CLIENT).build();
-            ActivityFeedItemResponse item = new ActivityFeedItemResponse("booking", "📅", "text", "ts", "ago");
-            when(userFacade.getActivityFeed(1L, 14, 15)).thenReturn(List.of(item));
+            ActivityFeedItemResponse item = new ActivityFeedItemResponse("booking", "text", java.time.LocalDateTime.now());
+            when(activityFeedFacade.getActivityFeed(1L, 14, 15)).thenReturn(List.of(item));
             ResponseEntity<List<ActivityFeedItemResponse>> resp = activityFeedController.getActivityFeed(mockUser, 14, 15);
             assertThat(resp.getBody()).hasSize(1);
         }
@@ -222,7 +223,7 @@ class AllControllersTest {
 
     @Nested
     class ChatControllerTest {
-        @Mock private ChatFacade chatFacade;
+        @Mock private IChatFacade chatFacade;
         private com.project.tesi.controller.ChatController controller;
 
         @BeforeEach
@@ -272,7 +273,7 @@ class AllControllersTest {
 
     @Nested
     class DocumentControllerTest {
-        @Mock private DocumentFacade documentFacade;
+        @Mock private IDocumentFacade documentFacade;
         private com.project.tesi.controller.DocumentController controller;
 
         @BeforeEach
@@ -283,49 +284,55 @@ class AllControllersTest {
 
         @Test @DisplayName("downloadFile")
         void downloadFile() {
+            User mockUser = User.builder().id(1L).email("client@test.com").password("testpass").role(Role.CLIENT).build();
             Document doc = Document.builder().id(1L).fileName("test.pdf").contentType("application/pdf").build();
             when(documentFacade.getDocumentById(1L)).thenReturn(doc);
-            when(documentFacade.downloadDocument(1L)).thenReturn(new byte[]{1, 2, 3});
+            when(documentFacade.downloadDocumentSecure(1L, 1L)).thenReturn(new byte[]{1, 2, 3});
 
-            ResponseEntity<byte[]> resp = controller.downloadFile(1L);
+            ResponseEntity<byte[]> resp = controller.downloadFile(1L, mockUser);
             assertThat(resp.getStatusCode().value()).isEqualTo(200);
             assertThat(resp.getBody()).hasSize(3);
         }
 
         @Test @DisplayName("downloadFile — contentType null usa application/octet-stream")
         void downloadFile_nullContentType() {
+            User mockUser = User.builder().id(1L).email("client@test.com").password("testpass").role(Role.CLIENT).build();
             Document doc = Document.builder().id(1L).fileName("file.bin").contentType(null).build();
             when(documentFacade.getDocumentById(1L)).thenReturn(doc);
-            when(documentFacade.downloadDocument(1L)).thenReturn(new byte[]{});
+            when(documentFacade.downloadDocumentSecure(1L, 1L)).thenReturn(new byte[]{});
 
-            ResponseEntity<byte[]> resp = controller.downloadFile(1L);
+            ResponseEntity<byte[]> resp = controller.downloadFile(1L, mockUser);
             assertThat(resp.getHeaders().getContentType().toString()).isEqualTo("application/octet-stream");
         }
 
         @Test @DisplayName("getUserDocuments")
         void getUserDocuments() {
-            when(documentFacade.getUserDocumentsDto(1L)).thenReturn(List.of());
-            assertThat(controller.getUserDocuments(1L).getBody()).isEmpty();
+            User mockUser = User.builder().id(1L).email("client@test.com").password("testpass").role(Role.CLIENT).build();
+            when(documentFacade.getUserDocumentsDtoSecure(1L, 1L)).thenReturn(List.of());
+            assertThat(controller.getUserDocuments(1L, mockUser).getBody()).isEmpty();
         }
 
         @Test @DisplayName("getUserDocumentsByType")
         void getUserDocumentsByType() {
-            when(documentFacade.getUserDocumentsByTypeDto(1L, "WORKOUT_PLAN")).thenReturn(List.of());
-            assertThat(controller.getUserDocumentsByType(1L, "WORKOUT_PLAN").getBody()).isEmpty();
+            User mockUser = User.builder().id(1L).email("client@test.com").password("testpass").role(Role.CLIENT).build();
+            when(documentFacade.getUserDocumentsByTypeDtoSecure(1L, "WORKOUT_PLAN", 1L)).thenReturn(List.of());
+            assertThat(controller.getUserDocumentsByType(1L, "WORKOUT_PLAN", mockUser).getBody()).isEmpty();
         }
 
         @Test @DisplayName("deleteDocument")
         void deleteDocument() {
-            ResponseEntity<Void> resp = controller.deleteDocument(1L);
-            verify(documentFacade).deleteDocument(1L);
+            User mockUser = User.builder().id(1L).email("client@test.com").password("testpass").role(Role.CLIENT).build();
+            ResponseEntity<Void> resp = controller.deleteDocument(1L, mockUser);
+            verify(documentFacade).deleteDocument(1L, 1L);
             assertThat(resp.getStatusCode().value()).isEqualTo(204);
         }
 
         @Test @DisplayName("updateNotes")
         void updateNotes() {
+            User mockUser = User.builder().id(1L).email("client@test.com").password("testpass").role(Role.CLIENT).build();
             UpdatedNotesResponse updated = new UpdatedNotesResponse(1L, "nuove note");
-            when(documentFacade.updateNotes(1L, "nuove note")).thenReturn(updated);
-            ResponseEntity<UpdatedNotesResponse> resp = controller.updateNotes(1L, new UpdateNotesRequest("nuove note"));
+            when(documentFacade.updateNotes(1L, "nuove note", 1L)).thenReturn(updated);
+            ResponseEntity<UpdatedNotesResponse> resp = controller.updateNotes(1L, new UpdateNotesRequest("nuove note"), mockUser);
             assertThat(resp.getBody().notes()).isEqualTo("nuove note");
         }
     }

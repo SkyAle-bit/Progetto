@@ -13,7 +13,6 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.DocumentRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.service.ProfessionalStatsService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +28,19 @@ import java.util.stream.Collectors;
  * Implementazione del servizio per le statistiche della dashboard del professionista.
  */
 @Service
-@RequiredArgsConstructor
 public class ProfessionalStatsServiceImpl implements ProfessionalStatsService {
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final DocumentRepository documentRepository;
+
+    public ProfessionalStatsServiceImpl(UserRepository userRepository,
+                                         BookingRepository bookingRepository,
+                                         DocumentRepository documentRepository) {
+        this.userRepository = userRepository;
+        this.bookingRepository = bookingRepository;
+        this.documentRepository = documentRepository;
+    }
 
     @Override
     @Transactional(readOnly = true)

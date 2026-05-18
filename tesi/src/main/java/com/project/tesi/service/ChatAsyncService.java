@@ -1,16 +1,18 @@
 package com.project.tesi.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ChatAsyncService {
 
     private final ChatService chatService;
+
+    public ChatAsyncService(ChatService chatService) {
+        this.chatService = chatService;
+    }
 
     @Async
     public void saveMessageAsync(Long chatId, Long senderId, String content) {

@@ -2,7 +2,7 @@ package com.project.tesi.controller;
 
 import com.project.tesi.model.Plan;
 import com.project.tesi.enums.PlanDuration;
-import com.project.tesi.facade.PlanFacade;
+import com.project.tesi.facade.IPlanFacade;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PlanControllerTest {
 
-    @Mock private PlanFacade planFacade;
+    @Mock private IPlanFacade planFacade;
 
     @InjectMocks
     private PlanController planController;

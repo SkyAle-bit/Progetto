@@ -2,9 +2,12 @@ package com.project.tesi.controller;
 
 import com.project.tesi.dto.request.PlanRequest;
 import com.project.tesi.dto.response.SubscriptionResponse;
-import com.project.tesi.facade.UserFacade;
+import com.project.tesi.facade.IUserFacade;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.project.tesi.model.User;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,19 +21,33 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/subscriptions")
-@RequiredArgsConstructor
+@Tag(name = "Subscriptions", description = "Attivazione e stato degli abbonamenti")
 public class SubscriptionController {
 
-    private final UserFacade userFacade;
+    private final IUserFacade userFacade;
 
-    /** Attiva un nuovo abbonamento per il cliente autenticato con il piano e la modalità di pagamento scelti. */
+    public SubscriptionController(IUserFacade userFacade) {
+        this.userFacade = userFacade;
+    }
+
+    @Operation(summary = "Attiva abbonamento", description = "Attiva un nuovo abbonamento per il cliente autenticato con il piano e la modalità di pagamento scelti.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Abbonamento attivato"),
+        @ApiResponse(responseCode = "400", description = "Piano non valido o abbonamento già attivo"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato")
+    })
     @PostMapping("/activate")
     public ResponseEntity<SubscriptionResponse> activateSubscription(@RequestBody PlanRequest request,
                                                                        @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(userFacade.activateSubscription(request, user.getId()));
     }
 
-    /** Restituisce lo stato dell'abbonamento attivo dell'utente autenticato (crediti, scadenza, piano). */
+    @Operation(summary = "Stato abbonamento", description = "Restituisce crediti residui, data di scadenza e dettagli del piano dell'abbonamento attivo.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Stato abbonamento"),
+        @ApiResponse(responseCode = "401", description = "Non autenticato"),
+        @ApiResponse(responseCode = "404", description = "Nessun abbonamento attivo")
+    })
     @GetMapping("/status")
     public ResponseEntity<SubscriptionResponse> getSubscriptionStatus(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(userFacade.getSubscriptionStatus(user.getId()));

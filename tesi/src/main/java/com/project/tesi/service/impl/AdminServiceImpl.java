@@ -23,7 +23,6 @@ import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
 import com.project.tesi.repository.WeeklyScheduleRepository;
 import com.project.tesi.service.AdminService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,7 +44,6 @@ import java.util.stream.Collectors;
  * per garantire type-safety a compile-time. La conversione in DTO avviene nel layer Facade.
  */
 @Service
-@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
 
     private static final Set<Role> MODERATOR_MANAGEABLE_ROLES = EnumSet.of(
@@ -63,6 +61,28 @@ public class AdminServiceImpl implements AdminService {
     private final SlotRepository slotRepository;
     private final WeeklyScheduleRepository weeklyScheduleRepository;
     private final PasswordEncoder passwordEncoder;
+
+    public AdminServiceImpl(UserRepository userRepository,
+                            PlanRepository planRepository,
+                            SubscriptionRepository subscriptionRepository,
+                            DocumentRepository documentRepository,
+                            BookingRepository bookingRepository,
+                            ChatRepository chatRepository,
+                            ReviewRepository reviewRepository,
+                            SlotRepository slotRepository,
+                            WeeklyScheduleRepository weeklyScheduleRepository,
+                            PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.planRepository = planRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.documentRepository = documentRepository;
+        this.bookingRepository = bookingRepository;
+        this.chatRepository = chatRepository;
+        this.reviewRepository = reviewRepository;
+        this.slotRepository = slotRepository;
+        this.weeklyScheduleRepository = weeklyScheduleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     // ────────────────────── Utenti ──────────────────────
 

@@ -13,16 +13,17 @@ import java.util.Optional;
 public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     @Query("SELECT c FROM Chat c WHERE (c.user1.id = :userId1 AND c.user2.id = :userId2) OR (c.user1.id = :userId2 AND c.user2.id = :userId1)")
-    Optional<Chat> findChatBetweenUsers(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
+    Optional<Chat> findChatBetweenUsers(@Param("userId1") long userId1, @Param("userId2") long userId2);
 
     @Query("SELECT c FROM Chat c WHERE c.user1.id = :userId OR c.user2.id = :userId")
-    List<Chat> findAllChatsByUserId(@Param("userId") Long userId);
+    List<Chat> findAllChatsByUserId(@Param("userId") long userId);
 
     @Query("""
             SELECT COUNT(c) FROM Chat c
             WHERE (c.user1.id = :moderatorId OR c.user2.id = :moderatorId)
             AND c.status = com.project.tesi.enums.ChatStatus.OPEN
             """)
-    long countOpenChatsByModerator(@Param("moderatorId") Long moderatorId);
+    long countOpenChatsByModerator(@Param("moderatorId") long moderatorId);
+
 }
 

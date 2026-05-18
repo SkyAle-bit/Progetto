@@ -16,11 +16,12 @@ import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.repository.SlotRepository;
 import com.project.tesi.repository.SubscriptionRepository;
 import com.project.tesi.repository.UserRepository;
+import com.project.tesi.service.ActivityFeedService;
+import com.project.tesi.service.EmailService;
 import com.project.tesi.service.VideoConferenceService;
 import com.project.tesi.service.strategy.BookingStrategy;
 import com.project.tesi.service.strategy.PersonalTrainerBookingStrategy;
 import com.project.tesi.builder.BookingDirector;
-import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,8 @@ class BookingServiceImplTest {
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private BookingMapper bookingMapper;
     @Mock private VideoConferenceService videoConferenceService;
-    @Mock private ApplicationEventPublisher publisher;
+    @Mock private ActivityFeedService activityFeedService;
+    @Mock private EmailService emailService;
     @Mock private BookingDirector bookingDirector;
 
     private BookingServiceImpl bookingService;
@@ -72,7 +74,8 @@ class BookingServiceImplTest {
 
         BookingStrategy ptStrategy = new PersonalTrainerBookingStrategy();
         bookingService = new BookingServiceImpl(bookingRepository, slotRepository, userRepository,
-                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService, publisher, bookingDirector);
+                subscriptionRepository, bookingMapper, List.of(ptStrategy), videoConferenceService,
+                activityFeedService, emailService, bookingDirector);
     }
 
     @Test
@@ -92,6 +95,9 @@ class BookingServiceImplTest {
         when(videoConferenceService.generateMeetingLink(any(), any(), any())).thenReturn("https://meet.jit.si/test");
 
         Booking fakeBooking = new Booking();
+        fakeBooking.setUser(client);
+        fakeBooking.setProfessional(pt);
+        fakeBooking.setSlot(slot);
         when(bookingDirector.buildConfirmedBooking(any(), any(), any(), anyString())).thenReturn(fakeBooking);
 
         BookingResponse expectedResp = BookingResponse.builder().id(1L).status(BookingStatus.CONFIRMED).build();
@@ -104,7 +110,7 @@ class BookingServiceImplTest {
         assertThat(slot.getBookedBy()).isNotNull();
 
         verify(bookingRepository).save(any(Booking.class));
-        verify(publisher).publishEvent(any());
+        verify(emailService, times(2)).sendBookingConfirmationEmail(anyString(), anyString(), anyString(), any(), anyString());
     }
 
     @Test

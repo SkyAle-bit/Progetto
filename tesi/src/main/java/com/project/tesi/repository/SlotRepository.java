@@ -33,8 +33,6 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
 
     List<Slot> findByProfessional(User professional);
 
-    List<Slot> findByBookedByIsNull();
-
     @Modifying
     @Query("DELETE FROM Slot s WHERE s.professional.id = :profId")
     void deleteByProfessionalId(@Param("profId") Long profId);

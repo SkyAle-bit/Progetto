@@ -1,5 +1,7 @@
 package com.project.tesi.service;
 
+import org.springframework.validation.annotation.Validated;
+
 import com.project.tesi.dto.request.SendMessageRequest;
 import com.project.tesi.dto.response.ChatMessageResponse;
 import com.project.tesi.dto.response.ConversationPreviewResponse;
@@ -11,6 +13,7 @@ import java.util.List;
  * Gestisce l'invio, il recupero, la lettura dei messaggi
  * e la lista delle conversazioni attive di un utente.
  */
+@Validated
 public interface ChatService {
 
     /** Crea o recupera una chat tra due utenti. */
