@@ -10,7 +10,6 @@ spring:
   docker:
     compose:
       enabled: true
-      file: docker-compose.yml
   mail:
     host: ${SMTP_HOST:smtp.gmail.com}
     port: ${SMTP_PORT:587}
@@ -31,6 +30,13 @@ spring:
     port: 5672
     username: guest
     password: guest
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-retries: 3
+          initial-interval: 2000
+        default-requeue-rejected: false
 
 mail:
   from: ${MAIL_FROM:koreadministration@gmail.com}

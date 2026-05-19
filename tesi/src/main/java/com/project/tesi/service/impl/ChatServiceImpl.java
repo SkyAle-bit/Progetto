@@ -240,8 +240,10 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private void validateChatPermission(User uA, User uB) {
-        if (uA.getRole() == Role.ADMIN || uB.getRole() == Role.ADMIN) return;
         if (uA.getRole() == Role.MODERATOR || uB.getRole() == Role.MODERATOR) return;
+        if (uA.getRole() == Role.ADMIN || uB.getRole() == Role.ADMIN) {
+            throw new ChatNotAllowedException("L'amministratore può essere contattato solo dai moderatori.");
+        }
 
         if (uA.getRole() == Role.INSURANCE_MANAGER || uB.getRole() == Role.INSURANCE_MANAGER) {
             throw new ChatNotAllowedException("Admin only");

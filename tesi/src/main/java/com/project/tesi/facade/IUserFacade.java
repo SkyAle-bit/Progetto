@@ -20,6 +20,7 @@ import java.util.List;
 public interface IUserFacade {
     ClientDashboardResponse getClientDashboard(Long userId);
     ClientBasicInfoResponse getAdmin();
+    ClientBasicInfoResponse getModerator();
     void updateProfile(Long userId, ProfileUpdateRequest request);
     List<ClientBasicInfoResponse> getClientsForProfessional(Long professionalId);
     BookingResponse createBooking(BookingRequest request, Long userId);

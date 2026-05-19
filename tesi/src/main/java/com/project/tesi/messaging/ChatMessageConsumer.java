@@ -3,7 +3,9 @@ package com.project.tesi.messaging;
 import com.project.tesi.config.RabbitMQConfig;
 import com.project.tesi.service.ChatService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -21,6 +23,10 @@ public class ChatMessageConsumer {
         log.info("[RabbitMQ] Consume chat message chatId={} senderId={}", payload.chatId(), payload.senderId());
         try {
             chatService.sendMessageDirect(payload.chatId(), payload.senderId(), payload.content());
+        } catch (DataIntegrityViolationException e) {
+            log.error("[RabbitMQ] Errore permanente (DataIntegrity) chatId={} senderId={}: {} — invio a DLQ senza retry",
+                    payload.chatId(), payload.senderId(), e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Errore permanente di integrità DB", e);
         } catch (Exception e) {
             log.error("[RabbitMQ] Errore durante save asincrono chatId={} senderId={}: {}",
                     payload.chatId(), payload.senderId(), e.getMessage(), e);

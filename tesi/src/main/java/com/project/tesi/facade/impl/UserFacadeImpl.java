@@ -67,6 +67,11 @@ public class UserFacadeImpl implements IUserFacade {
     }
 
     @Override
+    public ClientBasicInfoResponse getModerator() {
+        return userService.getSupportOperator();
+    }
+
+    @Override
     public void updateProfile(Long userId, ProfileUpdateRequest request) {
         userService.updateProfile(userId, request);
     }
