@@ -20,6 +20,7 @@ Backend RESTful per una piattaforma SaaS che connette clienti con Personal Train
 6. [API Docs](#api-docs)
 7. [Configurazione](#configurazione)
 8. [Testing](#testing)
+9. [Changelog](#changelog)
 
 ---
 
@@ -277,3 +278,56 @@ Pattern adottati:
 ```
 [INFO] Tests run: 260, Failures: 0, Errors: 0, Skipped: 0
 ```
+
+---
+
+## Changelog
+
+### Infrastruttura & Messaggistica
+
+- **Fix RabbitMQ infinite redelivery loop** — aggiunto `default-requeue-rejected: false` e `max-attempts: 3` in entrambi i profili YAML; il consumer lancia `AmqpRejectAndDontRequeueException` per errori permanenti (`DataIntegrityViolationException`) evitando loop infiniti. I messaggi non recuperabili vengono instradati alla Dead Letter Queue (`chat.messages.dlq`).
+- **Fix deprecation RabbitMQConfig** — `JacksonJsonMessageConverter` sostituito con `Jackson2JsonMessageConverter`.
+- **Fix Docker Compose auto-discovery** — rimosso il path esplicito `file: docker-compose.yml`; Spring Boot auto-discovery scansiona la directory di lavoro e le parent. Aggiunto healthcheck su `pg_isready` per PostgreSQL e `rabbitmq-diagnostics check_port_connectivity` per RabbitMQ.
+- **Fix dipendenza `spring-boot-docker-compose`** — aggiunta in `pom.xml` (scope `runtime`, `optional: true`) per abilitare `spring.docker.compose.enabled: true` nel profilo `dev`.
+
+### Chat — Permessi
+
+I permessi di conversazione sono stati ridefiniti su tutti i ruoli:
+
+| Ruolo | Contatti tramite "+" | Contatta Amministrazione |
+|---|---|---|
+| CLIENT | PT assegnato, Nutrizionista assegnato | Moderatore (casuale) |
+| PT / NUTRITIONIST | Propri clienti assegnati | Moderatore |
+| MODERATOR | CLIENT, PT, NUTRITIONIST, ADMIN, altri MODERATOR | — (non ha il pulsante) |
+| ADMIN | Tutti (incluso INSURANCE_MANAGER) | — |
+| INSURANCE_MANAGER | Solo ADMIN | — |
+
+- **Backend `validateChatPermission()`** — nuovo ordine di guardie: ADMIN → INSURANCE_MANAGER (blocca se l'altra parte non è ADMIN) → MODERATOR → check assegnazione.
+- **Frontend `canStartConversationWith()`** — allineato alle nuove regole.
+- **Frontend `buildLocalConversations()`** — Insurance Manager ora prepopola ADMIN (non più Moderatore) nella sidebar.
+
+### Chat — Bug Fix
+
+- **Fix message overlap** — quando si cambia conversazione, `chatMessages` e `messagesSubject` vengono svuotati immediatamente prima di caricare i nuovi messaggi. Aggiunto guard `chatId` nella subscription `messages$` per scartare messaggi di chat diverse durante la transizione.
+- **Fix double checkmark visibilità** — SVG ridisegnato con due percorsi offset (stile WhatsApp): spunta singola bianca per messaggi inviati, doppia spunta blu per messaggi letti (`status === 'READ'`).
+
+### Endpoint Insurance Manager
+
+Nuovo controller `GET /api/insurance/subscriptions` e `GET /api/insurance/users` riservato al ruolo `INSURANCE_MANAGER`. Le KPI e la lista clienti nella dashboard dell'assicuratore ora si popolano correttamente (prima chiamavano `/api/admin/*` restituendo 403).
+
+### Abbonamento alla creazione utente
+
+- **Backend `UserCreateRequestDTO`** — aggiunti campi `planId` e `paymentFrequency`.
+- **Backend `AdminServiceImpl.createUserInternal()`** — se il nuovo utente è CLIENT e `planId` è presente, viene creata e salvata la `Subscription` tramite `SubscriptionMapper.toSubscriptionFromAdmin()`.
+- **Frontend** — il form di creazione utente (step 2) include ora la selezione della frequenza di pagamento (Unica soluzione / Rate mensili); il payload include `paymentFrequency`.
+
+### Restrizione modifica profili
+
+Solo il **MODERATORE** può modificare i profili di CLIENT, PERSONAL_TRAINER e NUTRITIONIST. L'ADMIN è limitato alla gestione di MODERATOR e INSURANCE_MANAGER.
+
+- **Backend `validateUpdatePermissions()`** — aggiunto check: se l'actor è `null` (chiamata ADMIN) e il target non è in `ADMIN_MANAGEABLE_ROLES`, viene sollevata `UnauthorizedAccessException`.
+- **Frontend `admin-users-tab`** — il pulsante "Modifica" è visibile solo per i ruoli che il mode corrente può gestire (`canEditUser()`).
+
+### Contatta Amministrazione
+
+Il pulsante "Contatta Amministrazione" (CLIENT, PT, NUTRITIONIST) ora apre una chat con il **MODERATORE** anziché con l'Admin. Aggiunto endpoint `GET /api/users/moderator` nel backend.

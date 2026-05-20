@@ -340,6 +340,7 @@ public class UserServiceImpl implements UserService {
                 .profilePictureUrl(user.getProfilePicture() != null
                         ? user.getProfilePicture()
                         : user.getProfilePictureUrl())
+                .role(user.getRole() != null ? user.getRole().name() : null)
                 .build();
     }
 

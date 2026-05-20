@@ -3,8 +3,10 @@ package com.project.tesi.service.impl;
 import com.project.tesi.dto.request.PlanCreateRequestDTO;
 import com.project.tesi.dto.request.UserCreateRequestDTO;
 import com.project.tesi.dto.request.ModeratorUserUpdateRequest;
+import com.project.tesi.enums.PaymentFrequency;
 import com.project.tesi.enums.PlanDuration;
 import com.project.tesi.enums.Role;
+import com.project.tesi.mapper.SubscriptionMapper;
 import com.project.tesi.exception.common.ResourceAlreadyExistsException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
 import com.project.tesi.exception.common.UnauthorizedAccessException;
@@ -51,6 +53,10 @@ public class AdminServiceImpl implements AdminService {
             Role.PERSONAL_TRAINER,
             Role.NUTRITIONIST);
 
+    private static final Set<Role> ADMIN_MANAGEABLE_ROLES = EnumSet.of(
+            Role.MODERATOR,
+            Role.INSURANCE_MANAGER);
+
     private final UserRepository userRepository;
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
@@ -61,6 +67,7 @@ public class AdminServiceImpl implements AdminService {
     private final SlotRepository slotRepository;
     private final WeeklyScheduleRepository weeklyScheduleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SubscriptionMapper subscriptionMapper;
 
     public AdminServiceImpl(UserRepository userRepository,
                             PlanRepository planRepository,
@@ -71,7 +78,8 @@ public class AdminServiceImpl implements AdminService {
                             ReviewRepository reviewRepository,
                             SlotRepository slotRepository,
                             WeeklyScheduleRepository weeklyScheduleRepository,
-                            PasswordEncoder passwordEncoder) {
+                            PasswordEncoder passwordEncoder,
+                            SubscriptionMapper subscriptionMapper) {
         this.userRepository = userRepository;
         this.planRepository = planRepository;
         this.subscriptionRepository = subscriptionRepository;
@@ -82,6 +90,7 @@ public class AdminServiceImpl implements AdminService {
         this.slotRepository = slotRepository;
         this.weeklyScheduleRepository = weeklyScheduleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.subscriptionMapper = subscriptionMapper;
     }
 
     // ────────────────────── Utenti ──────────────────────
@@ -305,7 +314,22 @@ public class AdminServiceImpl implements AdminService {
             }
         }
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        if (targetRole == Role.CLIENT && request.planId() != null && request.paymentFrequency() != null) {
+            Plan selectedPlan = planRepository.findById(request.planId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Piano", request.planId()));
+            PaymentFrequency freq;
+            try {
+                freq = PaymentFrequency.valueOf(request.paymentFrequency());
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Frequenza di pagamento non valida: " + request.paymentFrequency());
+            }
+            Subscription sub = subscriptionMapper.toSubscriptionFromAdmin(savedUser, selectedPlan, freq);
+            subscriptionRepository.save(sub);
+        }
+
+        return savedUser;
     }
 
     private User updateUserInternal(Long id, ModeratorUserUpdateRequest request, User actor) {
@@ -412,6 +436,12 @@ public class AdminServiceImpl implements AdminService {
                     "L'account amministratore non puo essere modificato da questa operazione.");
         }
 
+        // ADMIN può modificare solo MODERATOR e INSURANCE_MANAGER; i profili clienti/professionisti spettano al moderatore
+        if (actor == null && !ADMIN_MANAGEABLE_ROLES.contains(target.getRole())) {
+            throw new UnauthorizedAccessException(
+                    "L'amministratore non puo modificare profili clienti o professionisti. Delegare al moderatore.");
+        }
+
         if (actor != null && actor.getRole() == Role.MODERATOR
                 && !MODERATOR_MANAGEABLE_ROLES.contains(target.getRole())) {
             throw new UnauthorizedAccessException(
@@ -494,11 +524,4 @@ public class AdminServiceImpl implements AdminService {
         return passwordEncoder.encode(rawPassword);
     }
 
-    private String stringValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String str = value.toString().trim();
-        return str.isEmpty() ? null : str;
-    }
 }

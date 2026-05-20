@@ -20,6 +20,8 @@ public class ClientBasicInfoResponse {
 
     private String profilePictureUrl;
 
+    private String role;
+
     private ClientBasicInfoResponse() {}
 
     public static class Builder {
@@ -28,6 +30,7 @@ public class ClientBasicInfoResponse {
         private String lastName;
         private String email;
         private String profilePictureUrl;
+        private String role;
 
         public Builder id(Long id) {
             this.id = id;
@@ -54,6 +57,11 @@ public class ClientBasicInfoResponse {
             return this;
         }
 
+        public Builder role(String role) {
+            this.role = role;
+            return this;
+        }
+
         public ClientBasicInfoResponse build() {
             ClientBasicInfoResponse obj = new ClientBasicInfoResponse();
             obj.id = this.id;
@@ -61,6 +69,7 @@ public class ClientBasicInfoResponse {
             obj.lastName = this.lastName;
             obj.email = this.email;
             obj.profilePictureUrl = this.profilePictureUrl;
+            obj.role = this.role;
             return obj;
         }
     }

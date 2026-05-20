@@ -58,4 +58,7 @@ public interface ChatService {
 
     /** Chiude formalmente una sessione di chat (solo moderatori). */
     void closeChat(Long chatId, Long moderatorId);
+
+    /** Chiude una chat da parte di qualunque partecipante (es. utente che ha contattato il moderatore). */
+    void closeChatByUser(Long chatId, Long userId);
 }

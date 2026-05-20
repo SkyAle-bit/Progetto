@@ -60,12 +60,11 @@ public class SecurityConfig {
                             .permitAll()
                             .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole(Role.ADMIN.name())
                             .requestMatchers("/api/moderator/users", "/api/moderator/users/**").hasRole(Role.MODERATOR.name())
+                            .requestMatchers("/api/insurance/**").hasRole(Role.INSURANCE_MANAGER.name())
                             .requestMatchers(
                                     "/api/admin/plans", "/api/admin/plans/**",
                                     "/api/admin/subscriptions", "/api/admin/subscriptions/**",
-                                    "/api/admin/stats", "/api/admin/stats/**",
-                                    "/api/bookings/migrate-meet",
-                                    "/api/bookings/reset-database")
+                                    "/api/admin/stats", "/api/admin/stats/**")
                             .hasRole(Role.ADMIN.name())
                             .anyRequest().authenticated())
                     .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

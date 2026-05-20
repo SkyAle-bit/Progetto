@@ -1,4 +1,4 @@
-# CLAUDE.md
+,# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -27,10 +27,13 @@ cd tesi
 
 **Prerequisites for dev profile:** Java 21, Docker Desktop running.
 
-**Test credentials** (from DataInitializer, dev only):
-- Admin: `admin@example.com` / `admin`
-- Client: `client@example.com` / `client`
-- Personal Trainer: `pt@example.com` / `pt`
+**Test credentials** (from data.sql seed, dev only — password `password` per tutti):
+- Admin: `admin@test.com` / `password`
+- Client: `luca@test.com` / `password`
+- Personal Trainer: `pt1@test.com` / `password`
+- Nutritionist: `nutri1@test.com` / `password`
+- Moderator: `moderator1@test.com` / `password`
+- Insurance: `insurance@test.com` / `password`
 
 ## Architecture
 

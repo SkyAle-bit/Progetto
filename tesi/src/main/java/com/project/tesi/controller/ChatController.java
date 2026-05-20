@@ -85,4 +85,13 @@ public class ChatController {
     public ResponseEntity<Integer> getTotalUnreadCount(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(chatFacade.getTotalUnreadCount(user.getId()));
     }
+
+    /** Termina una chat con il moderatore. Disponibile a qualunque partecipante della chat. */
+    @Operation(summary = "Termina una chat", description = "Chiude definitivamente la chat. Chiamabile da qualunque partecipante.")
+    @PostMapping("/{chatId}/close")
+    public ResponseEntity<Void> closeChat(@PathVariable Long chatId,
+                                           @AuthenticationPrincipal User user) {
+        chatFacade.closeChatByUser(chatId, user.getId());
+        return ResponseEntity.noContent().build();
+    }
 }

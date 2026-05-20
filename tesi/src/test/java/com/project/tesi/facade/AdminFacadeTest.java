@@ -52,7 +52,7 @@ class AdminFacadeTest {
     @Test
     @DisplayName("createUser")
     void createUser() {
-        UserCreateRequestDTO request = new UserCreateRequestDTO("test@test.com", "Test", "User", "pass", "CLIENT", null, null);
+        UserCreateRequestDTO request = new UserCreateRequestDTO("test@test.com", "Test", "User", "pass", "CLIENT", null, null, null, null);
         User result = new User();
         result.setId(1L);
         result.setEmail("test@test.com");

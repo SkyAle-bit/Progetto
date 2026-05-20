@@ -7,5 +7,7 @@ public record UserCreateRequestDTO(
         String password,
         String role,
         Long assignedPTId,
-        Long assignedNutritionistId
+        Long assignedNutritionistId,
+        Long planId,
+        String paymentFrequency
 ) {}

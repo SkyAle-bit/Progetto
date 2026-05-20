@@ -25,6 +25,8 @@ public class ConversationPreviewResponse {
 
     private int unreadCount;
 
+    private boolean terminated;
+
     private ConversationPreviewResponse() {}
 
     public static class Builder {
@@ -35,6 +37,7 @@ public class ConversationPreviewResponse {
         private String lastMessage;
         private LocalDateTime lastMessageTime;
         private int unreadCount;
+        private boolean terminated;
 
         public Builder chatId(Long chatId) {
             this.chatId = chatId;
@@ -71,6 +74,11 @@ public class ConversationPreviewResponse {
             return this;
         }
 
+        public Builder terminated(boolean terminated) {
+            this.terminated = terminated;
+            return this;
+        }
+
         public ConversationPreviewResponse build() {
             ConversationPreviewResponse obj = new ConversationPreviewResponse();
             obj.chatId = this.chatId;
@@ -80,6 +88,7 @@ public class ConversationPreviewResponse {
             obj.lastMessage = this.lastMessage;
             obj.lastMessageTime = this.lastMessageTime;
             obj.unreadCount = this.unreadCount;
+            obj.terminated = this.terminated;
             return obj;
         }
     }

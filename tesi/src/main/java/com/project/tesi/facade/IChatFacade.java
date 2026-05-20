@@ -13,4 +13,6 @@ public interface IChatFacade {
     List<ConversationPreviewResponse> getUserConversations(Long userId);
     void markAsRead(Long chatId, Long userId);
     Integer getTotalUnreadCount(Long userId);
+
+    void closeChatByUser(Long chatId, Long userId);
 }

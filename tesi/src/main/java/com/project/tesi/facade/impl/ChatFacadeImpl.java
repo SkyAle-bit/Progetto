@@ -50,4 +50,9 @@ public class ChatFacadeImpl implements IChatFacade {
     public Integer getTotalUnreadCount(Long userId) {
         return chatService.getTotalUnreadCount(userId);
     }
+
+    @Override
+    public void closeChatByUser(Long chatId, Long userId) {
+        chatService.closeChatByUser(chatId, userId);
+    }
 }

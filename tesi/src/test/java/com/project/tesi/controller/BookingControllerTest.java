@@ -6,7 +6,6 @@ import com.project.tesi.enums.BookingStatus;
 import com.project.tesi.enums.Role;
 import com.project.tesi.facade.IUserFacade;
 import com.project.tesi.model.User;
-import com.project.tesi.service.DatabaseInitializerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.*;
 class BookingControllerTest {
 
     @Mock private IUserFacade userFacade;
-    @Mock private DatabaseInitializerService databaseInitializerService;
 
     @InjectMocks
     private BookingController bookingController;

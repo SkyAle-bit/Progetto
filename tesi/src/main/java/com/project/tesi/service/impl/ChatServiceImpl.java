@@ -8,6 +8,7 @@ import com.project.tesi.enums.MessageStatus;
 import com.project.tesi.enums.Role;
 import com.project.tesi.exception.chat.ChatNotAllowedException;
 import com.project.tesi.exception.common.ResourceNotFoundException;
+import com.project.tesi.exception.common.UnauthorizedAccessException;
 import com.project.tesi.model.Chat;
 import com.project.tesi.model.Message;
 import com.project.tesi.model.User;
@@ -168,6 +169,7 @@ public class ChatServiceImpl implements ChatService {
                     .lastMessage(lastMsg != null ? lastMsg.getContent() : "")
                     .lastMessageTime(lastMsg != null ? lastMsg.getTimeStamp() : null)
                     .unreadCount(unreadCount)
+                    .terminated(chat.getStatus() == ChatStatus.CLOSED)
                     .build();
         })
         .filter(res -> {
@@ -227,6 +229,19 @@ public class ChatServiceImpl implements ChatService {
         chatRepository.save(chat);
     }
 
+    @Override
+    @Transactional
+    public void closeChatByUser(Long chatId, Long userId) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat", chatId));
+        boolean isParticipant = chat.getUser1().getId().equals(userId)
+                || chat.getUser2().getId().equals(userId);
+        if (!isParticipant) {
+            throw new UnauthorizedAccessException("Non sei partecipante di questa chat.");
+        }
+        chatRepository.delete(chat); // Elimina chat e messaggi (cascade); alla prossima apertura si crea una chat nuova
+    }
+
     private Chat getOrCreateChat(User user1, User user2) {
         return chatRepository.findChatBetweenUsers(user1.getId(), user2.getId())
                 .orElseGet(() -> {
@@ -240,14 +255,16 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private void validateChatPermission(User uA, User uB) {
-        if (uA.getRole() == Role.MODERATOR || uB.getRole() == Role.MODERATOR) return;
-        if (uA.getRole() == Role.ADMIN || uB.getRole() == Role.ADMIN) {
-            throw new ChatNotAllowedException("L'amministratore può essere contattato solo dai moderatori.");
+        // ADMIN può chattare con tutti (è l'unico, non può duplicarsi)
+        if (uA.getRole() == Role.ADMIN || uB.getRole() == Role.ADMIN) return;
+
+        // INSURANCE_MANAGER può contattare solo ADMIN (già gestito sopra) — blocca tutto il resto
+        if (uA.getRole() == Role.INSURANCE_MANAGER || uB.getRole() == Role.INSURANCE_MANAGER) {
+            throw new ChatNotAllowedException("Insurance manager può contattare solo l'amministratore.");
         }
 
-        if (uA.getRole() == Role.INSURANCE_MANAGER || uB.getRole() == Role.INSURANCE_MANAGER) {
-            throw new ChatNotAllowedException("Admin only");
-        }
+        // MODERATOR può chattare con tutti tranne INSURANCE_MANAGER (già bloccato sopra)
+        if (uA.getRole() == Role.MODERATOR || uB.getRole() == Role.MODERATOR) return;
 
         boolean professionalAssigned = false;
         User client = null;

@@ -56,7 +56,7 @@ class AdminServiceImplTest {
 
     @Test @DisplayName("createUser — crea PT senza professionisti assegnati")
     void createUser_pt() {
-        UserCreateRequestDTO request = new UserCreateRequestDTO("pt@test.com", "Luca", "Bianchi", "pass", "PERSONAL_TRAINER", null, null);
+        UserCreateRequestDTO request = new UserCreateRequestDTO("pt@test.com", "Luca", "Bianchi", "pass", "PERSONAL_TRAINER", null, null, null, null);
 
         when(userRepository.findByEmail("pt@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass")).thenReturn("hashedpassword");
@@ -69,13 +69,13 @@ class AdminServiceImplTest {
 
     @Test @DisplayName("createUser — campi mancanti lancia IllegalArgumentException")
     void createUser_missingFields() {
-        UserCreateRequestDTO request = new UserCreateRequestDTO(null, "X", "Y", "p", "CLIENT", null, null);
+        UserCreateRequestDTO request = new UserCreateRequestDTO(null, "X", "Y", "p", "CLIENT", null, null, null, null);
         assertThatThrownBy(() -> adminService.createUser(request)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test @DisplayName("createUser — email duplicata lancia ResourceAlreadyExistsException")
     void createUser_duplicate() {
-        UserCreateRequestDTO request = new UserCreateRequestDTO("mario@test.com", "X", "Y", "p", "CLIENT", null, null);
+        UserCreateRequestDTO request = new UserCreateRequestDTO("mario@test.com", "X", "Y", "p", "CLIENT", null, null, null, null);
         when(userRepository.findByEmail("mario@test.com")).thenReturn(Optional.of(user));
         assertThatThrownBy(() -> adminService.createUser(request)).isInstanceOf(ResourceAlreadyExistsException.class);
     }
@@ -193,7 +193,7 @@ class AdminServiceImplTest {
 
     @Test @DisplayName("createUser — CLIENT senza professionisti assegnati (ids null)")
     void createUser_clientNoProfessionals() {
-        UserCreateRequestDTO request = new UserCreateRequestDTO("new@test.com", "New", "User", "pass", "CLIENT", null, null);
+        UserCreateRequestDTO request = new UserCreateRequestDTO("new@test.com", "New", "User", "pass", "CLIENT", null, null, null, null);
 
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass")).thenReturn("hashedpassword");

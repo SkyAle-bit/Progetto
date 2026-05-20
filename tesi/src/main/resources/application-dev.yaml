@@ -7,6 +7,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
   docker:
     compose:
       enabled: true
@@ -30,13 +34,6 @@ spring:
     port: 5672
     username: guest
     password: guest
-    listener:
-      simple:
-        retry:
-          enabled: true
-          max-retries: 3
-          initial-interval: 2000
-        default-requeue-rejected: false
 
 mail:
   from: ${MAIL_FROM:koreadministration@gmail.com}

@@ -56,7 +56,7 @@ class AllControllersTest {
 
         @Test @DisplayName("createUser")
         void createUser() {
-            UserCreateRequestDTO body = new UserCreateRequestDTO("test@test.com", "test", "test", "test", "CLIENT", null, null);
+            UserCreateRequestDTO body = new UserCreateRequestDTO("test@test.com", "test", "test", "test", "CLIENT", null, null, null, null);
             when(adminFacade.createUser(body)).thenReturn(new UserResponseDTO(1L, null, null, null, null, null, null, null, null));
             ResponseEntity<UserResponseDTO> resp = adminController.createUser(body);
             assertThat(resp.getBody().id()).isEqualTo(1L);

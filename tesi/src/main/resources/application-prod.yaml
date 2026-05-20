@@ -28,13 +28,6 @@ spring:
     password: ${RABBITMQ_PASS}
     virtual-host: ${RABBITMQ_VHOST}
     port: ${RABBITMQ_PORT:5672}
-    listener:
-      simple:
-        retry:
-          enabled: true
-          max-retries: 3
-          initial-interval: 2000
-        default-requeue-rejected: false
 
   mail:
     protocol: smtps

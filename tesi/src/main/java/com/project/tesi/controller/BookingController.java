@@ -8,12 +8,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.project.tesi.model.User;
-import com.project.tesi.service.DatabaseInitializerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Endpoint REST per le prenotazioni. Permette di gestire appuntamenti e include una route di utilità per il reset del database locale.
+ * Endpoint REST per le prenotazioni.
  */
 @Slf4j
 @RestController
@@ -32,11 +30,9 @@ import java.util.Map;
 public class BookingController {
 
     private final IUserFacade userFacade;
-    private final DatabaseInitializerService databaseInitializerService;
 
-    public BookingController(IUserFacade userFacade, DatabaseInitializerService databaseInitializerService) {
+    public BookingController(IUserFacade userFacade) {
         this.userFacade = userFacade;
-        this.databaseInitializerService = databaseInitializerService;
     }
 
     @Operation(summary = "Crea prenotazione", description = "Prenota uno slot. Deduce i crediti dall'abbonamento attivo. Usa locking per evitare double-booking.")
@@ -70,11 +66,4 @@ public class BookingController {
         return ResponseEntity.ok(Map.of("message", "Prenotazione annullata con successo. Lo slot è stato liberato e il credito riaccreditato."));
     }
 
-    @Operation(summary = "Reset database (dev)", description = "Svuota e ripopola il database con i dati di test. Solo per sviluppo locale.")
-    @ApiResponse(responseCode = "200", description = "Database resettato")
-    @GetMapping("/reset-database")
-    public ResponseEntity<Map<String, String>> resetDatabase() {
-        databaseInitializerService.initialize();
-        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Database svuotato e ripopolato con i nuovi dati di test/link Jitsi!"));
-    }
 }
