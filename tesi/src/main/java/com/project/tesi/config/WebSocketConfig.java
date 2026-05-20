@@ -41,11 +41,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Endpoint con SockJS fallback (per client legacy)
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns("https://progetto-fe.vercel.app")
                 .withSockJS();
 
         // Endpoint WebSocket nativo (per client moderni come @stomp/stompjs)
         registry.addEndpoint("/ws/websocket")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns("https://progetto-fe.vercel.app");
     }
 }
