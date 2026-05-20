@@ -44,17 +44,22 @@ Controllers → Facades → Services → Builders → Repositories → PostgreSQ
 ```
 
 - **Controllers** (`controller/`) — REST endpoints; delegate entirely to facades or services, no business logic.
-- **Facades** (`facade/`) — Orchestrate multiple services for complex operations (e.g., `BookingFacade` calls `BookingService`, `SubscriptionService`, `SlotService`, and fires events).
+- **Facades** (`facade/`) — Orchestrate multiple services for complex operations (e.g., `AdminFacade` aggregates user, subscription and plan flows in a single coarse-grained entry point).
 - **Services** (`service/impl/`) — Business logic. Interfaces under `service/`, implementations under `service/impl/`.
 - **Builders** (`builder/impl/`) — Entity construction via the Builder pattern; all entities are assembled through builders.
 - **Repositories** (`repository/`) — Spring Data JPA; no custom SQL except JPQL in `@Query` annotations.
 
-### Key Design Patterns
+### Key Design Patterns (GoF, framework-independent)
 
-- **Strategy** — `BookingStrategy` interface with `PTBookingStrategy` and `NutritionistBookingStrategy`; the facade selects the right strategy at runtime.
-- **Observer** — Spring's `ApplicationEventPublisher` publishes `BookingCreatedEvent` / `BookingCancelledEvent`; listeners in `observer/listener/impl/` handle activity feed updates and email notifications.
-- **Optimistic Locking + Fine-Grained Locking** — `@Version` on `Slot`, `User`, and `Booking` entities; a `ConcurrentHashMap<Long, ReentrantLock>` in `BookingServiceImpl` prevents duplicate booking under concurrent requests.
-- **Facade interfaces** — Facade contracts follow the `I<Name>Facade` convention (e.g., `IUserFacade`, `IAdminFacade`); implementations live in `facade/impl/`.
+- **Builder** — Every domain entity is assembled through a hand-written Builder: interface in `builder/` (`UserBuilder`, `BookingBuilder`, …), concrete implementation in `builder/impl/` (`UserBuilderImpl`, …). A `BookingDirector` orchestrates the construction of `Booking` instances for the `CONFIRMED`/`COMPLETED`/`CANCELED` variants, completing the GoF Builder structure with the Director role.
+- **Strategy** — `BookingStrategy` interface with `PersonalTrainerBookingStrategy` and `NutritionistBookingStrategy`; `BookingServiceImpl` selects the concrete strategy at runtime based on the professional's role (true dynamic dispatch, no Spring magic involved in the selection).
+- **Facade** — Contracts under `facade/` follow the `I<Name>Facade` convention (`IUserFacade`, `IAdminFacade`, `IChatFacade`, `IDocumentFacade`, `IModeratorFacade`, `IPlanFacade`, `IActivityFeedFacade`); implementations in `facade/impl/` provide a single coarse-grained API over multiple services so controllers stay thin.
+
+### Concurrency (requirement for grades ≥27)
+
+- **Optimistic locking** — `@Version` on `Booking`, `Slot`, `Subscription`, `User`; `ObjectOptimisticLockingFailureException` is caught and translated into `ConcurrentUpdateException`.
+- **Pessimistic locking on hot rows** — `@Lock(LockModeType.PESSIMISTIC_WRITE)` on `SlotRepository.findByIdWithLock` and `SubscriptionRepository.findByUserAndActiveTrueWithLock`.
+- **Fine-grained in-process locking** — `BookingServiceImpl` keeps a `ConcurrentHashMap<Long, LockReference>` of per-slot `ReentrantLock`s plus a `synchronized` block on the map for safe acquire/release; this is the shared resource + lock combination required by the syllabus.
 
 ### Domain Overview
 
