@@ -34,26 +34,30 @@ public class SubscriptionScheduler {
         LocalDate today = LocalDate.now();
 
         for (Subscription sub : activeSubs) {
-            // Reset crediti il primo giorno di ogni mese
-            if (today.getDayOfMonth() == 1) {
-                if (sub.getPaymentFrequency() == PaymentFrequency.RATE_MENSILI) {
-                    if (sub.getNextPaymentDate() != null 
-                            && !today.isBefore(sub.getNextPaymentDate()) 
-                            && sub.getInstallmentsPaid() < sub.getTotalInstallments()) {
-                        
-                        sub.setInstallmentsPaid(sub.getInstallmentsPaid() + 1);
-                        sub.setNextPaymentDate(sub.getNextPaymentDate().plusMonths(1));
-                    } else {
-                        log.warn("Pagamento rateale non dovuto per l'abbonamento ID {}: salto il reset dei crediti", sub.getId());
-                        continue;
+            try {
+                // Reset crediti il primo giorno di ogni mese
+                if (today.getDayOfMonth() == 1) {
+                    if (sub.getPaymentFrequency() == PaymentFrequency.RATE_MENSILI) {
+                        if (sub.getNextPaymentDate() != null
+                                && !today.isBefore(sub.getNextPaymentDate())
+                                && sub.getInstallmentsPaid() < sub.getTotalInstallments()) {
+
+                            sub.setInstallmentsPaid(sub.getInstallmentsPaid() + 1);
+                            sub.setNextPaymentDate(sub.getNextPaymentDate().plusMonths(1));
+                        } else {
+                            log.warn("Pagamento rateale non dovuto per l'abbonamento ID {}: salto il reset dei crediti", sub.getId());
+                            continue;
+                        }
                     }
+
+                    sub.setCurrentCreditsPT(sub.getPlan().getMonthlyCreditsPT());
+                    sub.setCurrentCreditsNutri(sub.getPlan().getMonthlyCreditsNutri());
+                    sub.setLastRenewalDate(today);
+
+                    subscriptionRepository.save(sub);
                 }
-
-                sub.setCurrentCreditsPT(sub.getPlan().getMonthlyCreditsPT());
-                sub.setCurrentCreditsNutri(sub.getPlan().getMonthlyCreditsNutri());
-                sub.setLastRenewalDate(today);
-
-                subscriptionRepository.save(sub);
+            } catch (Exception e) {
+                log.error("Errore nel rinnovo crediti per subscription ID {}: {}", sub.getId(), e.getMessage());
             }
         }
     }

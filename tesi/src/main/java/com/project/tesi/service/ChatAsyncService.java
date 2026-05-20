@@ -14,7 +14,7 @@ public class ChatAsyncService {
         this.chatService = chatService;
     }
 
-    @Async
+    @Async("emailTaskExecutor")
     public void saveMessageAsync(Long chatId, Long senderId, String content) {
         try {
             chatService.sendMessageDirect(chatId, senderId, content);
@@ -23,7 +23,7 @@ public class ChatAsyncService {
         }
     }
 
-    @Async
+    @Async("emailTaskExecutor")
     public void markAsReadAsync(Long chatId, Long userId) {
         try {
             chatService.markAsRead(chatId, userId);

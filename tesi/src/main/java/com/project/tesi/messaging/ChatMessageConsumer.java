@@ -18,6 +18,12 @@ public class ChatMessageConsumer {
         this.chatService = chatService;
     }
 
+    @RabbitListener(queues = RabbitMQConfig.CHAT_DLQ)
+    public void handleDeadLetter(ChatMessagePayload payload) {
+        log.error("[DLQ] Messaggio chat non consegnato: chatId={}, senderId={}, content={}",
+                payload.chatId(), payload.senderId(), payload.content());
+    }
+
     @RabbitListener(queues = RabbitMQConfig.CHAT_QUEUE)
     public void consume(ChatMessagePayload payload) {
         log.info("[RabbitMQ] Consume chat message chatId={} senderId={}", payload.chatId(), payload.senderId());

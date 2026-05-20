@@ -13,7 +13,8 @@ VALUES
     ('Basic Pack Semestrale',   'SEMESTRALE', 1, 1,  960.0,  160.0, 'Copertura inclusa'),
     ('Basic Pack Annuale',      'ANNUALE',    1, 1, 1800.0,  150.0, 'Copertura inclusa'),
     ('Premium Pack Semestrale', 'SEMESTRALE', 2, 2, 1620.0,  270.0, 'Copertura inclusa'),
-    ('Premium Pack Annuale',    'ANNUALE',    2, 2, 3000.0,  250.0, 'Copertura inclusa');
+    ('Premium Pack Annuale',    'ANNUALE',    2, 2, 3000.0,  250.0, 'Copertura inclusa')
+ON CONFLICT (name) DO NOTHING;
 
 -- Professionisti e staff (nessuna FK verso altri utenti)
 INSERT INTO users (version, email, password, first_name, last_name, role, professional_bio, assigned_pt_id, assigned_nutritionist_id)
@@ -26,33 +27,39 @@ VALUES
     (0, 'insurance@test.com',  '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Paolo',   'Assicurazioni', 'INSURANCE_MANAGER',NULL,                                                              NULL, NULL),
     (0, 'moderator1@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Marta',   'Moderatrice',   'MODERATOR',        NULL,                                                              NULL, NULL),
     (0, 'moderator2@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Lorenzo', 'Support',       'MODERATOR',        NULL,                                                              NULL, NULL),
-    (0, 'moderator3@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Elisa',   'Care',          'MODERATOR',        NULL,                                                              NULL, NULL);
+    (0, 'moderator3@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Elisa',   'Care',          'MODERATOR',        NULL,                                                              NULL, NULL)
+ON CONFLICT (email) DO NOTHING;
 
 -- Clienti (referenziano PT e nutrizionista già inseriti)
 INSERT INTO users (version, email, password, first_name, last_name, role, professional_bio, assigned_pt_id, assigned_nutritionist_id)
 VALUES (0, 'luca@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Luca',  'Ferri',    'CLIENT', NULL,
         (SELECT id FROM users WHERE email = 'pt1@test.com'),
-        (SELECT id FROM users WHERE email = 'nutri1@test.com'));
+        (SELECT id FROM users WHERE email = 'nutri1@test.com'))
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (version, email, password, first_name, last_name, role, professional_bio, assigned_pt_id, assigned_nutritionist_id)
 VALUES (0, 'sofia@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Sofia', 'Conti',    'CLIENT', NULL,
         (SELECT id FROM users WHERE email = 'pt1@test.com'),
-        (SELECT id FROM users WHERE email = 'nutri2@test.com'));
+        (SELECT id FROM users WHERE email = 'nutri2@test.com'))
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (version, email, password, first_name, last_name, role, professional_bio, assigned_pt_id, assigned_nutritionist_id)
 VALUES (0, 'matteo@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Matteo','Galli',    'CLIENT', NULL,
         (SELECT id FROM users WHERE email = 'pt2@test.com'),
-        (SELECT id FROM users WHERE email = 'nutri1@test.com'));
+        (SELECT id FROM users WHERE email = 'nutri1@test.com'))
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (version, email, password, first_name, last_name, role, professional_bio, assigned_pt_id, assigned_nutritionist_id)
 VALUES (0, 'chiara@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Chiara','Fontana',  'CLIENT', NULL,
         (SELECT id FROM users WHERE email = 'pt2@test.com'),
-        (SELECT id FROM users WHERE email = 'nutri2@test.com'));
+        (SELECT id FROM users WHERE email = 'nutri2@test.com'))
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (version, email, password, first_name, last_name, role, professional_bio, assigned_pt_id, assigned_nutritionist_id)
 VALUES (0, 'testreview@test.com', '$2a$10$0VtW52huEimaZO64NAgNpO8NXKTrMutT24RHz..em0HI8QkxW0.eu', 'Test','Recensore','CLIENT', NULL,
         (SELECT id FROM users WHERE email = 'pt1@test.com'),
-        (SELECT id FROM users WHERE email = 'nutri1@test.com'));
+        (SELECT id FROM users WHERE email = 'nutri1@test.com'))
+ON CONFLICT (email) DO NOTHING;
 
 -- testreview: simula utente creato 40 giorni fa (abilita la logica di recensione)
 UPDATE users SET created_at = NOW() - INTERVAL '40 days' WHERE email = 'testreview@test.com';

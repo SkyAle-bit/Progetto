@@ -4,7 +4,6 @@ import com.project.tesi.model.Booking;
 import com.project.tesi.model.User;
 import com.project.tesi.repository.BookingRepository;
 import com.project.tesi.service.EmailService;
-import com.project.tesi.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
